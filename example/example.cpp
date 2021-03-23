@@ -8,7 +8,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "dhara_map.h"
+#include "memory_dhara_map.h"
 #include "directory_chain.h"
 #include "data_chain.h"
 #include "file_appender.h"
@@ -18,7 +18,7 @@ using namespace phylum;
 int32_t main() {
     auto sector_size = 256u;
 
-    dhara_map dhara{ sector_size };
+    memory_dhara_map dhara{ sector_size };
     sector_allocator allocator{ dhara };
 
     if (false) {

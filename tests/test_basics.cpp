@@ -9,7 +9,7 @@ using namespace phylum;
 class BasicsSuite : public PhylumSuite {};
 
 TEST_F(BasicsSuite, MountFormatMount) {
-    dhara_map dhara{ sector_size() };
+    memory_dhara_map dhara{ sector_size() };
     sector_allocator allocator{ dhara };
     directory_chain chain{ dhara, allocator, 0, simple_buffer{ sector_size() } };
     ASSERT_EQ(chain.mount(), -1);
@@ -19,7 +19,7 @@ TEST_F(BasicsSuite, MountFormatMount) {
 }
 
 TEST_F(BasicsSuite, FormatPersists) {
-    dhara_map dhara{ sector_size() };
+    memory_dhara_map dhara{ sector_size() };
 
     sync([&]() {
         sector_allocator allocator{ dhara };

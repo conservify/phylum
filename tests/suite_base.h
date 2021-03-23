@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <memory_dhara_map.h>
 #include <directory_chain.h>
 
 #include "fake_data.h"
@@ -15,7 +16,7 @@ constexpr uint8_t ATTRIBUTE_TWO = 0x2;
 class PhylumSuite : public ::testing::Test {
 private:
     size_t sector_size_{ 256 };
-    dhara_map dhara_{ sector_size() };
+    memory_dhara_map dhara_{ sector_size() };
     bool formatted_{ false };
     open_file_attribute attributes_[2] = {
         { .type = ATTRIBUTE_ONE, .size = 4, .ptr = nullptr },
