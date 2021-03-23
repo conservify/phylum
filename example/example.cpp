@@ -11,7 +11,9 @@
 #include "memory_dhara_map.h"
 #include "directory_chain.h"
 #include "data_chain.h"
+#include "integer_chain.h"
 #include "file_appender.h"
+#include "file_reader.h"
 
 using namespace phylum;
 
