@@ -5,8 +5,17 @@
 #include <cinttypes>
 #include <cstdarg>
 #include <cstring>
+#include <cstdio>
 
 namespace phylum {
+
+static inline int32_t phy_vsnprintf(char *buffer, size_t size, const char *f, ...) {
+    va_list args;
+    va_start(args, f);
+    auto err = vsnprintf(buffer, size, f, args);
+    va_end(args);
+    return err;
+}
 
 uint32_t crc32_checksum(const char *str);
 

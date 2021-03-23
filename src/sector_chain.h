@@ -76,7 +76,7 @@ protected:
     void name(const char *f, ...) {
         va_list args;
         va_start(args, f);
-        vsnprintf(name_, sizeof(name_), f, args);
+        phy_vsnprintf(name_, sizeof(name_), f, args);
         va_end(args);
     }
 
