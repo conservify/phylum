@@ -1,3 +1,5 @@
+#include <alogging/alogging.h>
+
 #include "task_stack.h"
 #include "varint.h"
 
@@ -52,7 +54,7 @@ int32_t main() {
             simple_buffer data{ 256 };
             while (true) {
                 auto nread = sectors.read((uint32_t *)data.ptr(), data.size() / sizeof(uint32_t));
-                debugf("nread: %d\n", nread);
+                phydebugf("nread: %d\n", nread);
                 if (nread == 0) {
                     break;
                 } else if (nread < 0) {
@@ -90,7 +92,7 @@ int32_t main() {
     };
 
     if (true) {
-        debugf("************ writing to file\n");
+        phydebugf("************ writing to file\n");
 
         directory_chain chain{ dhara, allocator, 0, simple_buffer{ sector_size } };
         assert(chain.mount() <= 0);
@@ -100,18 +102,18 @@ int32_t main() {
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
         auto writing = "Hello, world!";
         if (opened.write((uint8_t const *)writing, strlen(writing)) < 0) {
-            debugf("write error\n");
+            phydebugf("write error\n");
             return 0;
         } else {
             if (opened.close() < 0) {
-                debugf("close error\n");
+                phydebugf("close error\n");
                 return 0;
             }
         }
     }
 
     if (true) {
-        debugf("************ appending to file (once)\n");
+        phydebugf("************ appending to file (once)\n");
 
         directory_chain chain{ dhara, allocator, 0, simple_buffer{ 256 } };
         assert(chain.mount() <= 0);
@@ -121,19 +123,19 @@ int32_t main() {
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
         auto writing = "Hello, world!";
         if (opened.write((uint8_t const *)writing, strlen(writing)) < 0) {
-            debugf("write error\n");
+            phydebugf("write error\n");
             return 0;
         } else {
             opened.u32(0x01, 1);
             if (opened.close() < 0) {
-                debugf("close error\n");
+                phydebugf("close error\n");
                 return 0;
             }
         }
     }
 
     if (true) {
-        debugf("************ appending to file (10)\n");
+        phydebugf("************ appending to file (10)\n");
 
         directory_chain chain{ dhara, allocator, 0, simple_buffer{ sector_size } };
         assert(chain.mount() <= 0);
@@ -150,7 +152,7 @@ int32_t main() {
     }
 
     if (true) {
-        debugf("************ appending to file (chunk)\n");
+        phydebugf("************ appending to file (chunk)\n");
 
         for (auto k = 0u; k < 2; ++k) {
             directory_chain chain{ dhara, allocator, 0, simple_buffer{ sector_size } };
@@ -186,7 +188,7 @@ int32_t main() {
         simple_buffer data{ 256 };
         while (true) {
             auto nread = sectors.read(data.ptr(), data.size());
-            debugf("nread: %d\n", nread);
+            phydebugf("nread: %d\n", nread);
             // fk_dump_memory("read: ", data.ptr(), nread);
             if (nread == 0) {
                 break;
@@ -197,7 +199,7 @@ int32_t main() {
     }
 
     if (true) {
-        debugf("************ walking\n");
+        phydebugf("************ walking\n");
 
         directory_chain chain{ dhara, allocator, 0, simple_buffer{ sector_size } };
         assert(chain.mount() <= 0);

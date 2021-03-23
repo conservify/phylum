@@ -5,18 +5,14 @@
 
 namespace phylum {
 
-task_stack tasks;
-
-int32_t debugf(const char *f, ...) {
+void phydebugf(const char *f, ...) {
     va_list args;
     va_start(args, f);
-    printf("%s ", tasks.get());
-    vprintf(f, args);
+    valogfs(LogLevels::INFO, "phylum", get_task_stack()->get(), f, args);
     va_end(args);
-    return 0;
 }
 
-void fk_dump_memory(const char *prefix, const uint8_t *p, size_t size, ...) {
+void phydebug_dump_memory(const char *prefix, const uint8_t *p, size_t size, ...) {
     va_list args;
     va_start(args, size);
 

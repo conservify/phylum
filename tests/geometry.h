@@ -20,7 +20,7 @@ public:
         verify_sector(dhara_map &map, dhara_sector_t sector) : sector_(sector), buffer_(map.sector_size()) {
             buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
                 auto err = map.read(sector_, ptr, size);
-                // fk_dump_memory("verify ", ptr, size);
+                // phydebug_dump_memory("verify ", ptr, size);
                 return err;
             });
         }
@@ -65,14 +65,14 @@ public:
                     if (memcmp(expected_payload, actual_payload.ptr(), actual_payload.size()) == 0) {
                         return testing::AssertionSuccess();
                     }
-                    fk_dump_memory("payload-actual   ", (uint8_t *)actual_payload.ptr(), actual_payload.size());
-                    fk_dump_memory("payload-expected ", (uint8_t *)expected_payload, payload_size);
+                    phydebug_dump_memory("payload-actual   ", (uint8_t *)actual_payload.ptr(), actual_payload.size());
+                    phydebug_dump_memory("payload-expected ", (uint8_t *)expected_payload, payload_size);
                     return testing::AssertionFailure() << "Header record";
                 }
                 return testing::AssertionSuccess();
             }
-            fk_dump_memory("actual   ", (uint8_t *)actual, sizeof(T));
-            fk_dump_memory("expected ", (uint8_t *)&expected, sizeof(T));
+            phydebug_dump_memory("actual   ", (uint8_t *)actual, sizeof(T));
+            phydebug_dump_memory("expected ", (uint8_t *)&expected, sizeof(T));
             return testing::AssertionFailure() << "Header record";
         }
 

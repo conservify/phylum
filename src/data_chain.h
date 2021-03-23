@@ -40,7 +40,7 @@ protected:
         logged_task lt{ "write-data-chain" };
 
         if (!appendable()) {
-            debugf("making appendable\n");
+            phydebugf("making appendable");
 
             assert(back_to_head() >= 0);
 
@@ -58,7 +58,7 @@ protected:
 
             if (err == 0) {
                 auto hdr = header<data_chain_header_t>();
-                debugf("write resuming sector-bytes=%d\n", hdr->bytes);
+                phydebugf("write resuming sector-bytes=%d", hdr->bytes);
                 assert(db().skip(hdr->bytes) >= 0);
             }
 
@@ -68,7 +68,7 @@ protected:
         auto written = 0;
 
         while (true) {
-            debugf("view position=%zu available=%zu size=%zu\n", db().position(), db().available(), db().size());
+            phydebugf("view position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
 
             auto grow = false;
             auto rv = data_fn(db().write_view(), grow);
@@ -125,12 +125,12 @@ protected:
                 auto hdr = header<data_chain_header_t>();
                 assert(db().constrain(hdr->bytes) >= 0);
 
-                debugf("read resuming sector-bytes=%d\n", hdr->bytes);
+                phydebugf("read resuming sector-bytes=%d", hdr->bytes);
             }
 
             // If we have data available.
             if (db().available() > 0) {
-                debugf("view position=%zu available=%zu\n", db().position(), db().available());
+                phydebugf("view position=%zu available=%zu", db().position(), db().available());
 
                 auto rv = data_fn(db().read_view());
                 if (rv < 0) {

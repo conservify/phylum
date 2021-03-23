@@ -66,12 +66,12 @@ uint32_t data_chain::total_bytes() {
         bytes += header<data_chain_header_t>()->bytes;
     }
 
-    debugf("done (%d)\n", bytes);
+    phydebugf("done (%d)", bytes);
 
     return bytes;
 }
 
-int32_t data_chain::seek(file_size_t position, seek_reference reference) {
+int32_t data_chain::seek(file_size_t /*position*/, seek_reference /*reference*/) {
     return 0;
 }
 

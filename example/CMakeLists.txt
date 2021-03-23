@@ -14,3 +14,7 @@ add_executable(example ${sources})
 target_compile_options(example PRIVATE -Wall -Wextra)
 
 target_include_directories(example PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/third-party/arduino-logging/cmake)
+find_package(ArduinoLogging)
+target_link_libraries(example ArduinoLogging)

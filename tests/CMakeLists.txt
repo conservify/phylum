@@ -46,5 +46,10 @@ add_executable(testall ${library_sources} ${test_sources})
 
 target_include_directories(testall PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(testall PRIVATE -Wall)
+
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/third-party/arduino-logging/cmake)
+find_package(ArduinoLogging)
+target_link_libraries(testall ArduinoLogging)
+
 target_link_libraries(testall libgtest libgmock)
 add_test(NAME testall COMMAND testall)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "phylum.h"
-#include "task_stack.h"
 #include "varint.h"
 
 namespace phylum {
@@ -22,28 +21,28 @@ public:
     simple_buffer(simple_buffer &&other)
         : ptr_(exchange(other.ptr_, nullptr)), size_(other.size_), position_(other.position_),
           free_(exchange(other.free_, false)) {
-        // debugf("simple-buffer::ctor (move)\n");
+        // phydebugf("simple-buffer::ctor (move)");
     }
 
     explicit simple_buffer(size_t size) : ptr_((uint8_t *)malloc(size)), size_(size), free_(true) {
-        // debugf("simple-buffer::ctor (malloc) %p\n", ptr_);
+        // phydebugf("simple-buffer::ctor (malloc) %p", ptr_);
         assert(size > 0);
         clear();
     }
 
     explicit simple_buffer(uint8_t *ptr, size_t size) : ptr_(ptr), size_(size), position_(0), free_(false) {
         assert(size > 0);
-        // debugf("simple-buffer::ctor (ptr, size)\n");
+        // phydebugf("simple-buffer::ctor (ptr, size)");
     }
 
     explicit simple_buffer(uint8_t *ptr, size_t size, size_t position) : ptr_(ptr), size_(size), position_(position), free_(false) {
         assert(size > 0);
-        // debugf("simple-buffer::ctor (ptr, size, pos)\n");
+        // phydebugf("simple-buffer::ctor (ptr, size, pos)");
     }
 
     virtual ~simple_buffer() {
         if (free_ && ptr_ != nullptr) {
-            // debugf("simple-buffer::~  %p\n", ptr_);
+            // phydebugf("simple-buffer::~  %p", ptr_);
             free(ptr_);
             ptr_ = nullptr;
         }

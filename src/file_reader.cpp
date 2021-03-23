@@ -9,7 +9,7 @@ file_reader::file_reader(directory_chain &directory, found_file file, simple_buf
 file_reader::~file_reader() {
 }
 
-int32_t file_reader::read(uint8_t *data, size_t size) {
+int32_t file_reader::read(uint8_t */*data*/, size_t /*size*/) {
     return -1;
 }
 
@@ -17,7 +17,7 @@ int32_t file_reader::close() {
     return -1;
 }
 
-uint32_t file_reader::u32(uint8_t type) {
+uint32_t file_reader::u32(uint8_t /*type*/) {
     return -1;
 }
 

@@ -18,7 +18,7 @@ int32_t sector_chain::create_if_necessary() {
         return err;
     }
 
-    debugf("%s: created, ready\n", name());
+    phydebugf("%s: created, ready", name());
 
     return 0;
 }
@@ -29,11 +29,11 @@ int32_t sector_chain::flush() {
     assert_valid();
 
     if (!dirty()) {
-        debugf("%s flush (NOOP)\n", name());
+        phydebugf("%s flush (NOOP)", name());
         return 0;
     }
 
-    debugf("%s flush\n", name());
+    phydebugf("%s flush", name());
 
     auto err = dhara_->write(sector_, buffer_.read_view().ptr(), buffer_.read_view().size());
     if (err < 0) {
@@ -50,12 +50,12 @@ int32_t sector_chain::seek_end_of_chain() {
 
     assert_valid();
 
-    debugf("%s starting\n", name());
+    phydebugf("%s starting", name());
 
     while (true) {
         auto err = forward();
         if (err < 0) {
-            debugf("%s end (%d)\n", name(), err);
+            phydebugf("%s end (%d)", name(), err);
             return err;
         } else if (err == 0) {
             break;
@@ -67,17 +67,17 @@ int32_t sector_chain::seek_end_of_chain() {
         return err;
     }
 
-    debugf("%s sector=%d position=%zu\n", name(), sector_, db().position());
+    phydebugf("%s sector=%d position=%zu", name(), sector_, db().position());
 
     return 0;
 }
 
 int32_t sector_chain::back_to_head() {
     if (sector_ != InvalidSector) {
-        debugf("%s back-to-head %d -> %d\n", name(), sector_, head_);
+        phydebugf("%s back-to-head %d -> %d", name(), sector_, head_);
         sector_ = InvalidSector;
     } else {
-        debugf("%s back-to-head %d (NOOP)\n", name(), sector_);
+        phydebugf("%s back-to-head %d (NOOP)", name(), sector_);
     }
 
     length_ = 0;
@@ -100,16 +100,16 @@ int32_t sector_chain::forward() {
     appendable(false);
 
     if (sector_ == InvalidSector) {
-        debugf("%s first load\n", name());
+        phydebugf("%s first load", name());
         sector_ = head_;
     } else {
         auto hdr = header<sector_chain_header_t>();
         if (hdr->np == 0 || hdr->np == UINT32_MAX) {
             if (hdr->type == entry_type::DataSector) {
                 auto dchdr = header<data_chain_header_t>();
-                debugf("%s sector=%d bytes=%d length=%d (end)\n", name(), sector_, dchdr->bytes, length_);
+                phydebugf("%s sector=%d bytes=%d length=%d (end)", name(), sector_, dchdr->bytes, length_);
             } else {
-                debugf("%s sector=%d length=%d (end)\n", name(), sector_, length_);
+                phydebugf("%s sector=%d length=%d (end)", name(), sector_, length_);
             }
             return 0;
         }
@@ -118,9 +118,9 @@ int32_t sector_chain::forward() {
 
         if (hdr->type == entry_type::DataSector) {
             auto dchdr = header<data_chain_header_t>();
-            debugf("%s sector=%d bytes=%d length=%d\n", name(), sector_, dchdr->bytes, length_);
+            phydebugf("%s sector=%d bytes=%d length=%d", name(), sector_, dchdr->bytes, length_);
         } else {
-            debugf("%s sector=%d length=%d\n", name(), sector_, length_);
+            phydebugf("%s sector=%d length=%d", name(), sector_, length_);
         }
     }
 
@@ -128,7 +128,7 @@ int32_t sector_chain::forward() {
 
     auto err = load();
     if (err < 0) {
-        debugf("%s: load failed\n", name());
+        phydebugf("%s: load failed", name());
         return err;
     }
 
@@ -143,7 +143,7 @@ int32_t sector_chain::load() {
     assert_valid();
 
     if (sector_ == InvalidSector) {
-        debugf("invalid sector\n");
+        phydebugf("invalid sector");
         return -1;
     }
 
@@ -166,50 +166,50 @@ int32_t sector_chain::log() {
 
         switch (entry->type) {
         case entry_type::None: {
-            debugf("none (%zu)\n", record.size_of_record);
+            phydebugf("none (%zu)", record.size_of_record);
             break;
         }
         case entry_type::SuperBlock: {
             auto sb = record.as<super_block_t>();
-            debugf("super-block (%zu) version=%d\n", record.size_of_record, sb->version);
+            phydebugf("super-block (%zu) version=%d", record.size_of_record, sb->version);
             break;
         }
         case entry_type::DirectorySector: {
             auto sh = record.as<sector_chain_header_t>();
-            debugf("dir-sector (%zu) p=%d n=%d\n", record.size_of_record, sh->pp, sh->np);
+            phydebugf("dir-sector (%zu) p=%d n=%d", record.size_of_record, sh->pp, sh->np);
             break;
         }
         case entry_type::DataSector: {
             auto sh = record.as<data_chain_header_t>();
-            debugf("data-sector (%zu) p=%d n=%d bytes=%d\n", record.size_of_record, sh->pp, sh->np, sh->bytes);
+            phydebugf("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record, sh->pp, sh->np, sh->bytes);
             break;
         }
         case entry_type::FileEntry: {
             auto fe = record.as<file_entry_t>();
-            debugf("entry (%zu) id=0x%x name='%s'\n", record.size_of_record, fe->id, fe->name);
+            phydebugf("entry (%zu) id=0x%x name='%s'", record.size_of_record, fe->id, fe->name);
             break;
         }
         case entry_type::FileData: {
             auto fd = record.as<file_data_t>();
             if (fd->size > 0) {
-                debugf("data (%zu) id=0x%x size=%d\n", record.size_of_record, fd->id, fd->size);
+                phydebugf("data (%zu) id=0x%x size=%d", record.size_of_record, fd->id, fd->size);
             } else {
-                debugf("data (%zu) id=0x%x chain=%d/%d\n", record.size_of_record, fd->id, fd->chain.head,
+                phydebugf("data (%zu) id=0x%x chain=%d/%d", record.size_of_record, fd->id, fd->chain.head,
                        fd->chain.tail);
 
                 data_chain dc{ *this, fd->chain };
-                debugf("chain total-bytes=%d\n", dc.total_bytes());
+                phydebugf("chain total-bytes=%d", dc.total_bytes());
             }
             break;
         }
         case entry_type::FileAttribute: {
             auto fa = record.as<file_attribute_t>();
-            debugf("attr (%zu) id=0x%x attr=%d\n", record.size_of_record, fa->id, fa->type);
+            phydebugf("attr (%zu) id=0x%x attr=%d", record.size_of_record, fa->id, fa->type);
             break;
         }
         case entry_type::FileSkip: {
             auto fs = record.as<file_skip_t>();
-            debugf("skip (%zu) id=0x%x sector=%d position=%d\n",
+            phydebugf("skip (%zu) id=0x%x sector=%d position=%d",
                    record.size_of_record, fs->id, fs->sector, fs->position);
             break;
         }
@@ -223,7 +223,7 @@ int32_t sector_chain::write_header_if_at_start() {
         return 0;
     }
 
-    debugf("%s write header\n", name());
+    phydebugf("%s write header", name());
 
     auto err = write_header();
     if (err < 0) {
@@ -246,7 +246,7 @@ int32_t sector_chain::grow_tail() {
     auto allocated = allocator_->allocate();
     assert(allocated != sector_); // Don't ask.
 
-    debugf("%s grow! %zu/%zu alloc=%d\n", name(), db().position(), db().size(), allocated);
+    phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
     if (sector_ != InvalidSector) {
         assert(db().begin() != db().end());
@@ -277,6 +277,13 @@ int32_t sector_chain::grow_tail() {
     hdr->pp = previous_sector;
 
     return 0;
+}
+
+void sector_chain::name(const char *f, ...) {
+    va_list args;
+    va_start(args, f);
+    phy_vsnprintf(name_, sizeof(name_), f, args);
+    va_end(args);
 }
 
 } // namespace phylum

@@ -8,12 +8,12 @@ void *delimited_buffer::reserve(size_t length) {
     // If this is our first record, write the offset value first.
     if (buffer_.position() == 0) {
         if (offset_ > 0) {
-            debugf("writing offset: %zu\n", offset_);
+            phydebugf("writing offset: %zu", offset_);
         }
         auto needed = varint_encoding_length(offset_);
         auto p = buffer_.take(needed);
         if (*p != 0xff) {
-            fk_dump_memory("overwrite ", p, needed);
+            phydebug_dump_memory("overwrite ", p, needed);
             assert(*p == 0xff);
         }
         varint_encode(offset_, p, needed);
@@ -31,7 +31,7 @@ void *delimited_buffer::reserve(size_t length) {
 
     auto position_after = buffer_.position();
 
-    debugf("reserve: %zu (+%d) = %zu before=%zu after=%zu\n", length, delimiter_overhead, length + delimiter_overhead,
+    phydebugf("reserve: %zu (+%d) = %zu before=%zu after=%zu", length, delimiter_overhead, length + delimiter_overhead,
            position_before, position_after);
 
     // This is where we'll ask the caller to construct their record.
@@ -39,7 +39,7 @@ void *delimited_buffer::reserve(size_t length) {
 
     // TODO Check the whole region?
     if (*allocated != 0xff) {
-        fk_dump_memory("overwrite ", allocated, length);
+        phydebug_dump_memory("overwrite ", allocated, length);
         assert(*allocated == 0xff);
     }
 

@@ -36,15 +36,14 @@ public:
         }
         map_[sector] = (uint8_t *)malloc(sector_size_);
         memcpy(map_[sector], data, size);
-        debugf("dhara: write #%d\n", sector);
-        // fk_dump_memory("write: ", data, size);
+        phydebugf("dhara: write #%d", sector);
         return 0;
     }
 
     int32_t read(dhara_sector_t sector, uint8_t *data, size_t size) override {
         assert(sector != UINT32_MAX);
         assert(size <= sector_size_);
-        debugf("dhara: read #%d\n", sector);
+        phydebugf("dhara: read #%d", sector);
         if (map_[sector] != nullptr) {
             memcpy(data, map_[sector], size);
             return 0;

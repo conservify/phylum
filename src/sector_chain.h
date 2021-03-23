@@ -73,12 +73,7 @@ public:
     }
 
 protected:
-    void name(const char *f, ...) {
-        va_list args;
-        va_start(args, f);
-        phy_vsnprintf(name_, sizeof(name_), f, args);
-        va_end(args);
-    }
+    void name(const char *f, ...);
 
     void dirty(bool value) {
         dirty_ = value;

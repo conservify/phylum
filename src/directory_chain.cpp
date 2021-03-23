@@ -13,7 +13,7 @@ int32_t directory_chain::mount() {
         return err;
     }
 
-    debugf("mounted\n");
+    phydebugf("mounted");
     back_to_head();
 
     return 0;
@@ -25,7 +25,7 @@ int32_t directory_chain::format() {
     head(0);
     sector(0);
 
-    debugf("formatting\n");
+    phydebugf("formatting");
     auto err = write_header();
     if (err < 0) {
         return err;
@@ -46,14 +46,14 @@ int32_t directory_chain::prepare(size_t required) {
     if (!appendable()) {
         auto err = seek_end_of_chain();
         if (err < 0) {
-            debugf("seek-end failed\n");
+            phydebugf("seek-end failed");
             return err;
         }
     }
 
     auto err = grow_if_necessary(required);
     if (err < 0) {
-        debugf("grow failed\n");
+        phydebugf("grow failed");
         return err;
     }
 
@@ -139,7 +139,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (strncmp(fe->name, name, MaximumNameLength) == 0) {
-                debugf("found(file) '%s' id=0x%x\n", name, fe->id);
+                phydebugf("found(file) '%s' id=0x%x", name, fe->id);
                 file_.id = fe->id;
             }
         }
@@ -170,13 +170,13 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     });
 
     if (err < 0) {
-        debugf("find failed\n");
+        phydebugf("find failed");
         file_ = found_file{};
         return err;
     }
 
     if (file_.id == UINT32_MAX) {
-        debugf("find found no file\n");
+        phydebugf("find found no file");
         file_ = found_file{};
         return -1;
     }
