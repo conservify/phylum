@@ -28,7 +28,7 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    phydebugf("%s finding inline data begin", directory_.name());
+    phyinfof("%s finding inline data begin", directory_.name());
 
     // TODO This should be in a file reader and reused as part of this mechanism.
 
@@ -60,7 +60,7 @@ int32_t file_appender::make_data_chain() {
         buffer_.clear();
     }
 
-    phydebugf("%s finding inline data end", directory_.name());
+    phyinfof("%s finding inline data end", directory_.name());
 
     return 0;
 }
@@ -73,7 +73,7 @@ int32_t file_appender::flush() {
     // Do we already have a data chain?
     auto had_chain = data_chain_.valid();
     if (had_chain) {
-        phydebugf("%s writing to chain", directory_.name());
+        phyinfof("%s writing to chain", directory_.name());
 
         auto err = data_chain_.write(buffer_.ptr(), buffer_.position());
         if (err < 0) {
@@ -88,7 +88,7 @@ int32_t file_appender::flush() {
         }
 
         if (pending < buffer_.size() / 2) {
-            phydebugf("%s flush: inline id=0x%x bytes=%zu begin", directory_.name(), file_.id, pending);
+            phyinfof("%s flush: inline id=0x%x bytes=%zu begin", directory_.name(), file_.id, pending);
 
             assert(directory_.file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
 
@@ -96,18 +96,18 @@ int32_t file_appender::flush() {
 
             auto err = directory_.flush();
 
-            phydebugf("%s flush: inline done", directory_.name());
+            phyinfof("%s flush: inline done", directory_.name());
 
             return err;
         } else {
-            phydebugf("flush making chain");
+            phyinfof("flush making chain");
 
             auto err = make_data_chain();
             if (err < 0) {
                 return err;
             }
 
-            phydebugf("flush making chain done");
+            phyinfof("flush making chain done");
         }
     }
 
@@ -118,7 +118,7 @@ int32_t file_appender::flush() {
         }
 
         if (!had_chain) {
-            phydebugf("%s updating directory", data_chain_.name());
+            phyinfof("%s updating directory", data_chain_.name());
             file_.chain.head = data_chain_.head();
             file_.chain.tail = data_chain_.tail();
             err = directory_.file_chain(file_.id, file_.chain);

@@ -166,50 +166,50 @@ int32_t sector_chain::log() {
 
         switch (entry->type) {
         case entry_type::None: {
-            phydebugf("none (%zu)", record.size_of_record);
+            phyinfof("none (%zu)", record.size_of_record);
             break;
         }
         case entry_type::SuperBlock: {
             auto sb = record.as<super_block_t>();
-            phydebugf("super-block (%zu) version=%d", record.size_of_record, sb->version);
+            phyinfof("super-block (%zu) version=%d", record.size_of_record, sb->version);
             break;
         }
         case entry_type::DirectorySector: {
             auto sh = record.as<sector_chain_header_t>();
-            phydebugf("dir-sector (%zu) p=%d n=%d", record.size_of_record, sh->pp, sh->np);
+            phyinfof("dir-sector (%zu) p=%d n=%d", record.size_of_record, sh->pp, sh->np);
             break;
         }
         case entry_type::DataSector: {
             auto sh = record.as<data_chain_header_t>();
-            phydebugf("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record, sh->pp, sh->np, sh->bytes);
+            phyinfof("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record, sh->pp, sh->np, sh->bytes);
             break;
         }
         case entry_type::FileEntry: {
             auto fe = record.as<file_entry_t>();
-            phydebugf("entry (%zu) id=0x%x name='%s'", record.size_of_record, fe->id, fe->name);
+            phyinfof("entry (%zu) id=0x%x name='%s'", record.size_of_record, fe->id, fe->name);
             break;
         }
         case entry_type::FileData: {
             auto fd = record.as<file_data_t>();
             if (fd->size > 0) {
-                phydebugf("data (%zu) id=0x%x size=%d", record.size_of_record, fd->id, fd->size);
+                phyinfof("data (%zu) id=0x%x size=%d", record.size_of_record, fd->id, fd->size);
             } else {
-                phydebugf("data (%zu) id=0x%x chain=%d/%d", record.size_of_record, fd->id, fd->chain.head,
+                phyinfof("data (%zu) id=0x%x chain=%d/%d", record.size_of_record, fd->id, fd->chain.head,
                        fd->chain.tail);
 
                 data_chain dc{ *this, fd->chain };
-                phydebugf("chain total-bytes=%d", dc.total_bytes());
+                phyinfof("chain total-bytes=%d", dc.total_bytes());
             }
             break;
         }
         case entry_type::FileAttribute: {
             auto fa = record.as<file_attribute_t>();
-            phydebugf("attr (%zu) id=0x%x attr=%d", record.size_of_record, fa->id, fa->type);
+            phyinfof("attr (%zu) id=0x%x attr=%d", record.size_of_record, fa->id, fa->type);
             break;
         }
         case entry_type::FileSkip: {
             auto fs = record.as<file_skip_t>();
-            phydebugf("skip (%zu) id=0x%x sector=%d position=%d",
+            phyinfof("skip (%zu) id=0x%x sector=%d position=%d",
                    record.size_of_record, fs->id, fs->sector, fs->position);
             break;
         }

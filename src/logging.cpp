@@ -5,10 +5,24 @@
 
 namespace phylum {
 
-void phydebugf(const char *f, ...) {
+void phyinfof(const char *f, ...) {
     va_list args;
     va_start(args, f);
     valogfs(LogLevels::INFO, "phylum", get_task_stack()->get(), f, args);
+    va_end(args);
+}
+
+void phyerrorf(const char *f, ...) {
+    va_list args;
+    va_start(args, f);
+    valogfs(LogLevels::ERROR, "phylum", get_task_stack()->get(), f, args);
+    va_end(args);
+}
+
+void phydebugf(const char *f, ...) {
+    va_list args;
+    va_start(args, f);
+    valogfs(LogLevels::DEBUG, "phylum", get_task_stack()->get(), f, args);
     va_end(args);
 }
 
