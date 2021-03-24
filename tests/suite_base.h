@@ -17,6 +17,7 @@ class PhylumSuite : public ::testing::Test {
 private:
     size_t sector_size_{ 256 };
     memory_dhara_map dhara_{ sector_size() };
+    sector_allocator allocator_{ dhara_ };
     bool formatted_{ false };
     open_file_attribute attributes_[2] = {
         { .type = ATTRIBUTE_ONE, .size = 4, .ptr = nullptr },
@@ -31,6 +32,10 @@ public:
 
     dhara_map &dhara() {
         return dhara_;
+    }
+
+    sector_allocator &allocator() {
+        return allocator_;
     }
 
     open_file_config &file_cfg() {
@@ -72,8 +77,7 @@ public:
 
     template<typename T>
     void mounted(T fn) {
-        sector_allocator allocator{ dhara_ };
-        directory_chain chain{ dhara_, allocator, 0, simple_buffer{ sector_size() } };
+        directory_chain chain{ dhara_, allocator_, 0, simple_buffer{ sector_size() } };
         if (formatted_) {
             ASSERT_EQ(chain.mount(), 0);
         }

@@ -2,6 +2,8 @@
 
 #include <cinttypes>
 
+#include "dhara_map.h"
+
 namespace phylum {
 
 constexpr size_t MaximumNameLength = 64;
@@ -9,21 +11,13 @@ constexpr size_t MaximumNameLength = 64;
 typedef uint32_t file_id_t;
 typedef uint32_t file_size_t;
 typedef uint16_t file_flags_t;
-
-typedef uint32_t dhara_block_t;
-typedef uint32_t dhara_sector_t;
+typedef uint16_t record_number_t;
 
 #define PHY_PACKED __attribute__((__packed__))
 
 struct PHY_PACKED head_tail_t {
     dhara_sector_t head{ UINT32_MAX };
     dhara_sector_t tail{ UINT32_MAX };
-
-    head_tail_t() {
-    }
-
-    head_tail_t(dhara_sector_t head, dhara_sector_t tail) : head(head), tail(tail) {
-    }
 };
 
 constexpr uint32_t InvalidSector = UINT32_MAX;

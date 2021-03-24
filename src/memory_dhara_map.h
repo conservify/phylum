@@ -3,6 +3,7 @@
 #include <map>
 
 #include "dhara_map.h"
+#include "phylum.h"
 
 namespace phylum {
 

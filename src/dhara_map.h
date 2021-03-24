@@ -1,8 +1,12 @@
 #pragma once
 
-#include "phylum.h"
+#include <cinttypes>
+#include <cstdlib>
 
 namespace phylum {
+
+typedef uint32_t dhara_block_t;
+typedef uint32_t dhara_sector_t;
 
 class dhara_map {
 public:
