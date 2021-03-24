@@ -150,11 +150,7 @@ int32_t sector_chain::load() {
     db().rewind();
 
     return buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
-        auto err = dhara_->read(sector_, ptr, size);
-        if (err < 0) {
-            return err;
-        }
-        return 0;
+        return dhara_->read(sector_, ptr, size);
     });
 }
 

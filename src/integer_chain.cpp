@@ -33,9 +33,9 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
 
     auto index = 0u;
     return write_chain([&](simple_buffer &buffer, bool &grow) {
-        auto written = 0;
+        int32_t written = 0;
         while (index < length) {
-            auto needed = varint_encoding_length(values[index]);
+            int32_t needed = varint_encoding_length(values[index]);
             if (buffer.available() < needed) {
                 grow = true;
                 return written;
@@ -45,7 +45,7 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
             index++;
             buffer.skip(needed);
 
-            return (int32_t)needed;
+            return needed;
         }
         return written;
     });
@@ -54,10 +54,10 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
 int32_t integer_chain::read(uint32_t *values, size_t length) {
     logged_task lt{ "ic-read", name() };
 
-    auto index = 0;
+    int32_t index = 0;
     return read_chain([&](simple_buffer &view) {
         while (index < (int32_t)length && view.position() < view.size()) {
-            auto err = 0;
+            int32_t err = 0;
             auto value = varint_decode(view.cursor(), view.available(), &err);
             if (err < 0) {
                 return err;

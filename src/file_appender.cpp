@@ -45,7 +45,7 @@ int32_t file_appender::make_data_chain() {
                 }
             }
         }
-        return 0;
+        return (int32_t)0;
     });
     if (err < 0) {
         return err;

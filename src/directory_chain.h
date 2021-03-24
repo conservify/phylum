@@ -32,7 +32,7 @@ private:
 
 public:
     directory_chain(dhara_map &dhara, sector_allocator &allocator, dhara_sector_t head, simple_buffer &&buffer)
-        : sector_chain(dhara, allocator, std::move(buffer), { head, InvalidSector }, "directory") {
+        : sector_chain(dhara, allocator, std::move(buffer), head_tail_t{ head, InvalidSector }, "directory") {
     }
 
     directory_chain(sector_chain &other, dhara_sector_t head)

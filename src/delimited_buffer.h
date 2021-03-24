@@ -133,7 +133,7 @@ public:
     public:
         iterator(simple_buffer &&view) : view_(std::move(view)) {
             if (view_.valid()) {
-                auto offset = 0u;
+                uint32_t offset = 0u;
                 if (!view_.try_read(offset)) {
                     view_ = view_.end_view();
                 } else {
@@ -148,7 +148,7 @@ public:
         bool read() {
             assert(view_.valid());
 
-            auto maybe_record_length = 0u;
+            uint32_t maybe_record_length = 0u;
             if (!view_.try_read(maybe_record_length)) {
                 record_ = written_record{};
                 return false;
