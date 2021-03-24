@@ -9,6 +9,7 @@ struct written_record {
     simple_buffer view;
     size_t size_of_record;
     size_t size_with_delimiter;
+    size_t position;
 
     template <typename T>
     T *as() {
@@ -68,6 +69,10 @@ public:
         memcpy(reserve(length), source, length);
     }
 
+    /**
+     * This reserves 0 bytes, which ends up inserting a 0 byte length
+     * and that acts a NULL terminator.
+     */
     int32_t terminate() {
         (uint8_t *)reserve(0);
         return position();
@@ -148,6 +153,9 @@ public:
         bool read() {
             assert(view_.valid());
 
+            // Position of the delimiter, rather than the record.
+            auto record_position = position();
+
             uint32_t maybe_record_length = 0u;
             if (!view_.try_read(maybe_record_length)) {
                 record_ = written_record{};
@@ -164,6 +172,7 @@ public:
             // Clear record and fill in the details we have.
             record_ = written_record{};
             record_.view = view_;
+            record_.position = record_position;
             record_.size_of_record = maybe_record_length;
             record_.size_with_delimiter = maybe_record_length + delimiter_overhead;
 
@@ -236,6 +245,14 @@ public:
 
     size_t position() const {
         return buffer_.position();
+    }
+
+    bool empty() const {
+        return buffer_.position() == 0;
+    }
+
+    bool at_start() const {
+        return empty();
     }
 
     void position(size_t position) {
