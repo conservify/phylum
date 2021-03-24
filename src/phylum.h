@@ -17,6 +17,8 @@ static inline int32_t phy_vsnprintf(char *buffer, size_t size, const char *f, va
 
 uint32_t crc32_checksum(const char *str);
 
+uint32_t crc32_checksum(const uint8_t *data, size_t size);
+
 void phyinfof(const char *f, ...);
 
 void phydebugf(const char *f, ...);

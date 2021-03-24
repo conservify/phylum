@@ -25,6 +25,10 @@ uint32_t crc32_checksum(uint32_t previous, uint8_t const *data, size_t size) {
     return ~crc;
 }
 
+uint32_t crc32_checksum(uint8_t const *data, size_t size) {
+    return crc32_checksum((uint32_t)0, data, size);
+}
+
 uint32_t crc32_checksum(const char *str) {
     return crc32_checksum(0x5c423de, (uint8_t *)str, strlen(str));
 }

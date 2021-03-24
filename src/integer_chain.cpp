@@ -36,7 +36,7 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
         int32_t written = 0;
         while (index < length) {
             int32_t needed = varint_encoding_length(values[index]);
-            if (buffer.available() < needed) {
+            if ((int32_t)buffer.available() < needed) {
                 grow = true;
                 return written;
             }
