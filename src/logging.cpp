@@ -26,6 +26,13 @@ void phydebugf(const char *f, ...) {
     va_end(args);
 }
 
+void phywarnf(const char *f, ...) {
+    va_list args;
+    va_start(args, f);
+    valogfs(LogLevels::WARN, "phylum", get_task_stack()->get(), f, args);
+    va_end(args);
+}
+
 void phydebug_dump_memory(const char *prefix, const uint8_t *p, size_t size, ...) {
     va_list args;
     va_start(args, size);

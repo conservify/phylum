@@ -203,6 +203,11 @@ int32_t sector_chain::log() {
             phyinfof("attr (%zu) id=0x%x attr=%d", record.size_of_record, fa->id, fa->type);
             break;
         }
+        case entry_type::TreeNode: {
+            auto node = record.as<tree_node_header_t>();
+            phyinfof("node (%zu) id=0x%x", record.size_of_record, node->id);
+            break;
+        }
         case entry_type::FileSkip: {
             auto fs = record.as<file_skip_t>();
             phyinfof("skip (%zu) id=0x%x sector=%d position=%d",

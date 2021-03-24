@@ -48,34 +48,41 @@ public:
 
 public:
     template <typename T>
-    void append(T &record) {
+    int32_t append(T &record) {
         return append(&record, sizeof(T));
     }
 
     template <typename T>
-    void append(T &record, uint8_t const *buffer, size_t size) {
-        auto allocd = (uint8_t *)reserve(sizeof(T) + size);
+    sector_offset_t append(T &record, uint8_t const *buffer, size_t size) {
+        sector_offset_t start_position{ 0 };
+        auto allocd = (uint8_t *)reserve(sizeof(T) + size, start_position);
         memcpy(allocd, &record, sizeof(T));
         memcpy(allocd + sizeof(T), buffer, size);
+        return start_position;
     }
 
     template <typename T, class... Args>
-    void emplace(Args &&... args) {
-        auto allocd = reserve(sizeof(T));
+    sector_offset_t emplace(Args &&... args) {
+        sector_offset_t start_position{ 0 };
+        auto allocd = reserve(sizeof(T), start_position);
         new (allocd) T(std::forward<Args>(args)...);
+        return start_position;
     }
 
-    void append(void const *source, size_t length) {
-        memcpy(reserve(length), source, length);
+    sector_offset_t append(void const *source, size_t length) {
+        sector_offset_t start_position{ 0 };
+        memcpy(reserve(length, start_position), source, length);
+        return start_position;
     }
 
     /**
      * This reserves 0 bytes, which ends up inserting a 0 byte length
      * and that acts a NULL terminator.
      */
-    int32_t terminate() {
-        (uint8_t *)reserve(0);
-        return position();
+    sector_offset_t terminate() {
+        sector_offset_t start_position{ 0 };
+        (uint8_t *)reserve(0, start_position);
+        return start_position;
     }
 
     template <typename T>
@@ -118,7 +125,7 @@ public:
     }
 
 private:
-    void *reserve(size_t length);
+    void *reserve(size_t length, sector_offset_t &start_position);
 
 public:
     class iterator {

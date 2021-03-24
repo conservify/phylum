@@ -2,7 +2,7 @@
 
 namespace phylum {
 
-void *delimited_buffer::reserve(size_t length) {
+void *delimited_buffer::reserve(size_t length, sector_offset_t &start_position) {
     assert(buffer_.valid());
 
     // If this is our first record, write the offset value first.
@@ -42,6 +42,8 @@ void *delimited_buffer::reserve(size_t length) {
         phydebug_dump_memory("overwrite ", allocated, length);
         assert(*allocated == 0xff);
     }
+
+    start_position = position_before;
 
     return allocated;
 }

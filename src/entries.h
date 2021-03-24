@@ -12,6 +12,7 @@ typedef uint32_t file_id_t;
 typedef uint32_t file_size_t;
 typedef uint16_t file_flags_t;
 typedef uint16_t record_number_t;
+typedef uint16_t sector_offset_t;
 
 #define PHY_PACKED __attribute__((__packed__))
 
@@ -30,7 +31,8 @@ enum entry_type : uint8_t {
     FileEntry = 4,
     FileData = 5,
     FileAttribute = 6,
-    FileSkip = 7,
+    TreeNode = 7,
+    FileSkip = 8,
 };
 
 struct PHY_PACKED entry_t {
@@ -132,6 +134,89 @@ struct PHY_PACKED file_skip_t : entry_t {
 
     file_skip_t(file_id_t id, dhara_sector_t sector, uint32_t position)
         : entry_t(entry_type::FileSkip), id(id), sector(sector), position(position) {
+    }
+};
+
+struct PHY_PACKED node_ptr_t {
+    dhara_sector_t sector;
+    sector_offset_t position;
+
+    node_ptr_t() : sector(InvalidSector), position(0) {
+    }
+
+    node_ptr_t(dhara_sector_t sector, sector_offset_t position): sector(sector), position(position) {
+    }
+};
+
+using depth_type = uint8_t;
+using index_type = uint8_t;
+
+enum node_type : uint8_t {
+    Leaf,
+    Inner,
+};
+
+struct PHY_PACKED tree_node_header_t : entry_t {
+public:
+    file_id_t id{ 0 };
+    depth_type depth{ 0 };
+    index_type number_keys{ 0 };
+    node_type type{ node_type::Leaf };
+    node_ptr_t parent;
+
+public:
+    tree_node_header_t() : entry_t(entry_type::TreeNode), parent() {
+    }
+
+    tree_node_header_t(node_type type) : entry_t(entry_type::TreeNode), type(type), parent() {
+    }
+};
+
+template <typename KEY, typename VALUE, size_t N, size_t M>
+struct PHY_PACKED tree_node_t : tree_node_header_t {
+public:
+    typedef KEY key_type;
+    typedef VALUE value_type;
+    static constexpr size_t InnerSize = N;
+    static constexpr size_t LeafSize = M;
+
+    union PHY_PACKED data_t {
+        VALUE values[M];
+        node_ptr_t children[N + 1];
+
+        data_t() {
+        }
+    };
+
+public:
+    KEY keys[N];
+    data_t d;
+
+public:
+    tree_node_t() : tree_node_header_t() {
+        clear();
+    }
+
+    tree_node_t(node_type type) : tree_node_header_t(type) {
+        clear();
+    }
+
+public:
+    void clear() {
+        depth = 0;
+        number_keys = 0;
+        for (auto i = 0u; i < N; ++i) {
+            keys[i] = 0;
+            d.values[i] = 0;
+            d.children[i] = {};
+        }
+        for (auto &ref : d.children) {
+            ref = {};
+        }
+    }
+
+    bool empty() const {
+        return number_keys == 0;
     }
 };
 
