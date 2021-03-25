@@ -107,7 +107,7 @@ private:
 
     int32_t leaf_insert_nonfull(default_node_type *node, uint32_t &key, uint32_t &value, unsigned index);
 
-    int32_t inner_insert_nonfull(depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, uint32_t key,
+    int32_t inner_insert_nonfull(depth_type current_depth, default_node_type *node, uint32_t key,
                                  uint32_t value);
 
     int32_t inner_node_insert(depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, uint32_t key,

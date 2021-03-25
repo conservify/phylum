@@ -10,30 +10,31 @@ public:
     // that has the given keys.
     // NOTE: These and the following methods do a simple linear search, which is
     // just fine for N or M < 100. Any large and a Binary Search is better.
-    template<typename KEY>
-    static unsigned leaf_position_for(const KEY &key, const KEY *keys, unsigned number_keys) {
+    template<typename KEY, typename NODE>
+    static unsigned leaf_position_for(const KEY &key, const NODE &node) {
         uint8_t k = 0;
-        while ((k < number_keys) && (keys[k] < key)) {
+        while ((k < node.number_keys) && (node.keys[k] < key)) {
             ++k;
         }
-        assert(k <= number_keys);
+        assert(k <= node.number_keys);
         return k;
     }
 
     // Returns the position where 'key' should be inserted in an inner node
     // that has the given keys.
-    template<typename KEY>
-    static inline uint8_t inner_position_for(const KEY &key, const KEY *keys, unsigned number_keys) {
+    template<typename KEY, typename NODE>
+    static inline uint8_t inner_position_for(const KEY &key, const NODE &node) {
         uint8_t k = 0;
-        while ((k < number_keys) && ((keys[k] < key) || (keys[k] == key))) {
+        while ((k < node.number_keys) && ((node.keys[k] < key) || (node.keys[k] == key))) {
             ++k;
         }
         return k;
     }
 
+
 };
 
-persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
+static persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
     persisted_node_t selected;
     for (auto iter = db.begin(); iter != db.end(); ++iter)  {
         auto node = iter->as<default_node_type>();
@@ -44,7 +45,7 @@ persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
     return selected;
 }
 
-persisted_node_t find_node_in_sector(delimited_buffer &db, node_ptr_t ptr) {
+static persisted_node_t find_node_in_sector(delimited_buffer &db, node_ptr_t ptr) {
     persisted_node_t selected;
     for (auto iter = db.begin(); iter != db.end(); ++iter)  {
         auto node = iter->as<default_node_type>();
@@ -99,7 +100,7 @@ int32_t tree_sector::leaf_node_insert(default_node_type *node, node_ptr_t node_p
                                       insertion_t &insertion) {
     logged_task lt{ "leaf-node" };
 
-    auto index = Keys::leaf_position_for(key, node->keys, node->number_keys);
+    auto index = Keys::leaf_position_for(key, *node);
 
     if (node->number_keys >= default_node_type::LeafSize) {
         phydebugf("node full, splitting");
@@ -146,7 +147,7 @@ int32_t tree_sector::leaf_node_insert(default_node_type *node, node_ptr_t node_p
     }
 }
 
-int32_t tree_sector::inner_insert_nonfull(depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, uint32_t key, uint32_t value) {
+int32_t tree_sector::inner_insert_nonfull(depth_type current_depth, default_node_type *node, uint32_t key, uint32_t value) {
     logged_task lt{ "inner-nonfull" };
 
     assert(node->type == node_type::Inner);
@@ -158,7 +159,7 @@ int32_t tree_sector::inner_insert_nonfull(depth_type current_depth, default_node
     phydebugf("%s entered (%d)", name(), dirty());
 
     insertion_t insertion;
-    auto index = Keys::inner_position_for(key, node->keys, node->number_keys);
+    auto index = Keys::inner_position_for(key, *node);
 
     auto child_ptr = node->d.children[index];
     persisted_node_t followed;
@@ -276,20 +277,20 @@ int32_t tree_sector::inner_node_insert(depth_type current_depth, default_node_ty
 
         // Now insert in the appropriate sibling
         if (key < insertion.key) {
-            auto err = inner_insert_nonfull(current_depth, node, node_ptr, key, value);
+            auto err = inner_insert_nonfull(current_depth, node, key, value);
             if (err < 0) {
                 return err;
             }
         }
         else {
-            auto err = inner_insert_nonfull(current_depth, &new_sibling, sibling_ptr, key, value);
+            auto err = inner_insert_nonfull(current_depth, &new_sibling, key, value);
             if (err < 0) {
                 return err;
             }
         }
     }
     else {
-        auto err = inner_insert_nonfull(current_depth, node, node_ptr, key, value);
+        auto err = inner_insert_nonfull(current_depth, node, key, value);
         if (err < 0) {
             return err;
         }
@@ -418,7 +419,7 @@ int32_t tree_sector::find(uint32_t key, uint32_t &value) {
     auto starting_depth = node->depth;
     auto d = starting_depth;
     while (d-- != 0 && node->type == node_type::Inner) {
-        auto index = Keys::inner_position_for(key, node->keys, node->number_keys);
+        auto index = Keys::inner_position_for(key, *node);
         assert(index < node->number_keys + 1);
 
         auto child_ptr = node->d.children[index];
@@ -432,7 +433,7 @@ int32_t tree_sector::find(uint32_t key, uint32_t &value) {
     }
 
     assert(node->type == node_type::Leaf);
-    auto index = Keys::leaf_position_for(key, node->keys, node->number_keys);
+    auto index = Keys::leaf_position_for(key, *node);
     assert(index <= node->number_keys);
     if (index < node->number_keys && node->keys[index] == key) {
         value = node->d.values[index];
