@@ -208,12 +208,6 @@ int32_t sector_chain::log() {
             phyinfof("node (%zu) id=0x%x", record.size_of_record, node->id);
             break;
         }
-        case entry_type::FileSkip: {
-            auto fs = record.as<file_skip_t>();
-            phyinfof("skip (%zu) id=0x%x sector=%d position=%d",
-                   record.size_of_record, fs->id, fs->sector, fs->position);
-            break;
-        }
         }
         return 0;
     });

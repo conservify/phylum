@@ -38,7 +38,6 @@ enum entry_type : uint8_t {
     FileData = 5,
     FileAttribute = 6,
     TreeNode = 7,
-    FileSkip = 8,
 };
 
 struct PHY_PACKED entry_t {
@@ -130,16 +129,6 @@ struct PHY_PACKED file_attribute_t : entry_t {
 
     file_attribute_t(file_id_t id, uint8_t type, uint8_t size)
         : entry_t(entry_type::FileAttribute), id(id), type(type), size(size) {
-    }
-};
-
-struct PHY_PACKED file_skip_t : entry_t {
-    file_id_t id{ 0 };
-    dhara_sector_t sector{ 0 };
-    uint32_t position{ 0 };
-
-    file_skip_t(file_id_t id, dhara_sector_t sector, uint32_t position)
-        : entry_t(entry_type::FileSkip), id(id), sector(sector), position(position) {
     }
 };
 
