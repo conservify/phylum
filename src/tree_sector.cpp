@@ -31,7 +31,6 @@ public:
         return k;
     }
 
-
 };
 
 static persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {

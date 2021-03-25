@@ -16,12 +16,18 @@ typedef uint16_t sector_offset_t;
 
 #define PHY_PACKED __attribute__((__packed__))
 
-struct PHY_PACKED head_tail_t {
-    dhara_sector_t head{ UINT32_MAX };
-    dhara_sector_t tail{ UINT32_MAX };
-};
+constexpr dhara_sector_t InvalidSector = (dhara_sector_t)-1;
 
-constexpr uint32_t InvalidSector = UINT32_MAX;
+struct PHY_PACKED head_tail_t {
+    dhara_sector_t head{ InvalidSector };
+    dhara_sector_t tail{ InvalidSector };
+
+    head_tail_t() {
+    }
+
+    head_tail_t(dhara_sector_t head, dhara_sector_t tail) : head(head), tail(tail) {
+    }
+};
 
 enum entry_type : uint8_t {
     None = 0,

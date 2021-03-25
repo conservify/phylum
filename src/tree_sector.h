@@ -11,6 +11,12 @@ using default_node_type = tree_node_t<uint32_t, uint32_t, 6, 6>;
 struct persisted_node_t {
     default_node_type *node{ nullptr };
     node_ptr_t ptr{};
+
+    persisted_node_t() {
+    }
+
+    persisted_node_t(default_node_type *node, node_ptr_t ptr) : node(node), ptr(ptr) {
+    }
 };
 
 struct insertion_t {
