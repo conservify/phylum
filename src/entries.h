@@ -167,24 +167,22 @@ public:
     }
 };
 
-template <typename KEY, typename VALUE, size_t N, size_t M>
+template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize>
 struct PHY_PACKED tree_node_t : tree_node_header_t {
 public:
     typedef KEY key_type;
     typedef VALUE value_type;
-    static constexpr size_t InnerSize = N;
-    static constexpr size_t LeafSize = M;
 
     union PHY_PACKED data_t {
-        VALUE values[M];
-        node_ptr_t children[N + 1];
+        VALUE values[LeafSize];
+        node_ptr_t children[InnerSize + 1];
 
         data_t() {
         }
     };
 
 public:
-    KEY keys[N];
+    KEY keys[InnerSize];
     data_t d;
 
 public:
@@ -200,7 +198,7 @@ public:
     void clear() {
         depth = 0;
         number_keys = 0;
-        for (auto i = 0u; i < N; ++i) {
+        for (auto i = 0u; i < InnerSize; ++i) {
             keys[i] = 0;
             d.values[i] = 0;
             d.children[i] = {};

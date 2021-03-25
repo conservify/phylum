@@ -7,12 +7,23 @@
 
 using namespace phylum;
 
-class TreeSuite : public PhylumSuite {};
+TEST(TreeInfo, NodeSizes) {
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>));
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>));
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>));
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>));
+}
+
+class TreeSuite : public PhylumSuite {
+protected:
+    using tree_type = tree_sector<uint32_t, uint32_t, 6, 6>;
+
+};
 
 TEST_F(TreeSuite, SingleNodeTree) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -43,7 +54,7 @@ TEST_F(TreeSuite, SingleNodeTree) {
 TEST_F(TreeSuite, SingleNodeTreeGrowingByOneNode) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -59,7 +70,7 @@ TEST_F(TreeSuite, SingleNodeTreeGrowingByOneNode) {
 TEST_F(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -81,7 +92,7 @@ TEST_F(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
 TEST_F(TreeSuite, TreeWith1024Node1Reachable) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -98,7 +109,7 @@ TEST_F(TreeSuite, TreeWith1024Node1Reachable) {
 TEST_F(TreeSuite, TreeAllReachableAsAdded) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -120,7 +131,7 @@ TEST_F(TreeSuite, TreeAllReachableAsAdded) {
 TEST_F(TreeSuite, TreeWith1024) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -142,7 +153,7 @@ TEST_F(TreeSuite, TreeWith1024) {
 TEST_F(TreeSuite, DISABLED_TreeWith10241024) {
     mounted([&](directory_chain &chain) {
         auto first = allocator().allocate();
-        tree_sector tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
