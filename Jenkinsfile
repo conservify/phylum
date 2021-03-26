@@ -3,7 +3,7 @@
 conservifyProperties()
 
 timestamps {
-    node () {
+    node ("jenkins-aws-ubuntu") {
         conservifyBuild(name: 'phylum', test: true)
     }
 }
