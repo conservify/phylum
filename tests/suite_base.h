@@ -13,6 +13,14 @@ using namespace phylum;
 constexpr uint8_t ATTRIBUTE_ONE = 0x1;
 constexpr uint8_t ATTRIBUTE_TWO = 0x2;
 
+struct layout_256 {
+    size_t sector_size{ 256 };
+};
+
+struct layout_4096 {
+    size_t sector_size{ 4096 };
+};
+
 class FlashMemory {
 private:
     size_t sector_size_;
