@@ -3,7 +3,33 @@
 conservifyProperties()
 
 timestamps {
-    node ("jenkins-aws-ubuntu") {
-        conservifyBuild(name: 'phylum', test: true)
+    try {
+		node ("jenkins-aws-ubuntu") {
+			stage ('git') {
+				if (repository) {
+					git branch: 'main', url: repository
+				}
+				else {
+					checkout scm
+				}
+			}
+
+			stage ('clean') {
+				sh "make clean"
+			}
+
+			stage ('build') {
+				sh "make"
+			}
+
+			stage ('build') {
+				sh "make test"
+			}
+		}
+        notifySuccess()
+    }
+    catch (Exception e) {
+        notifyFailure()
+        throw e;
     }
 }
