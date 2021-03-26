@@ -6,15 +6,19 @@
 
 using namespace phylum;
 
-class WriteSuite : public PhylumSuite {};
+class WriteSuite_SectorSize_256 : public PhylumSuite {
+protected:
+    FlashMemory memory{ 256 };
 
-TEST_F(WriteSuite, WriteInlineOnce) {
-    mounted([&](directory_chain &chain) {
+};
+
+TEST_F(WriteSuite_SectorSize_256, WriteInlineOnce) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -22,7 +26,7 @@ TEST_F(WriteSuite, WriteInlineOnce) {
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -30,13 +34,13 @@ TEST_F(WriteSuite, WriteInlineOnce) {
     });
 }
 
-TEST_F(WriteSuite, WriteInlineBuffersMultipleSmall) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteInlineBuffersMultipleSmall) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -46,7 +50,7 @@ TEST_F(WriteSuite, WriteInlineBuffersMultipleSmall) {
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) * 3 }));
@@ -54,13 +58,13 @@ TEST_F(WriteSuite, WriteInlineBuffersMultipleSmall) {
     });
 }
 
-TEST_F(WriteSuite, WriteInlineMultipleFlushEach) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteInlineMultipleFlushEach) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -72,7 +76,7 @@ TEST_F(WriteSuite, WriteInlineMultipleFlushEach) {
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -82,13 +86,13 @@ TEST_F(WriteSuite, WriteInlineMultipleFlushEach) {
     });
 }
 
-TEST_F(WriteSuite, WriteThreeInlineWritesAndTriggerDataChain) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -99,10 +103,10 @@ TEST_F(WriteSuite, WriteThreeInlineWritesAndTriggerDataChain) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-        ASSERT_GT(opened.write(lorem1k, sector_size() / 2 + 8), 0);
+        ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -111,18 +115,18 @@ TEST_F(WriteSuite, WriteThreeInlineWritesAndTriggerDataChain) {
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(5, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
         EXPECT_TRUE(sg.sector(0).end(6));
 
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (sector_size() / 2 + 8)) }));
+        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (memory.sector_size() / 2 + 8)) }));
         EXPECT_TRUE(sg.sector(1).end(1));
     });
 }
 
-TEST_F(WriteSuite, WriteAppendsToDataChain) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChain) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -133,12 +137,12 @@ TEST_F(WriteSuite, WriteAppendsToDataChain) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-        ASSERT_GT(opened.write(lorem1k, sector_size() / 2 + 8), 0);
+        ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -147,18 +151,18 @@ TEST_F(WriteSuite, WriteAppendsToDataChain) {
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(5, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
         EXPECT_TRUE(sg.sector(0).end(6));
 
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (sector_size() / 2 + 8)) }));
+        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (memory.sector_size() / 2 + 8)) }));
         EXPECT_TRUE(sg.sector(1).end(1));
     });
 }
 
-TEST_F(WriteSuite, WriteAppendsToDataChainGrowingToNewBlock) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -169,12 +173,12 @@ TEST_F(WriteSuite, WriteAppendsToDataChainGrowingToNewBlock) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-        ASSERT_GT(opened.write(lorem1k, sector_size() / 2 + 8), 0);
+        ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
         ASSERT_EQ(opened.flush(), 0);
-        ASSERT_GT(opened.write(hello, sector_size()), 0);
+        ASSERT_GT(opened.write(hello, memory.sector_size()), 0);
         ASSERT_EQ(opened.flush(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -191,13 +195,13 @@ TEST_F(WriteSuite, WriteAppendsToDataChainGrowingToNewBlock) {
     });
 }
 
-TEST_F(WriteSuite, WriteAndIncrementAttribute) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttribute) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -210,7 +214,7 @@ TEST_F(WriteSuite, WriteAndIncrementAttribute) {
 
         ASSERT_GE(opened.close(), 0);
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -221,13 +225,13 @@ TEST_F(WriteSuite, WriteAndIncrementAttribute) {
     });
 }
 
-TEST_F(WriteSuite, WriteAndIncrementAttributeThreeTimes) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -239,7 +243,7 @@ TEST_F(WriteSuite, WriteAndIncrementAttributeThreeTimes) {
             ASSERT_GE(opened.close(), 0);
         }
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
@@ -252,13 +256,13 @@ TEST_F(WriteSuite, WriteAndIncrementAttributeThreeTimes) {
     });
 }
 
-TEST_F(WriteSuite, WriteToDataChainAndIncrementAttributeThreeTimes) {
-    mounted([&](directory_chain &chain) {
+TEST_F(WriteSuite_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTimes) {
+    memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
-        simple_buffer file_buffer{ sector_size() };
+        simple_buffer file_buffer{ memory.sector_size() };
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto hello = "Hello, world! How are you!";
@@ -272,12 +276,12 @@ TEST_F(WriteSuite, WriteToDataChainAndIncrementAttributeThreeTimes) {
 
         for (auto i = 0u; i < 2; ++i) {
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
-            ASSERT_GT(opened.write(lorem1k, sector_size() / 2 + 8), 0);
+            ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
             ASSERT_EQ(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
         }
 
-        sector_geometry sg{ dhara() };
+        sector_geometry sg{ memory.dhara() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
