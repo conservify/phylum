@@ -18,7 +18,7 @@ int32_t data_chain::write_header() {
 }
 
 int32_t data_chain::seek_end_of_buffer() {
-    auto err = db().seek_once();
+    auto err = db().seek_end();
     if (err < 0) {
         return err;
     }

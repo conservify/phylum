@@ -115,17 +115,19 @@ protected:
             // data_chain_header so we can read the number of bytes in
             // this sector.
             if (db().position() == 0) {
-                auto err = db().seek_once();
+                auto err = db().seek_end();
                 if (err < 0) {
                     return err;
                 }
+
+                db().skip(1); // HACK Skip terminator.
 
                 // Constrain is relative, by the way so this will preventing
                 // reading from more than hdr->bytes.
                 auto hdr = header<data_chain_header_t>();
                 assert(db().constrain(hdr->bytes) >= 0);
 
-                phydebugf("read resuming sector-bytes=%d", hdr->bytes);
+                phydebugf("read resuming sector-bytes=%d position=%d", hdr->bytes, db().position());
             }
 
             // If we have data available.

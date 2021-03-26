@@ -75,6 +75,8 @@ protected:
 
     int32_t read(file_id_t id, uint8_t *buffer, size_t size);
 
+    int32_t seek_file_entry(file_id_t id);
+
 protected:
     template <typename T, class... Args>
     int32_t emplace(Args &&... args) {

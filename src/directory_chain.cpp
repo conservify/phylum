@@ -190,6 +190,20 @@ found_file directory_chain::open() {
     return file_;
 }
 
+int32_t directory_chain::seek_file_entry(file_id_t id) {
+    return walk([&](entry_t const *entry, written_record &record) {
+        if (entry->type == entry_type::FileEntry) {
+            auto fe = record.as<file_entry_t>();
+            if (fe->id == id) {
+                phydebugf("found file entry position=%d", record.position);
+                appendable(false);
+                return 1;
+            }
+        }
+        return 0;
+    });
+}
+
 int32_t directory_chain::read(file_id_t id, uint8_t *buffer, size_t size) {
     logged_task lt{ "dc-read", name() };
 

@@ -11,7 +11,14 @@ file_reader::~file_reader() {
 
 int32_t file_reader::read(uint8_t *data, size_t size) {
     if (has_chain()) {
-        return -1;
+        auto err = data_chain_.read(data, size);
+        if (err < 0) {
+            return err;
+        }
+
+        position_ += err;
+
+        return err;
     }
 
     // Right now all inline data has to be read in a single
