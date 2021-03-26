@@ -190,4 +190,42 @@ found_file directory_chain::open() {
     return file_;
 }
 
+int32_t directory_chain::read(file_id_t id, uint8_t *buffer, size_t size) {
+    logged_task lt{ "dc-read", name() };
+
+    assert_valid();
+
+    assert(!dirty());
+
+    auto copied = 0u;
+
+    // Right now all inline data has to be read in a single
+    // call. Gotta start somewhere. More often than not this will be
+    // the case, can fix later.
+
+    auto err = walk([&](entry_t const *entry, written_record &record) {
+        if (entry->type == entry_type::FileData) {
+            auto fe = record.as<file_data_t>();
+            if (fe->id == id) {
+                assert(fe->size > 0);
+                assert(fe->size + copied <= size);
+
+                phydebugf("reading %d", fe->size);
+
+                auto data = record.data<file_data_t>();
+                memcpy(buffer + copied, data.ptr(), data.size());
+                copied += fe->size;
+            }
+        }
+        return 0;
+    });
+    if (err < 0) {
+        return err;
+    }
+
+    phydebugf("done, copied %d", copied);
+
+    return copied;
+}
+
 } // namespace phylum

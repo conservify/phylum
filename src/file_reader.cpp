@@ -9,12 +9,31 @@ file_reader::file_reader(directory_chain &directory, found_file file, simple_buf
 file_reader::~file_reader() {
 }
 
-int32_t file_reader::read(uint8_t */*data*/, size_t /*size*/) {
-    return -1;
+int32_t file_reader::read(uint8_t *data, size_t size) {
+    if (has_chain()) {
+        return -1;
+    }
+
+    // Right now all inline data has to be read in a single
+    // call. Gotta start somewhere. More often than not this will be
+    // the case, can fix later. I'm only doing this check here because
+    // we have the file size. There's a similar warning inside
+    // directory_chain::read
+    assert(size >= file_.size);
+
+    auto err = directory_.read(file_.id, data, size);
+    if (err < 0) {
+        return err;
+    }
+
+    position_ += err;
+
+    return err;
 }
 
 int32_t file_reader::close() {
-    return -1;
+    // There's nothing for us to do, yet. Keeping this call just in case.
+    return 0;
 }
 
 uint32_t file_reader::u32(uint8_t /*type*/) {

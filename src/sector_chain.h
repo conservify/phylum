@@ -147,7 +147,7 @@ protected:
 
     template <typename T>
     int32_t walk(T fn) {
-        logged_task{ "sc-walk", name() };
+        logged_task lt{ "sc-walk", name() };
 
         assert_valid();
 
@@ -167,7 +167,10 @@ protected:
                 auto entry = record.as<entry_t>();
                 assert(entry != nullptr);
                 auto err = fn(entry, record);
-                if (err != 0) {
+                if (err < 0) {
+                    return err;
+                }
+                if (err > 0) {
                     return err;
                 }
             }

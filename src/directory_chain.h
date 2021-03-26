@@ -73,6 +73,8 @@ protected:
 
     int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size);
 
+    int32_t read(file_id_t id, uint8_t *buffer, size_t size);
+
 protected:
     template <typename T, class... Args>
     int32_t emplace(Args &&... args) {
