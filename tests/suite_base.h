@@ -107,3 +107,18 @@ public:
     }
 
 };
+
+class suppress_logs {
+private:
+    uint8_t saved_;
+
+public:
+    suppress_logs() {
+        saved_ = log_get_level();
+        log_configure_level(LogLevels::NONE);
+    }
+
+    virtual ~suppress_logs() {
+        log_configure_level((LogLevels)saved_);
+    }
+};

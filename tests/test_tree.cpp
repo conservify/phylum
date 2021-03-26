@@ -8,12 +8,15 @@
 using namespace phylum;
 
 TEST(TreeInfo, NodeSizes) {
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>));
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>));
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>));
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>));
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>));
-    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 256 + 32, 256 + 32>));
+    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>), 81u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>), 105u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>), 111u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>), 917u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>), 1813u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 288, 288>), 4053u);
+    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 291, 291>), 4095u);
+    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 291, 291>), 2931u);
+    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 407, 408>), 4091u);
 }
 
 template<typename T>
@@ -42,21 +45,21 @@ TYPED_TEST(TreeSuite, SingleNodeTree) {
 
         uint32_t found = 0u;
 
-        ASSERT_EQ(tree.find(1, found), 0);
+        ASSERT_EQ(tree.find(1, &found), 0);
 
         ASSERT_EQ(tree.add(1, 1), 0);
-        ASSERT_EQ(tree.find(1, found), 1);
+        ASSERT_EQ(tree.find(1, &found), 1);
         ASSERT_EQ(found, 1u);
 
         ASSERT_EQ(tree.add(2, 2), 0);
-        ASSERT_EQ(tree.find(2, found), 1);
+        ASSERT_EQ(tree.find(2, &found), 1);
         ASSERT_EQ(found, 2u);
 
         ASSERT_EQ(tree.add(3, 3), 0);
-        ASSERT_EQ(tree.find(3, found), 1);
+        ASSERT_EQ(tree.find(3, &found), 1);
         ASSERT_EQ(found, 3u);
 
-        ASSERT_EQ(tree.find(4, found), 0);
+        ASSERT_EQ(tree.find(4, &found), 0);
     });
 }
 
@@ -72,7 +75,7 @@ TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByOneNode) {
         for (auto i = 1u; i < 8; ++i) {
             uint32_t found = 0u;
             ASSERT_EQ(tree.add(i, i), 0);
-            EXPECT_EQ(tree.find(i, found), 1);
+            EXPECT_EQ(tree.find(i, &found), 1);
             ASSERT_EQ(found, i);
         }
     });
@@ -90,13 +93,13 @@ TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
         for (auto i = 1u; i < 16; ++i) {
             uint32_t found = 0u;
             ASSERT_EQ(tree.add(i, i), 0);
-            EXPECT_EQ(tree.find(i, found), 1);
+            EXPECT_EQ(tree.find(i, &found), 1);
             ASSERT_EQ(found, i);
         }
 
         for (auto i = 1u; i < 16; ++i) {
             uint32_t found = 0u;
-            EXPECT_EQ(tree.find(i, found), 1);
+            EXPECT_EQ(tree.find(i, &found), 1);
             ASSERT_EQ(found, i);
         }
     });
@@ -115,7 +118,7 @@ TYPED_TEST(TreeSuite, TreeWith1024Node1Reachable) {
             ASSERT_EQ(tree.add(i, i), 0);
 
             uint32_t found = 0u;
-            EXPECT_EQ(tree.find(1, found), 1);
+            EXPECT_EQ(tree.find(1, &found), 1);
             ASSERT_EQ(found, 1u);
         }
     });
@@ -137,7 +140,7 @@ TYPED_TEST(TreeSuite, TreeAllReachableAsAdded) {
             if (i % 16 == 0) {
                 for (auto j = 1u; j < i; ++j) {
                     uint32_t found = 0u;
-                    EXPECT_EQ(tree.find(j, found), 1);
+                    EXPECT_EQ(tree.find(j, &found), 1);
                     ASSERT_EQ(found, j);
                 }
             }
@@ -157,13 +160,13 @@ TYPED_TEST(TreeSuite, TreeWith1024) {
         for (auto i = 1u; i < 1024; ++i) {
             uint32_t found = 0u;
             ASSERT_EQ(tree.add(i, i), 0);
-            ASSERT_EQ(tree.find(i, found), 1);
+            ASSERT_EQ(tree.find(i, &found), 1);
             ASSERT_EQ(found, i);
         }
 
         for (auto i = 1u; i < 1024; ++i) {
             uint32_t found = 0u;
-            EXPECT_EQ(tree.find(i, found), 1);
+            EXPECT_EQ(tree.find(i, &found), 1);
             ASSERT_EQ(found, i);
         }
     });

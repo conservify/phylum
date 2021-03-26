@@ -9,9 +9,26 @@ enum seek_reference {
     End,
 };
 
+struct data_chain_cursor {
+    dhara_sector_t sector{ 0 };
+    file_size_t position{ 0 };
+    file_size_t position_at_start_of_sector{ 0 };
+
+    data_chain_cursor() {
+    }
+
+    data_chain_cursor(dhara_sector_t sector) : sector(sector), position(0), position_at_start_of_sector(0) {
+    }
+
+    data_chain_cursor(dhara_sector_t sector, file_size_t position, file_size_t position_at_start_of_sector) : sector(sector), position(position), position_at_start_of_sector(position_at_start_of_sector) {
+    }
+};
+
 class data_chain : public sector_chain {
 private:
-    head_tail_t chain_;
+    head_tail_t chain_{ };
+    file_size_t position_{ 0 };
+    file_size_t position_at_start_of_sector_{ 0 };
 
 public:
     data_chain(sector_chain &other, head_tail_t chain) : sector_chain(other, chain, "data"), chain_(chain) {
@@ -29,6 +46,11 @@ public:
     int32_t read(uint8_t *data, size_t size);
     uint32_t total_bytes();
     int32_t seek(file_size_t position, seek_reference reference);
+
+public:
+    data_chain_cursor cursor() {
+        return data_chain_cursor{ sector(), position_, position_at_start_of_sector_ };
+    }
 
 protected:
     int32_t write_header() override;
@@ -68,7 +90,7 @@ protected:
         auto written = 0;
 
         while (true) {
-            phydebugf("view position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
+            phydebugf("read buffer: position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
 
             auto grow = false;
             auto rv = data_fn(db().write_view(), grow);
@@ -81,6 +103,7 @@ protected:
             assert(hdr->bytes + rv < (int32_t)sector_size());
             hdr->bytes += rv;
             written += rv;
+            position_ += rv;
 
             dirty(true);
 
@@ -90,6 +113,8 @@ protected:
                 if (err < 0) {
                     return err;
                 }
+
+                position_at_start_of_sector_ = position_;
             } else {
                 if (rv == 0) {
                     break;
@@ -139,6 +164,7 @@ protected:
                     return rv;
                 }
                 if (rv >= 0) {
+                    position_ += rv;
                     return rv;
                 }
             }
@@ -149,6 +175,8 @@ protected:
             } else if (err == 0) {
                 break;
             }
+
+            position_at_start_of_sector_ = position_;
         }
 
         return 0;

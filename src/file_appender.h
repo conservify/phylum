@@ -37,6 +37,20 @@ public:
 
     void u32(uint8_t type, uint32_t value);
 
+    size_t length_sectors() {
+        if (has_chain()) {
+            return data_chain_.length_sectors();
+        }
+        return 0;
+    }
+
+    data_chain_cursor cursor() {
+        if (has_chain()) {
+            return data_chain_.cursor();
+        }
+        return data_chain_cursor{ };
+    }
+
 private:
     int32_t make_data_chain();
 

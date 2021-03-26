@@ -490,23 +490,6 @@ private:
         return 0;
     }
 
-    int32_t log() {
-        logged_task lt{ "tree-log" };
-
-        assert(!dirty());
-
-        auto err = back_to_root();
-        if (err < 0) {
-            return err;
-        }
-
-        auto pnode = find_sector_root(sector(), db());
-        auto node = pnode.node;
-        assert(node != nullptr);
-
-        return log(node);
-    }
-
     int32_t log(default_node_type *node) {
         logged_task it{ name() };
 
@@ -637,7 +620,7 @@ public:
         return 0;
     }
 
-    int32_t find(uint32_t key, uint32_t &value) {
+    int32_t find(KEY key, VALUE *value = 0) {
         logged_task lt{ "tree-find" };
 
         phydebugf("finding %d", key);
@@ -673,12 +656,96 @@ public:
         auto index = Keys::leaf_position_for(key, *node);
         assert(index <= node->number_keys);
         if (index < node->number_keys && node->keys[index] == key) {
-            value = node->d.values[index];
+            if (value != nullptr) {
+                *value = node->d.values[index];
+            }
             return 1;
         }
 
         return 0;
     }
+
+    bool find_last_less_then(const KEY &key, VALUE *value = 0, KEY *out_key = 0) {
+        logged_task lt{ "tree-find-less" };
+
+        phydebugf("finding %d", key);
+
+        assert(!dirty());
+
+        auto err = back_to_root();
+        if (err < 0) {
+            return err;
+        }
+
+        auto pnode = find_sector_root(sector(), db());
+        auto node = pnode.node;
+        assert(node != nullptr);
+
+
+        auto starting_depth = node->depth;
+        auto d = starting_depth;
+        while (d-- != 0 && node->type == node_type::Inner) {
+            auto index = Keys::inner_position_for(key, *node);
+            assert(index < node->number_keys + 1);
+
+            if (index > 0 && key == node->keys[index - 1]) {
+                index -= 1;
+            }
+            assert(index == 0 || node->keys[index - 1] < key);
+
+            auto child_ptr = node->d.children[index];
+            persisted_node_t followed;
+            auto err = follow_node_ptr(child_ptr, followed);
+            if (err < 0) {
+                return err;
+            }
+
+            node = followed.node;
+        }
+
+        assert(node->type == node_type::Leaf);
+        auto index = Keys::leaf_position_for(key, *node);
+
+        if (index <= node->number_keys) {
+            index -= 1;
+            if (index < node->number_keys && key == node->keys[index]) {
+                index -= 1;
+            }
+
+            if (index < node->number_keys) {
+                assert(node->keys[index] < key);
+
+                if (value != nullptr) {
+                    *value = node->d.values[index];
+                }
+                if (out_key != nullptr) {
+                    *out_key = node->keys[index];
+                }
+
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    int32_t log() {
+        logged_task lt{ "tree-log" };
+
+        assert(!dirty());
+
+        auto err = back_to_root();
+        if (err < 0) {
+            return err;
+        }
+
+        auto pnode = find_sector_root(sector(), db());
+        auto node = pnode.node;
+        assert(node != nullptr);
+
+        return log(node);
+    }
+
 };
 
 } // namespace phylum

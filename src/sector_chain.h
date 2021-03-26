@@ -16,7 +16,7 @@ private:
     dhara_sector_t head_{ InvalidSector };
     dhara_sector_t tail_{ InvalidSector };
     dhara_sector_t sector_{ InvalidSector };
-    dhara_sector_t length_{ 0 };
+    dhara_sector_t length_sectors_{ 0 };
     bool dirty_{ false };
     bool appendable_{ false };
     const char *prefix_{ "sector-chain" };
@@ -56,8 +56,8 @@ public:
         return sector_;
     }
 
-    dhara_sector_t length() const {
-        return length_;
+    dhara_sector_t length_sectors() const {
+        return length_sectors_;
     }
 
     int32_t log();
