@@ -193,41 +193,38 @@ private:
         if (node->number_keys >= LeafSize) {
             phydebugf("node full, splitting");
 
-            auto threshold = (LeafSize + 1) / 2;
-            default_node_type new_sibling{ node_type::Leaf };
-            new_sibling.number_keys = node->number_keys - threshold;
-            for (auto j = 0u; j < new_sibling.number_keys; ++j) {
-                new_sibling.keys[j] = node->keys[threshold + j];
-                new_sibling.d.values[j] = node->d.values[threshold + j];
-            }
-
-            node->number_keys = threshold;
-            dirty(true); // Reorder?
-
-            if (index < threshold) {
-                auto err = leaf_insert_nonfull(node, key, value, index);
-                if (err < 0) {
-                    return err;
-                }
-            } else {
-                auto err = leaf_insert_nonfull(&new_sibling, key, value, index - threshold);
-                if (err < 0) {
-                    return err;
-                }
-            }
-
             node_ptr_t sibling_ptr;
-            auto err = allocate_node(&new_sibling, sibling_ptr);
-            if (err < 0) {
-                return err;
-            }
+            return allocate_node(sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t ignored_ptr) {
+                auto threshold = (LeafSize + 1) / 2;
+                new_sibling->type = node_type::Leaf;
+                new_sibling->number_keys = node->number_keys - threshold;
+                for (auto j = 0u; j < new_sibling->number_keys; ++j) {
+                    new_sibling->keys[j] = node->keys[threshold + j];
+                    new_sibling->d.values[j] = node->d.values[threshold + j];
+                }
 
-            insertion.split = true;
-            insertion.key = new_sibling.keys[0];
-            insertion.left = node_ptr;
-            insertion.right = sibling_ptr;
+                node->number_keys = threshold;
+                dirty(true); // Reorder?
 
-            return 0;
+                if (index < threshold) {
+                    auto err = leaf_insert_nonfull(node, key, value, index);
+                    if (err < 0) {
+                        return err;
+                    }
+                } else {
+                    auto err = leaf_insert_nonfull(new_sibling, key, value, index - threshold);
+                    if (err < 0) {
+                        return err;
+                    }
+                }
+
+                insertion.split = true;
+                insertion.key = new_sibling->keys[0];
+                insertion.left = node_ptr;
+                insertion.right = sibling_ptr;
+
+                return 0;
+            });
         } else {
             return leaf_insert_nonfull(node, key, value, index);
         }
@@ -332,43 +329,45 @@ private:
         // This is not the canonical algorithm for B+ trees,
         // but it is simpler and does not break the definition.
         if (node->number_keys == InnerSize) {
-            auto treshold = (InnerSize + 1) / 2;
+            node_ptr_t ignored_ptr;
+            auto err = allocate_node(ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t &sibling_ptr) {
+                auto treshold = (InnerSize + 1) / 2;
 
-            default_node_type new_sibling{ node_type::Inner };
-            new_sibling.number_keys = node->number_keys - treshold;
-            for (auto i = 0; i < new_sibling.number_keys; ++i) {
-                new_sibling.keys[i] = node->keys[treshold + i];
-                new_sibling.d.children[i] = node->d.children[treshold + i];
-            }
+                new_sibling->type = node_type::Inner;
+                new_sibling->number_keys = node->number_keys - treshold;
+                for (auto i = 0; i < new_sibling->number_keys; ++i) {
+                    new_sibling->keys[i] = node->keys[treshold + i];
+                    new_sibling->d.children[i] = node->d.children[treshold + i];
+                }
 
-            new_sibling.d.children[new_sibling.number_keys] = node->d.children[node->number_keys];
+                new_sibling->d.children[new_sibling->number_keys] = node->d.children[node->number_keys];
 
-            node_ptr_t sibling_ptr;
-            auto err = allocate_node(&new_sibling, sibling_ptr);
+                node->number_keys = treshold - 1;
+                dirty(true);
+
+                // Set up the return variable
+                insertion.split = true;
+                insertion.key = node->keys[treshold - 1];
+                insertion.left = node_ptr;
+                insertion.right = sibling_ptr;
+
+                // Now insert in the appropriate sibling
+                if (key < insertion.key) {
+                    auto err = inner_insert_nonfull(current_depth, node, key, value);
+                    if (err < 0) {
+                        return err;
+                    }
+                } else {
+                    auto err = inner_insert_nonfull(current_depth, new_sibling, key, value);
+                    if (err < 0) {
+                        return err;
+                    }
+                }
+
+                return 0;
+            });
             if (err < 0) {
                 return err;
-            }
-
-            node->number_keys = treshold - 1;
-            dirty(true);
-
-            // Set up the return variable
-            insertion.split = true;
-            insertion.key = node->keys[treshold - 1];
-            insertion.left = node_ptr;
-            insertion.right = sibling_ptr;
-
-            // Now insert in the appropriate sibling
-            if (key < insertion.key) {
-                auto err = inner_insert_nonfull(current_depth, node, key, value);
-                if (err < 0) {
-                    return err;
-                }
-            } else {
-                auto err = inner_insert_nonfull(current_depth, &new_sibling, key, value);
-                if (err < 0) {
-                    return err;
-                }
             }
         } else {
             auto err = inner_insert_nonfull(current_depth, node, key, value);
@@ -395,14 +394,21 @@ private:
         return 0;
     }
 
-    int32_t allocate_node(default_node_type *node, node_ptr_t &ptr) {
+    template<typename TFill>
+    int32_t allocate_node(node_ptr_t &ptr, TFill fill_fn) {
         db().seek_end();
 
         if (db().template room_for<default_node_type>()) {
             phydebugf("%s appending node %zu/%zu", name(), db().position(), db().size());
 
-            auto position = db().append(*node);
-            ptr = node_ptr_t{ sector_, (sector_offset_t)position };
+            auto placed = db().template reserve<default_node_type>();
+
+            ptr = node_ptr_t{ sector_, placed.position };
+
+            auto err = fill_fn(placed.record, ptr);
+            if (err < 0) {
+                return err;
+            }
 
             dirty(true);
 
@@ -416,9 +422,17 @@ private:
 
         // TODO Allocates
         delimited_buffer buffer{ sector_size() };
-        auto position = buffer.append(*node);
-        ptr = node_ptr_t{ allocated, (sector_offset_t)position };
-        auto err = dhara_->write(allocated, buffer.read_view().ptr(), buffer.read_view().size());
+
+        auto placed = buffer.template reserve<default_node_type>();
+
+        ptr = node_ptr_t{ allocated, placed.position };
+
+        auto err = fill_fn(placed.record, ptr);
+        if (err < 0) {
+            return err;
+        }
+
+        err = dhara_->write(allocated, buffer.read_view().ptr(), buffer.read_view().size());
         if (err < 0) {
             return err;
         }
@@ -594,22 +608,23 @@ public:
         if (insertion.split) {
             // The old root was separated in two parts.
             // We have to create a new root pointing to them
-            default_node_type new_node{ node_type::Inner };
-            new_node.depth = node->depth + 1;
-            new_node.number_keys = 1;
-            new_node.keys[0] = insertion.key;
-            new_node.d.children[0] = insertion.left;
-            new_node.d.children[1] = insertion.right;
-
             node_ptr_t ptr;
-            auto err = allocate_node(&new_node, ptr);
+            auto err = allocate_node(ptr, [&](default_node_type *new_node, node_ptr_t &ignored_ptr) {
+                new_node->type = node_type::Inner;
+                new_node->depth = node->depth + 1;
+                new_node->number_keys = 1;
+                new_node->keys[0] = insertion.key;
+                new_node->d.children[0] = insertion.left;
+                new_node->d.children[1] = insertion.right;
+                return 0;
+            });
             if (err < 0) {
                 return err;
             }
 
             root_ = ptr.sector;
 
-            phydebugf("%s new top depth=%d", name(), new_node.depth);
+            phydebugf("%s new top", name());
         }
 
         err = flush();

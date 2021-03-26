@@ -48,7 +48,7 @@ public:
 
 public:
     template <typename T>
-    int32_t append(T &record) {
+    sector_offset_t append(T &record) {
         return append(&record, sizeof(T));
     }
 
@@ -73,6 +73,22 @@ public:
         sector_offset_t start_position{ 0 };
         memcpy(reserve(length, start_position), source, length);
         return start_position;
+    }
+
+    template<typename T>
+    struct appended_record {
+        sector_offset_t position;
+        T *record;
+    };
+
+    template<typename T>
+    appended_record<T> reserve() {
+        sector_offset_t start_position{ 0 };
+        auto size = sizeof(T);
+        auto alloc = reserve(size, start_position);
+        bzero(alloc, size);
+        auto ptr = new (alloc) T();
+        return appended_record<T>{ start_position, ptr };
     }
 
     /**
