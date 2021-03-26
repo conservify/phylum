@@ -12,11 +12,12 @@ TEST(TreeInfo, NodeSizes) {
     phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>));
     phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>));
     phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>));
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>));
+    phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 256 + 32, 256 + 32>));
 }
 
 template<typename T>
 class TreeSuite : public ::testing::Test {
-
 };
 
 struct layout_256 {
@@ -29,8 +30,13 @@ struct layout_4096 {
 
 typedef ::testing::Types<
     std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6, 6>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 6, 6>>
+    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 64, 64>>,
+    std::pair<layout_4096, tree_sector<uint64_t, uint32_t, 256 + 32, 256 + 32>>
     > Implementations;
+
+static_assert(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>) <= 4096, "sizeof(Node) <= 256");
+
+static_assert(sizeof(tree_node_t<uint64_t, uint32_t, 256 + 32, 256 + 32>) <= 4096, "sizeof(Node) <= 4096");
 
 TYPED_TEST_SUITE(TreeSuite, Implementations);
 

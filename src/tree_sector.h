@@ -12,8 +12,8 @@ public:
     // that has the given keys.
     // NOTE: These and the following methods do a simple linear search, which is
     // just fine for N or M < 100. Any large and a Binary Search is better.
-    template <typename KEY, typename NODE> static unsigned leaf_position_for(const KEY &key, const NODE &node) {
-        uint8_t k = 0;
+    template <typename KEY, typename NODE> static inline index_type leaf_position_for(const KEY &key, const NODE &node) {
+        index_type k = 0;
         while ((k < node.number_keys) && (node.keys[k] < key)) {
             ++k;
         }
@@ -23,8 +23,8 @@ public:
 
     // Returns the position where 'key' should be inserted in an inner node
     // that has the given keys.
-    template <typename KEY, typename NODE> static inline uint8_t inner_position_for(const KEY &key, const NODE &node) {
-        uint8_t k = 0;
+    template <typename KEY, typename NODE> static inline index_type inner_position_for(const KEY &key, const NODE &node) {
+        index_type k = 0;
         while ((k < node.number_keys) && ((node.keys[k] < key) || (node.keys[k] == key))) {
             ++k;
         }

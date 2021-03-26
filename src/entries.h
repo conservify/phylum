@@ -144,7 +144,7 @@ struct PHY_PACKED node_ptr_t {
 };
 
 using depth_type = uint8_t;
-using index_type = uint8_t;
+using index_type = uint16_t;
 
 enum node_type : uint8_t {
     Leaf,
