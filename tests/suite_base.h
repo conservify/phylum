@@ -71,10 +71,7 @@ public:
 
 class PhylumSuite : public ::testing::Test {
 private:
-    open_file_attribute attributes_[2] = {
-        { .type = ATTRIBUTE_ONE, .size = 4, .ptr = nullptr },
-        { .type = ATTRIBUTE_TWO, .size = 4, .ptr = nullptr }
-    };
+    open_file_attribute attributes_[2];
     open_file_config file_cfg_;
 
 public:
@@ -84,6 +81,8 @@ public:
 
 public:
     PhylumSuite() {
+        attributes_[0] = { .type = ATTRIBUTE_ONE, .size = 4, .ptr = nullptr };
+        attributes_[1] = { .type = ATTRIBUTE_TWO, .size = 4, .ptr = nullptr };
     }
 
     virtual ~PhylumSuite() {
