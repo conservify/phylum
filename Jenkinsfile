@@ -6,12 +6,7 @@ timestamps {
     try {
 		node ("jenkins-aws-ubuntu") {
 			stage ('git') {
-				if (repository) {
-					git branch: 'main', url: repository
-				}
-				else {
-					checkout scm
-				}
+				checkout scm
 			}
 
 			stage ('clean') {
