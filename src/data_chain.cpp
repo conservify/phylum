@@ -53,7 +53,9 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
     assert_valid();
 
     simple_buffer reading{ data, size };
-    return read_chain([&](simple_buffer &view) { return reading.fill_from(view); });
+    return read_chain([&](simple_buffer &view) {
+        return reading.fill_from(view);
+    });
 }
 
 uint32_t data_chain::total_bytes() {

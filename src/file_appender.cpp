@@ -12,7 +12,9 @@ file_appender::~file_appender() {
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
-    return buffer_.fill(data, size, [&](simple_buffer &) { return flush(); });
+    return buffer_.fill(data, size, [&](simple_buffer &) {
+        return flush();
+    });
 }
 
 int32_t file_appender::make_data_chain() {
@@ -100,18 +102,20 @@ int32_t file_appender::flush() {
 
             return err;
         } else {
-            phyinfof("flush making chain");
+            phyinfof("flush making chain (%d)", buffer_.position());
 
             auto err = make_data_chain();
             if (err < 0) {
                 return err;
             }
 
-            phyinfof("flush making chain done");
+            phyinfof("flush making chain done (%d)", buffer_.position());
         }
     }
 
     if (data_chain_.valid()) {
+        phydebugf("flush remaining (%d)", buffer_.position());
+
         auto err = data_chain_.flush();
         if (err < 0) {
             return err;

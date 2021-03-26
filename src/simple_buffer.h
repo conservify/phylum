@@ -21,28 +21,23 @@ public:
     simple_buffer(simple_buffer &&other)
         : ptr_(exchange(other.ptr_, nullptr)), size_(other.size_), position_(other.position_),
           free_(exchange(other.free_, false)) {
-        // phydebugf("simple-buffer::ctor (move)");
     }
 
     explicit simple_buffer(size_t size) : ptr_((uint8_t *)malloc(size)), size_(size), free_(true) {
-        // phydebugf("simple-buffer::ctor (malloc) %p", ptr_);
         assert(size > 0);
         clear();
     }
 
     explicit simple_buffer(uint8_t *ptr, size_t size) : ptr_(ptr), size_(size), position_(0), free_(false) {
         assert(size > 0);
-        // phydebugf("simple-buffer::ctor (ptr, size)");
     }
 
     explicit simple_buffer(uint8_t *ptr, size_t size, size_t position) : ptr_(ptr), size_(size), position_(position), free_(false) {
         assert(size > 0);
-        // phydebugf("simple-buffer::ctor (ptr, size, pos)");
     }
 
     virtual ~simple_buffer() {
         if (free_ && ptr_ != nullptr) {
-            // phydebugf("simple-buffer::~  %p", ptr_);
             free(ptr_);
             ptr_ = nullptr;
         }
@@ -114,7 +109,13 @@ public:
     int32_t fill(uint8_t const *source, size_t size, T flush) {
         auto copied = 0u;
         while (copied < size) {
-            if (position_ >= size_) {
+            auto copying = std::min<file_size_t>(size - copied, size_ - position_);
+            if (copying > 0) {
+                memcpy(ptr_ + position_, source + copied, copying);
+                position_ += copying;
+                copied += copying;
+            }
+            else {
                 auto err = flush(*this);
                 if (err < 0) {
                     return err;
@@ -122,11 +123,6 @@ public:
 
                 position_ = 0;
             }
-
-            auto copying = std::min<file_size_t>(size, size_ - position_);
-            memcpy(ptr_ + position_, source, copying);
-            position_ += copying;
-            copied += copying;
         }
         return copied;
     }

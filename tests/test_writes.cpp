@@ -305,3 +305,68 @@ TEST_F(WriteSuite_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTime
         EXPECT_TRUE(sg.sector(3).end(1));
     });
 }
+
+TEST_F(WriteSuite_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
+    auto hello = "Hello, world! How are you!";
+
+    memory.mounted([&](directory_chain &chain) {
+        ASSERT_EQ(chain.touch("data.txt"), 0);
+        ASSERT_EQ(chain.flush(), 0);
+
+        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        simple_buffer file_buffer{ memory.sector_size() };
+        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+
+        for (auto i = 0u; i < 5; ++i) {
+            ASSERT_GT(opened.write(hello), 0);
+        }
+        ASSERT_EQ(opened.flush(), 0);
+
+        chain.log();
+
+        sector_geometry sg{ memory.dhara() };
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, InvalidSector }));
+        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
+        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
+        EXPECT_TRUE(sg.sector(0).end(3));
+
+        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)130, InvalidSector, InvalidSector }));
+        EXPECT_TRUE(sg.sector(1).end(1));
+
+        phydebugf("strlen(hello) = %d", strlen(hello));
+    });
+}
+
+TEST_F(WriteSuite_SectorSize_256, WriteImmediatelyToDataChain_TwoBlocks) {
+    auto hello = "Hello, world! How are you!";
+
+    memory.mounted([&](directory_chain &chain) {
+        ASSERT_EQ(chain.touch("data.txt"), 0);
+        ASSERT_EQ(chain.flush(), 0);
+
+        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        simple_buffer file_buffer{ memory.sector_size() };
+        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+
+        for (auto i = 0u; i < 10; ++i) {
+            ASSERT_GT(opened.write(hello), 0);
+        }
+        ASSERT_EQ(opened.flush(), 0);
+
+        chain.log();
+
+        sector_geometry sg{ memory.dhara() };
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, InvalidSector }));
+        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
+        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 1, 2 } }));
+        EXPECT_TRUE(sg.sector(0).end(3));
+
+        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 2 }));
+        EXPECT_TRUE(sg.sector(1).end(1));
+
+        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)18, 1, InvalidSector }));
+        EXPECT_TRUE(sg.sector(2).end(1));
+
+        phydebugf("strlen(hello) = %d", strlen(hello));
+    });
+}
