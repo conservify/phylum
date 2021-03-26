@@ -13,6 +13,54 @@ using namespace phylum;
 constexpr uint8_t ATTRIBUTE_ONE = 0x1;
 constexpr uint8_t ATTRIBUTE_TWO = 0x2;
 
+class FlashMemory {
+private:
+    size_t sector_size_;
+    memory_dhara_map dhara_{ sector_size_ };
+    sector_allocator allocator_{ dhara_ };
+    bool formatted_{ false };
+
+public:
+    FlashMemory(size_t sector_size) : sector_size_(sector_size) {
+    }
+
+public:
+    size_t sector_size() const {
+        return sector_size_;
+    }
+
+    dhara_map &dhara() {
+        return dhara_;
+    }
+
+    sector_allocator &allocator() {
+        return allocator_;
+    }
+
+public:
+    void clear() {
+        dhara_.clear();
+    }
+
+    template<typename T>
+    void sync(T fn) {
+        fn();
+    }
+
+    template<typename T>
+    void mounted(T fn) {
+        directory_chain chain{ dhara_, allocator_, 0, simple_buffer{ sector_size() } };
+        if (formatted_) {
+            ASSERT_EQ(chain.mount(), 0);
+        }
+        else {
+            ASSERT_EQ(chain.format(), 0);
+            formatted_ = true;
+        }
+        fn(chain);
+    }
+};
+
 class PhylumSuite : public ::testing::Test {
 private:
     size_t sector_size_{ 256 };

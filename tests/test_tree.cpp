@@ -14,22 +14,34 @@ TEST(TreeInfo, NodeSizes) {
     phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>));
 }
 
-class TreeSuite : public PhylumSuite {
-protected:
-    using tree_type = tree_sector<uint32_t, uint32_t, 6, 6>;
+template<typename T>
+class TreeSuite : public ::testing::Test {
 
 };
 
-TEST_F(TreeSuite, SingleNodeTree) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+struct layout_256 {
+    size_t sector_size{ 256 };
+};
+
+struct layout_4096 {
+    size_t sector_size{ 4096 };
+};
+
+typedef ::testing::Types<
+    std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6, 6>>,
+    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 6, 6>>
+    > Implementations;
+
+TYPED_TEST_SUITE(TreeSuite, Implementations);
+
+TYPED_TEST(TreeSuite, SingleNodeTree) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
-
-        // phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>));
-        // phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>));
-        // phyinfof("sizeof(%zu)", sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>));
 
         uint32_t found = 0u;
 
@@ -51,10 +63,12 @@ TEST_F(TreeSuite, SingleNodeTree) {
     });
 }
 
-TEST_F(TreeSuite, SingleNodeTreeGrowingByOneNode) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByOneNode) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -67,10 +81,12 @@ TEST_F(TreeSuite, SingleNodeTreeGrowingByOneNode) {
     });
 }
 
-TEST_F(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -89,10 +105,12 @@ TEST_F(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
     });
 }
 
-TEST_F(TreeSuite, TreeWith1024Node1Reachable) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+TYPED_TEST(TreeSuite, TreeWith1024Node1Reachable) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -106,10 +124,12 @@ TEST_F(TreeSuite, TreeWith1024Node1Reachable) {
     });
 }
 
-TEST_F(TreeSuite, TreeAllReachableAsAdded) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+TYPED_TEST(TreeSuite, TreeAllReachableAsAdded) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -128,10 +148,12 @@ TEST_F(TreeSuite, TreeAllReachableAsAdded) {
     });
 }
 
-TEST_F(TreeSuite, TreeWith1024) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
+TYPED_TEST(TreeSuite, TreeWith1024) {
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+    memory.mounted([&](directory_chain &chain) {
+        auto first = memory.allocator().allocate();
+        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -139,28 +161,6 @@ TEST_F(TreeSuite, TreeWith1024) {
             uint32_t found = 0u;
             ASSERT_EQ(tree.add(i, i), 0);
             ASSERT_EQ(tree.find(i, found), 1);
-            ASSERT_EQ(found, i);
-        }
-
-        for (auto i = 1u; i < 1024; ++i) {
-            uint32_t found = 0u;
-            EXPECT_EQ(tree.find(i, found), 1);
-            ASSERT_EQ(found, i);
-        }
-    });
-}
-
-TEST_F(TreeSuite, DISABLED_TreeWith10241024) {
-    mounted([&](directory_chain &chain) {
-        auto first = allocator().allocate();
-        tree_type tree{ dhara(), allocator(), simple_buffer{ sector_size() }, first, "tree" };
-
-        ASSERT_EQ(tree.create(), 0);
-
-        for (auto i = 1u; i < 1024 * 1024; ++i) {
-            uint32_t found = 0u;
-            ASSERT_EQ(tree.add(i, i), 0);
-            EXPECT_EQ(tree.find(i, found), 1);
             ASSERT_EQ(found, i);
         }
 
