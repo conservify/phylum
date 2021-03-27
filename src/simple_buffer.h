@@ -85,7 +85,7 @@ public:
     }
 
     void position(size_t position) {
-        assert(position_ < size_);
+        assert(position_ <= size_);
         position_ = position;
     }
 
@@ -160,7 +160,7 @@ public:
     }
 
     uint8_t *take(size_t size) {
-        assert(size < size_ - position_);
+        assert(size <= size_ - position_);
         auto p = ptr_ + position_;
         position_ += size;
         return p;
