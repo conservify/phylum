@@ -167,22 +167,22 @@ public:
     }
 };
 
-template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize>
+template <typename KEY, typename VALUE, size_t Size>
 struct tree_node_t : tree_node_header_t {
 public:
     typedef KEY key_type;
     typedef VALUE value_type;
 
     union data_t {
-        VALUE values[LeafSize];
-        node_ptr_t children[InnerSize + 1];
+        VALUE values[Size];
+        node_ptr_t children[Size + 1];
 
         data_t() {
         }
     };
 
 public:
-    KEY keys[InnerSize];
+    KEY keys[Size];
     data_t d;
 
 public:
@@ -198,7 +198,7 @@ public:
     void clear() {
         depth = 0;
         number_keys = 0;
-        for (auto i = 0u; i < InnerSize; ++i) {
+        for (auto i = 0u; i < Size; ++i) {
             keys[i] = 0;
             d.values[i] = {};
             d.children[i] = {};

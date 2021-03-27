@@ -8,29 +8,29 @@
 using namespace phylum;
 
 TEST(TreeInfo, NodeSizes) {
-    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>), 84u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>), 112u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>), 112u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>), 920u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>), 1816u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 288, 288>), 4056u);
-    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 291, 291>), 4096u);
-    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 291, 291>), 2932u);
-    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 407, 408>), 4092u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 6>), 84u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 6>), 112u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint64_t, 6>), 112u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 64>), 920u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 128>), 1816u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 288>), 4056u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 291>), 4096u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 291>), 2932u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 407>), 4092u);
 }
 
 template<typename T>
 class TreeFixture : public ::testing::Test {
 };
 
-typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6, 6>>,
-                         std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 64, 64>>,
-                         std::pair<layout_4096, tree_sector<uint64_t, uint32_t, 256 + 32, 256 + 32>>>
+typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6>>,
+                         std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 64>>,
+                         std::pair<layout_4096, tree_sector<uint64_t, uint32_t, 288>>>
     Implementations;
 
-static_assert(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>) <= 4096, "sizeof(Node) <= 256");
+static_assert(sizeof(tree_node_t<uint32_t, uint32_t, 6>) <= 4096, "sizeof(Node) <= 256");
 
-static_assert(sizeof(tree_node_t<uint64_t, uint32_t, 256 + 32, 256 + 32>) <= 4096, "sizeof(Node) <= 4096");
+static_assert(sizeof(tree_node_t<uint64_t, uint32_t, 288>) <= 4096, "sizeof(Node) <= 4096");
 
 TYPED_TEST_SUITE(TreeFixture, Implementations);
 

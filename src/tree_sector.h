@@ -41,10 +41,10 @@ public:
 
 };
 
-template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize, typename BufferAllocatorType = heap_buffer_allocator>
+template <typename KEY, typename VALUE, size_t Size, typename BufferAllocatorType = heap_buffer_allocator>
 class tree_sector {
 private:
-    using default_node_type = tree_node_t<KEY, VALUE, InnerSize, LeafSize>;
+    using default_node_type = tree_node_t<KEY, VALUE, Size>;
 
     static constexpr size_t ScopeNameLength = 32;
 
@@ -170,8 +170,8 @@ private:
 
     int32_t leaf_insert_nonfull(default_node_type *node, KEY &key, VALUE &value, unsigned index) {
         assert(node->type == node_type::Leaf);
-        assert(node->number_keys < InnerSize);
-        assert(index < InnerSize);
+        assert(node->number_keys < Size);
+        assert(index < Size);
         assert(index <= node->number_keys);
 
         if (node->keys[index] == key) {
@@ -199,12 +199,12 @@ private:
 
         auto index = Keys::leaf_position_for(key, *node);
 
-        if (node->number_keys >= LeafSize) {
+        if (node->number_keys >= Size) {
             phydebugf("node full, splitting");
 
             node_ptr_t sibling_ptr;
             return allocate_node(sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t ignored_ptr) {
-                auto threshold = (LeafSize + 1) / 2;
+                auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
                 for (auto j = 0u; j < new_sibling->number_keys; ++j) {
@@ -243,7 +243,7 @@ private:
         logged_task lt{ "inner-nonfull" };
 
         assert(node->type == node_type::Inner);
-        assert(node->number_keys < InnerSize);
+        assert(node->number_keys < Size);
         assert(current_depth != 0);
 
         auto left = sector();
@@ -295,7 +295,7 @@ private:
             }
         }
 
-        assert(node->number_keys < InnerSize);
+        assert(node->number_keys < Size);
 
         if (insertion.split) {
             if (index == node->number_keys) {
@@ -336,10 +336,10 @@ private:
         // Early split if node is full.
         // This is not the canonical algorithm for B+ trees,
         // but it is simpler and does not break the definition.
-        if (node->number_keys == InnerSize) {
+        if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
             auto err = allocate_node(ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t &sibling_ptr) {
-                auto treshold = (InnerSize + 1) / 2;
+                auto treshold = (Size + 1) / 2;
 
                 new_sibling->type = node_type::Inner;
                 new_sibling->number_keys = node->number_keys - treshold;
