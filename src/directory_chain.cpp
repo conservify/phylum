@@ -8,6 +8,12 @@ int32_t directory_chain::mount() {
     head(0);
     sector(0);
 
+    dhara_page_t page = 0;
+    auto find = sectors()->find(0, &page);
+    if (find < 0) {
+        return find;
+    }
+
     auto err = load();
     if (err < 0) {
         return err;

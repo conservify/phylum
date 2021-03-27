@@ -17,6 +17,8 @@ protected:
 };
 
 TEST_F(BasicsSuite, MountFormatMount) {
+    memory.begin(true);
+
     directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
     ASSERT_EQ(chain.mount(), -1);
     ASSERT_EQ(chain.format(), 0);
@@ -25,6 +27,8 @@ TEST_F(BasicsSuite, MountFormatMount) {
 }
 
 TEST_F(BasicsSuite, FormatPersists) {
+    memory.begin(true);
+
     memory.sync([&]() {
         directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
         ASSERT_EQ(chain.format(), 0);
@@ -51,6 +55,7 @@ TEST_F(BasicsSuite, TouchPersists) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.touch("test.logs"), 0);
+        phydebugf("ok done");
     });
 
     memory.mounted([&](directory_chain &chain) {

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <delimited_buffer.h>
 #include <memory_sector_map.h>
 #include <directory_chain.h>
 
@@ -25,9 +26,11 @@ struct layout_4096 {
 class FlashMemory {
 private:
     size_t sector_size_;
-    memory_sector_map sectors_{ sector_size_ };
+    memory_flash_memory memory_{ sector_size_ };
+    dhara_sector_map sectors_{ memory_ };
     sector_allocator allocator_{ sectors_ };
     bool formatted_{ false };
+    bool initialized_{ false };
 
 public:
     FlashMemory(size_t sector_size) : sector_size_(sector_size) {
@@ -38,7 +41,7 @@ public:
         return sector_size_;
     }
 
-    memory_sector_map &sectors() {
+    dhara_sector_map &sectors() {
         return sectors_;
     }
 
@@ -47,6 +50,11 @@ public:
     }
 
 public:
+    void begin(bool force_create) {
+        ASSERT_EQ(sectors_.begin(true), 0);
+        initialized_ = true;
+    }
+
     void clear() {
         sectors_.clear();
     }
@@ -54,10 +62,21 @@ public:
     template<typename T>
     void sync(T fn) {
         fn();
+
+        ASSERT_EQ(sectors_.sync(), 0);
     }
 
     template<typename T>
     void mounted(T fn) {
+        if (formatted_) {
+            ASSERT_EQ(sectors_.begin(false), 0);
+        }
+        else {
+            ASSERT_EQ(sectors_.begin(!initialized_), 0);
+            ASSERT_EQ(allocator_.begin(), 0);
+            initialized_ = true;
+        }
+
         directory_chain chain{ sectors_, allocator_, 0, simple_buffer{ sector_size() } };
         if (formatted_) {
             ASSERT_EQ(chain.mount(), 0);
@@ -66,7 +85,10 @@ public:
             ASSERT_EQ(chain.format(), 0);
             formatted_ = true;
         }
+
         fn(chain);
+
+        ASSERT_EQ(sectors_.sync(), 0);
     }
 };
 
