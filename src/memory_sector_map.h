@@ -21,12 +21,32 @@ public:
     }
 
 public:
+    int32_t begin(bool /*force_create*/) override {
+        return 0;
+    }
+
     size_t sector_size() override {
         return sector_size_;
     }
 
     dhara_sector_t size() override {
         return map_.size();
+    }
+
+    int32_t trim(dhara_sector_t sector) override {
+        if (map_[sector] != nullptr) {
+            free(map_[sector]);
+            map_[sector] = nullptr;
+        }
+        return 0;
+    }
+
+    int32_t find(dhara_sector_t sector, dhara_page_t *page) override {
+        if (map_[sector] == nullptr) {
+            return 0;
+        }
+        *page = 0;
+        return -1;
     }
 
     int32_t write(dhara_sector_t sector, uint8_t const *data, size_t size) override {
@@ -57,6 +77,10 @@ public:
             free(e.second);
         }
         map_.clear();
+        return 0;
+    }
+
+    int32_t sync() override {
         return 0;
     }
 };

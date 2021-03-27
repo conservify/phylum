@@ -7,6 +7,7 @@
 
 #include "fake_data.h"
 #include "geometry.h"
+#include "memory_flash_memory.h"
 
 using namespace phylum;
 

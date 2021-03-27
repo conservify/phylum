@@ -46,7 +46,7 @@ file(GLOB test_sources *.cpp)
 
 add_executable(testall ${library_sources} ${test_sources})
 
-target_include_directories(testall PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(testall PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_compile_options(testall PRIVATE -Wall)
 
 find_package(ArduinoLogging)

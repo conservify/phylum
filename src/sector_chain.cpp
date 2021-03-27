@@ -35,7 +35,7 @@ int32_t sector_chain::flush() {
 
     phydebugf("%s flush", name());
 
-    auto err = dhara_->write(sector_, buffer_.read_view().ptr(), buffer_.read_view().size());
+    auto err = sectors_->write(sector_, buffer_.read_view().ptr(), buffer_.read_view().size());
     if (err < 0) {
         return err;
     }
@@ -150,7 +150,7 @@ int32_t sector_chain::load() {
     db().rewind();
 
     return buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
-        return dhara_->read(sector_, ptr, size);
+        return sectors_->read(sector_, ptr, size);
     });
 }
 

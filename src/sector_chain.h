@@ -10,7 +10,7 @@ private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
-    sector_map *dhara_;
+    sector_map *sectors_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
     dhara_sector_t head_{ InvalidSector };
@@ -23,15 +23,15 @@ private:
     char name_[ChainNameLength];
 
 public:
-    sector_chain(sector_map &dhara, sector_allocator &allocator, simple_buffer &&buffer, head_tail_t chain,
+    sector_chain(sector_map &sectors, sector_allocator &allocator, simple_buffer &&buffer, head_tail_t chain,
                  const char *prefix)
-        : dhara_(&dhara), allocator_(&allocator), buffer_(std::move(buffer)), head_(chain.head), tail_(chain.tail),
+        : sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffer)), head_(chain.head), tail_(chain.tail),
           prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
     sector_chain(sector_chain &other, head_tail_t chain, const char *prefix)
-        : dhara_(other.dhara_), allocator_(other.allocator_), buffer_(other.sector_size()), head_(chain.head),
+        : sectors_(other.sectors_), allocator_(other.allocator_), buffer_(other.sector_size()), head_(chain.head),
           tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
@@ -74,6 +74,10 @@ public:
 
 protected:
     void name(const char *f, ...);
+
+    sector_map *sectors() {
+        return sectors_;
+    }
 
     void dirty(bool value) {
         dirty_ = value;

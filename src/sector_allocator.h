@@ -11,13 +11,19 @@ private:
 
 public:
     sector_allocator(sector_map &sectors) : sectors_(sectors) {
-        counter_ = sectors_.size() + 1;
     }
 
 public:
+    int32_t begin() {
+        counter_ = sectors_.size() + 1;
+
+        return 0;
+    }
+
     dhara_sector_t allocate() {
         // TODO We should also maintain a free sector collection. We
-        // can do this by just keeping a sector chain with their numbers.
+        // can do this by just keeping a sector chain with their
+        // numbers.
         return counter_++;
     }
 };
