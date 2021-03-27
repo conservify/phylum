@@ -35,6 +35,7 @@ public:
 class heap_buffer_allocator {
 public:
     simple_buffer allocate(size_t size) {
+        assert(size > 0);
         return simple_buffer{ size };
     }
 
