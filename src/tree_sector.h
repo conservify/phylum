@@ -32,7 +32,15 @@ public:
     }
 };
 
-template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize>
+class heap_buffer_allocator {
+public:
+    simple_buffer allocate(size_t size) {
+        return simple_buffer{ size };
+    }
+
+};
+
+template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize, typename BufferAllocatorType = heap_buffer_allocator>
 class tree_sector {
 private:
     using default_node_type = tree_node_t<KEY, VALUE, InnerSize, LeafSize>;
@@ -58,6 +66,7 @@ private:
     };
 
 private:
+    BufferAllocatorType buffer_allocator_;
     dhara_map *dhara_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
@@ -420,9 +429,7 @@ private:
 
         phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
-        // TODO Allocates
-        delimited_buffer buffer{ sector_size() };
-
+        delimited_buffer buffer{ buffer_allocator_.allocate(sector_size()) };
         auto placed = buffer.template reserve<default_node_type>();
 
         ptr = node_ptr_t{ allocated, placed.position };
