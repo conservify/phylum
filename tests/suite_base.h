@@ -81,8 +81,8 @@ public:
 
 public:
     PhylumSuite() {
-        attributes_[0] = { .type = ATTRIBUTE_ONE, .size = 4, .ptr = nullptr };
-        attributes_[1] = { .type = ATTRIBUTE_TWO, .size = 4, .ptr = nullptr };
+        attributes_[0] = open_file_attribute{ ATTRIBUTE_ONE, 4, nullptr, false };
+        attributes_[1] = open_file_attribute{ ATTRIBUTE_TWO, 4, nullptr, false };
     }
 
     virtual ~PhylumSuite() {

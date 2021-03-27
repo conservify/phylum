@@ -10,8 +10,8 @@ class file_appender;
 struct open_file_attribute {
     uint8_t type{ 0 };
     uint8_t size{ 0 };
-    bool    dirty{ 0 };
     void   *ptr{ nullptr };
+    bool    dirty{ 0 };
 };
 
 struct open_file_config {
