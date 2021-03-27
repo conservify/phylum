@@ -25,7 +25,7 @@ private:
     flash_memory *target_{ nullptr };
     phylum_dhara_t nand_;
     struct dhara_map dmap_;
-    uint8_t gc_ratio_{ 10 };
+    uint8_t gc_ratio_{ 20 };
     uint32_t page_size_{ 0 };
     uint32_t block_size_{ 0 };
     uint32_t nblocks_{ 0 };
