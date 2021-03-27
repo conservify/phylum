@@ -168,12 +168,12 @@ public:
 };
 
 template <typename KEY, typename VALUE, size_t InnerSize, size_t LeafSize>
-struct PHY_PACKED tree_node_t : tree_node_header_t {
+struct tree_node_t : tree_node_header_t {
 public:
     typedef KEY key_type;
     typedef VALUE value_type;
 
-    union PHY_PACKED data_t {
+    union data_t {
         VALUE values[LeafSize];
         node_ptr_t children[InnerSize + 1];
 
@@ -200,7 +200,7 @@ public:
         number_keys = 0;
         for (auto i = 0u; i < InnerSize; ++i) {
             keys[i] = 0;
-            d.values[i] = 0;
+            d.values[i] = {};
             d.children[i] = {};
         }
         for (auto &ref : d.children) {

@@ -49,7 +49,7 @@ private:
 
     struct insertion_t {
         bool split{ false };
-        uint32_t key{ 0 };
+        KEY key{ 0 };
         node_ptr_t left;
         node_ptr_t right;
     };
@@ -167,7 +167,7 @@ private:
         va_end(args);
     }
 
-    int32_t leaf_insert_nonfull(default_node_type *node, uint32_t &key, uint32_t &value, unsigned index) {
+    int32_t leaf_insert_nonfull(default_node_type *node, KEY &key, VALUE &value, unsigned index) {
         assert(node->type == node_type::Leaf);
         assert(node->number_keys < InnerSize);
         assert(index < InnerSize);
@@ -193,8 +193,7 @@ private:
         return 0;
     }
 
-    int32_t leaf_node_insert(default_node_type *node, node_ptr_t node_ptr, uint32_t key, uint32_t value,
-                             insertion_t &insertion) {
+    int32_t leaf_node_insert(default_node_type *node, node_ptr_t node_ptr, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "leaf-node" };
 
         auto index = Keys::leaf_position_for(key, *node);
@@ -239,7 +238,7 @@ private:
         }
     }
 
-    int32_t inner_insert_nonfull(depth_type current_depth, default_node_type *node, uint32_t key, uint32_t value) {
+    int32_t inner_insert_nonfull(depth_type current_depth, default_node_type *node, KEY &key, VALUE &value) {
         logged_task lt{ "inner-nonfull" };
 
         assert(node->type == node_type::Inner);
@@ -327,8 +326,7 @@ private:
         return 0;
     }
 
-    int32_t inner_node_insert(depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, uint32_t key,
-                              uint32_t value, insertion_t &insertion) {
+    int32_t inner_node_insert(depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "inner-node" };
 
         assert(node->type == node_type::Inner);
@@ -565,7 +563,7 @@ public:
         return 0;
     }
 
-    int32_t add(uint32_t key, uint32_t value) {
+    int32_t add(KEY key, VALUE value) {
         logged_task lt{ "tree-add" };
 
         phydebugf("%s adding %d = %d", name(), key, value);

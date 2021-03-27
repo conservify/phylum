@@ -8,15 +8,15 @@
 using namespace phylum;
 
 TEST(TreeInfo, NodeSizes) {
-    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>), 81u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>), 105u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>), 111u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>), 917u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>), 1813u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 288, 288>), 4053u);
-    ASSERT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 291, 291>), 4095u);
-    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 291, 291>), 2931u);
-    ASSERT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 407, 408>), 4091u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>), 84u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 6, 6>), 112u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint64_t, 6, 6>), 112u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 64, 64>), 920u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 128, 128>), 1816u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 288, 288>), 4056u);
+    EXPECT_EQ(sizeof(tree_node_t<uint64_t, uint32_t, 291, 291>), 4096u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 291, 291>), 2932u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 407, 408>), 4092u);
 }
 
 template<typename T>
