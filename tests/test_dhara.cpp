@@ -1,12 +1,12 @@
 #include <dhara_map.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 
 using namespace phylum;
 
-class DharaSuite : public PhylumSuite {};
+class DharaFixture : public PhylumFixture {};
 
-TEST_F(DharaSuite, Initialize) {
+TEST_F(DharaFixture, Initialize) {
     memory_flash_memory memory{ 4096 };
     dhara_sector_map sectors{ memory };
 

@@ -2,13 +2,13 @@
 #include <file_appender.h>
 #include <tree_sector.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
 
 template<typename T>
-class LargeFileSuite : public PhylumSuite {};
+class LargeFileFixture : public PhylumFixture {};
 
 typedef ::testing::Types<
     std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6, 6>>,
@@ -17,9 +17,9 @@ typedef ::testing::Types<
     std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 407, 408>>>
     Implementations;
 
-TYPED_TEST_SUITE(LargeFileSuite, Implementations);
+TYPED_TEST_SUITE(LargeFileFixture, Implementations);
 
-TYPED_TEST(LargeFileSuite, WriteOneMegabyte) {
+TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
@@ -48,7 +48,7 @@ TYPED_TEST(LargeFileSuite, WriteOneMegabyte) {
     });
 }
 
-TYPED_TEST(LargeFileSuite, WriteOneMegabyteIndexed) {
+TYPED_TEST(LargeFileFixture, WriteOneMegabyteIndexed) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 

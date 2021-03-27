@@ -92,7 +92,7 @@ public:
     }
 };
 
-class PhylumSuite : public ::testing::Test {
+class PhylumFixture : public ::testing::Test {
 private:
     open_file_attribute attributes_[2];
     open_file_config file_cfg_;
@@ -103,12 +103,12 @@ public:
     }
 
 public:
-    PhylumSuite() {
+    PhylumFixture() {
         attributes_[0] = open_file_attribute{ ATTRIBUTE_ONE, 4, nullptr, false };
         attributes_[1] = open_file_attribute{ ATTRIBUTE_TWO, 4, nullptr, false };
     }
 
-    virtual ~PhylumSuite() {
+    virtual ~PhylumFixture() {
     }
 
 public:

@@ -2,18 +2,18 @@
 #include <file_appender.h>
 #include <file_reader.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
 
-template <typename T> class ReadSuite : public PhylumSuite {};
+template <typename T> class ReadFixture : public PhylumFixture {};
 
 typedef ::testing::Types<layout_256, layout_4096> Implementations;
 
-TYPED_TEST_SUITE(ReadSuite, Implementations);
+TYPED_TEST_SUITE(ReadFixture, Implementations);
 
-TYPED_TEST(ReadSuite, ReadInlineWrite) {
+TYPED_TEST(ReadFixture, ReadInlineWrite) {
     TypeParam layout;
     FlashMemory memory{ layout.sector_size };
 
@@ -42,7 +42,7 @@ TYPED_TEST(ReadSuite, ReadInlineWrite) {
     });
 }
 
-TYPED_TEST(ReadSuite, ReadInlineWriteMultipleSameBlock) {
+TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
     TypeParam layout;
     FlashMemory memory{ layout.sector_size };
 
@@ -73,7 +73,7 @@ TYPED_TEST(ReadSuite, ReadInlineWriteMultipleSameBlock) {
     });
 }
 
-TYPED_TEST(ReadSuite, ReadInlineWriteMultipleSeparateBlocks) {
+TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
     TypeParam layout;
     FlashMemory memory{ layout.sector_size };
 
@@ -104,7 +104,7 @@ TYPED_TEST(ReadSuite, ReadInlineWriteMultipleSeparateBlocks) {
     });
 }
 
-TYPED_TEST(ReadSuite, ReadDataChain_TwoBlocks) {
+TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
     TypeParam layout;
     FlashMemory memory{ layout.sector_size };
 
@@ -145,7 +145,7 @@ TYPED_TEST(ReadSuite, ReadDataChain_TwoBlocks) {
     });
 }
 
-TYPED_TEST(ReadSuite, ReadDataChain_SeveralBlocks) {
+TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
     TypeParam layout;
     FlashMemory memory{ layout.sector_size };
 

@@ -2,7 +2,7 @@
 #include <file_appender.h>
 #include <tree_sector.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
@@ -20,7 +20,7 @@ TEST(TreeInfo, NodeSizes) {
 }
 
 template<typename T>
-class TreeSuite : public ::testing::Test {
+class TreeFixture : public ::testing::Test {
 };
 
 typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6, 6>>,
@@ -32,9 +32,9 @@ static_assert(sizeof(tree_node_t<uint32_t, uint32_t, 6, 6>) <= 4096, "sizeof(Nod
 
 static_assert(sizeof(tree_node_t<uint64_t, uint32_t, 256 + 32, 256 + 32>) <= 4096, "sizeof(Node) <= 4096");
 
-TYPED_TEST_SUITE(TreeSuite, Implementations);
+TYPED_TEST_SUITE(TreeFixture, Implementations);
 
-TYPED_TEST(TreeSuite, SingleNodeTree) {
+TYPED_TEST(TreeFixture, SingleNodeTree) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
@@ -63,7 +63,7 @@ TYPED_TEST(TreeSuite, SingleNodeTree) {
     });
 }
 
-TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByOneNode) {
+TYPED_TEST(TreeFixture, SingleNodeTreeGrowingByOneNode) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
@@ -81,7 +81,7 @@ TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByOneNode) {
     });
 }
 
-TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
+TYPED_TEST(TreeFixture, SingleNodeTreeGrowingByTwoNodes) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
@@ -105,7 +105,7 @@ TYPED_TEST(TreeSuite, SingleNodeTreeGrowingByTwoNodes) {
     });
 }
 
-TYPED_TEST(TreeSuite, TreeWith1024Node1Reachable) {
+TYPED_TEST(TreeFixture, TreeWith1024Node1Reachable) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
@@ -124,7 +124,7 @@ TYPED_TEST(TreeSuite, TreeWith1024Node1Reachable) {
     });
 }
 
-TYPED_TEST(TreeSuite, TreeAllReachableAsAdded) {
+TYPED_TEST(TreeFixture, TreeAllReachableAsAdded) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
@@ -148,7 +148,7 @@ TYPED_TEST(TreeSuite, TreeAllReachableAsAdded) {
     });
 }
 
-TYPED_TEST(TreeSuite, TreeWith1024) {
+TYPED_TEST(TreeFixture, TreeWith1024) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {

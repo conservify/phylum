@@ -1,18 +1,18 @@
 #include <directory_chain.h>
 #include <file_appender.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
 
-class WriteSuite_SectorSize_256 : public PhylumSuite {
+class WriteFixture_SectorSize_256 : public PhylumFixture {
 protected:
     FlashMemory memory{ 256 };
 
 };
 
-TEST_F(WriteSuite_SectorSize_256, WriteInlineOnce) {
+TEST_F(WriteFixture_SectorSize_256, WriteInlineOnce) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -34,7 +34,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteInlineOnce) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteInlineBuffersMultipleSmall) {
+TEST_F(WriteFixture_SectorSize_256, WriteInlineBuffersMultipleSmall) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -58,7 +58,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteInlineBuffersMultipleSmall) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteInlineMultipleFlushEach) {
+TEST_F(WriteFixture_SectorSize_256, WriteInlineMultipleFlushEach) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -86,7 +86,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteInlineMultipleFlushEach) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
+TEST_F(WriteFixture_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -120,7 +120,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChain) {
+TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChain) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -156,7 +156,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChain) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
+TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -195,7 +195,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttribute) {
+TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttribute) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -225,7 +225,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttribute) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
+TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -256,7 +256,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTimes) {
+TEST_F(WriteFixture_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTimes) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
@@ -306,7 +306,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTime
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
+TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
     auto hello = "Hello, world! How are you!";
 
     memory.mounted([&](directory_chain &chain) {
@@ -337,7 +337,7 @@ TEST_F(WriteSuite_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
     });
 }
 
-TEST_F(WriteSuite_SectorSize_256, WriteImmediatelyToDataChain_TwoBlocks) {
+TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_TwoBlocks) {
     auto hello = "Hello, world! How are you!";
 
     memory.mounted([&](directory_chain &chain) {

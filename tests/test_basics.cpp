@@ -1,12 +1,12 @@
 #include <directory_chain.h>
 #include <file_appender.h>
 
-#include "suite_base.h"
+#include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
 
-class BasicsSuite : public PhylumSuite {
+class BasicsFixture : public PhylumFixture {
 protected:
     FlashMemory memory{ sector_size() };
 
@@ -16,7 +16,7 @@ protected:
     }
 };
 
-TEST_F(BasicsSuite, MountFormatMount) {
+TEST_F(BasicsFixture, MountFormatMount) {
     memory.begin(true);
 
     directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
@@ -26,7 +26,7 @@ TEST_F(BasicsSuite, MountFormatMount) {
     ASSERT_EQ(chain.mount(), 0);
 }
 
-TEST_F(BasicsSuite, FormatPersists) {
+TEST_F(BasicsFixture, FormatPersists) {
     memory.begin(true);
 
     memory.sync([&]() {
@@ -41,7 +41,7 @@ TEST_F(BasicsSuite, FormatPersists) {
     });
 }
 
-TEST_F(BasicsSuite, FindAndTouch) {
+TEST_F(BasicsFixture, FindAndTouch) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.find("test.logs", open_file_config{}), -1);
@@ -51,7 +51,7 @@ TEST_F(BasicsSuite, FindAndTouch) {
     });
 }
 
-TEST_F(BasicsSuite, TouchPersists) {
+TEST_F(BasicsFixture, TouchPersists) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.touch("test.logs"), 0);
@@ -72,7 +72,7 @@ TEST_F(BasicsSuite, TouchPersists) {
     });
 }
 
-TEST_F(BasicsSuite, TouchAndFindMultiple) {
+TEST_F(BasicsFixture, TouchAndFindMultiple) {
     const char *names[] = {
         "a.txt",
         "b.txt",
