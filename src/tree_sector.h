@@ -43,9 +43,12 @@ public:
 
 template <typename KEY, typename VALUE, size_t Size, typename BufferAllocatorType = heap_buffer_allocator>
 class tree_sector {
-private:
+public:
+    using key_type = KEY;
+    using value_type = VALUE;
     using default_node_type = tree_node_t<KEY, VALUE, Size>;
 
+private:
     static constexpr size_t ScopeNameLength = 32;
 
     struct insertion_t {

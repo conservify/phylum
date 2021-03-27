@@ -40,6 +40,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
             ASSERT_GT(wrote, 0);
             written += wrote;
         }
+
         ASSERT_EQ(opened.flush(), 0);
     });
 
