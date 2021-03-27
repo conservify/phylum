@@ -3,6 +3,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 find_package(Threads REQUIRED)
 
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/third-party/arduino-logging/cmake ${CMAKE_SOURCE_DIR}/cmake)
+
 include(ExternalProject)
 
 set(GTEST_URL ${CMAKE_SOURCE_DIR}/third-party/googletest-release-1.10.0.tar.gz)
@@ -47,9 +49,11 @@ add_executable(testall ${library_sources} ${test_sources})
 target_include_directories(testall PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(testall PRIVATE -Wall)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/third-party/arduino-logging/cmake)
 find_package(ArduinoLogging)
 target_link_libraries(testall ArduinoLogging)
+
+find_package(Dhara)
+target_link_libraries(testall Dhara)
 
 target_link_libraries(testall libgtest libgmock)
 add_test(NAME testall COMMAND testall)

@@ -61,7 +61,7 @@ TYPED_TEST(LargeFileSuite, WriteOneMegabyteIndexed) {
         file_appender opened{ chain, chain.open(), std::move(file_buffer) };
 
         auto tree_sector = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.dhara(), memory.allocator(), simple_buffer{ memory.sector_size() }, tree_sector, "tree" };
+        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, tree_sector, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 

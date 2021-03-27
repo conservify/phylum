@@ -8,9 +8,9 @@ namespace phylum {
 typedef uint32_t dhara_block_t;
 typedef uint32_t dhara_sector_t;
 
-class dhara_map {
+class sector_map {
 public:
-    virtual ~dhara_map() { }
+    virtual ~sector_map() { }
 
 public:
     virtual size_t sector_size() = 0;

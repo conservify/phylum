@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <memory_dhara_map.h>
+#include <memory_sector_map.h>
 #include <directory_chain.h>
 
 #include "fake_data.h"
@@ -24,8 +24,8 @@ struct layout_4096 {
 class FlashMemory {
 private:
     size_t sector_size_;
-    memory_dhara_map dhara_{ sector_size_ };
-    sector_allocator allocator_{ dhara_ };
+    memory_sector_map sectors_{ sector_size_ };
+    sector_allocator allocator_{ sectors_ };
     bool formatted_{ false };
 
 public:
@@ -37,8 +37,8 @@ public:
         return sector_size_;
     }
 
-    dhara_map &dhara() {
-        return dhara_;
+    memory_sector_map &sectors() {
+        return sectors_;
     }
 
     sector_allocator &allocator() {
@@ -47,7 +47,7 @@ public:
 
 public:
     void clear() {
-        dhara_.clear();
+        sectors_.clear();
     }
 
     template<typename T>
@@ -57,7 +57,7 @@ public:
 
     template<typename T>
     void mounted(T fn) {
-        directory_chain chain{ dhara_, allocator_, 0, simple_buffer{ sector_size() } };
+        directory_chain chain{ sectors_, allocator_, 0, simple_buffer{ sector_size() } };
         if (formatted_) {
             ASSERT_EQ(chain.mount(), 0);
         }

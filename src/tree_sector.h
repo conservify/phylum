@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dhara_map.h"
+#include "sector_map.h"
 #include "sector_allocator.h"
 #include "delimited_buffer.h"
 
@@ -67,7 +67,7 @@ private:
 
 private:
     BufferAllocatorType buffer_allocator_;
-    dhara_map *dhara_;
+    sector_map *sectors_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
     dhara_sector_t sector_{ InvalidSector };
@@ -77,14 +77,14 @@ private:
     char name_[ScopeNameLength];
 
 public:
-    tree_sector(dhara_map &dhara, sector_allocator &allocator, simple_buffer &&buffer, dhara_sector_t root,
+    tree_sector(sector_map &sectors, sector_allocator &allocator, simple_buffer &&buffer, dhara_sector_t root,
                 const char *prefix)
-        : dhara_(&dhara), allocator_(&allocator), buffer_(std::move(buffer)), root_(root), prefix_(prefix) {
+        : sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffer)), root_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
     tree_sector(tree_sector &other, dhara_sector_t root, const char *prefix)
-        : dhara_(other.dhara_), allocator_(other.allocator_), buffer_(other.sector_size()), root_(root),
+        : sectors_(other.sectors_), allocator_(other.allocator_), buffer_(other.sector_size()), root_(root),
           prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
@@ -289,7 +289,7 @@ private:
             sector(left);
 
             auto err =
-                db().unsafe_all([&](uint8_t *buffer, size_t size) { return dhara_->read(sector(), buffer, size); });
+                db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(sector(), buffer, size); });
             if (err < 0) {
                 return err;
             }
@@ -390,7 +390,7 @@ private:
 
     int32_t flush() {
         if (dirty()) {
-            auto err = dhara_->write(sector_, db().read_view().ptr(), db().read_view().size());
+            auto err = sectors_->write(sector_, db().read_view().ptr(), db().read_view().size());
             if (err < 0) {
                 return err;
             }
@@ -439,7 +439,7 @@ private:
             return err;
         }
 
-        err = dhara_->write(allocated, buffer.read_view().ptr(), buffer.read_view().size());
+        err = sectors_->write(allocated, buffer.read_view().ptr(), buffer.read_view().size());
         if (err < 0) {
             return err;
         }
@@ -458,7 +458,7 @@ private:
 
             assert(!dirty());
 
-            err = db().unsafe_all([&](uint8_t *buffer, size_t size) { return dhara_->read(ptr.sector, buffer, size); });
+            err = db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(ptr.sector, buffer, size); });
             if (err < 0) {
                 return err;
             }
@@ -484,7 +484,7 @@ private:
 
             assert(!dirty());
             auto err =
-                db().unsafe_all([&](uint8_t *buffer, size_t size) { return dhara_->read(sector_, buffer, size); });
+                db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(sector_, buffer, size); });
             if (err < 0) {
                 return err;
             }
@@ -526,7 +526,7 @@ private:
                     sector(left);
 
                     auto err = db().unsafe_all(
-                        [&](uint8_t *buffer, size_t size) { return dhara_->read(sector(), buffer, size); });
+                        [&](uint8_t *buffer, size_t size) { return sectors_->read(sector(), buffer, size); });
                     if (err < 0) {
                         return err;
                     }

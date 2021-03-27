@@ -17,7 +17,7 @@ protected:
 };
 
 TEST_F(BasicsSuite, MountFormatMount) {
-    directory_chain chain{ memory.dhara(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+    directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
     ASSERT_EQ(chain.mount(), -1);
     ASSERT_EQ(chain.format(), 0);
     ASSERT_EQ(chain.flush(), 0);
@@ -26,13 +26,13 @@ TEST_F(BasicsSuite, MountFormatMount) {
 
 TEST_F(BasicsSuite, FormatPersists) {
     memory.sync([&]() {
-        directory_chain chain{ memory.dhara(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+        directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
         ASSERT_EQ(chain.format(), 0);
         ASSERT_EQ(chain.flush(), 0);
     });
 
     memory.sync([&]() {
-        directory_chain chain{ memory.dhara(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+        directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
         ASSERT_EQ(chain.mount(), 0);
     });
 }
@@ -91,7 +91,7 @@ TEST_F(BasicsSuite, TouchAndFindMultiple) {
         }
         ASSERT_EQ(chain.find("nope.txt", open_file_config{}), -1);
 
-        sector_geometry sg{ memory.dhara() };
+        sector_geometry sg{ memory.sectors() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { names[0] }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(2, { names[1] }));

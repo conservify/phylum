@@ -31,7 +31,7 @@ private:
     found_file file_;
 
 public:
-    directory_chain(dhara_map &dhara, sector_allocator &allocator, dhara_sector_t head, simple_buffer &&buffer)
+    directory_chain(sector_map &dhara, sector_allocator &allocator, dhara_sector_t head, simple_buffer &&buffer)
         : sector_chain(dhara, allocator, std::move(buffer), head_tail_t{ head, InvalidSector }, "directory") {
     }
 

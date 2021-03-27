@@ -2,21 +2,21 @@
 
 #include <map>
 
-#include "dhara_map.h"
+#include "sector_map.h"
 #include "phylum.h"
 
 namespace phylum {
 
-class memory_dhara_map : public dhara_map {
+class memory_sector_map : public sector_map {
 private:
     size_t sector_size_{ 256 };
     std::map<dhara_sector_t, uint8_t *> map_;
 
 public:
-    memory_dhara_map(size_t sector_size) : sector_size_(sector_size) {
+    memory_sector_map(size_t sector_size) : sector_size_(sector_size) {
     }
 
-    virtual ~memory_dhara_map() {
+    virtual ~memory_sector_map() {
         clear();
     }
 

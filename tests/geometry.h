@@ -4,10 +4,10 @@ namespace phylum {
 
 class sector_geometry {
 private:
-    dhara_map &map_;
+    sector_map &map_;
 
 public:
-    sector_geometry(dhara_map &map) : map_(map) {
+    sector_geometry(sector_map &map) : map_(map) {
     }
 
 public:
@@ -17,7 +17,7 @@ public:
         delimited_buffer buffer_;
 
     public:
-        verify_sector(dhara_map &map, dhara_sector_t sector) : sector_(sector), buffer_(map.sector_size()) {
+        verify_sector(sector_map &map, dhara_sector_t sector) : sector_(sector), buffer_(map.sector_size()) {
             buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
                 auto err = map.read(sector_, ptr, size);
                 // phydebug_dump_memory("verify ", ptr, size);

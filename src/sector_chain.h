@@ -10,7 +10,7 @@ private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
-    dhara_map *dhara_;
+    sector_map *dhara_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
     dhara_sector_t head_{ InvalidSector };
@@ -23,7 +23,7 @@ private:
     char name_[ChainNameLength];
 
 public:
-    sector_chain(dhara_map &dhara, sector_allocator &allocator, simple_buffer &&buffer, head_tail_t chain,
+    sector_chain(sector_map &dhara, sector_allocator &allocator, simple_buffer &&buffer, head_tail_t chain,
                  const char *prefix)
         : dhara_(&dhara), allocator_(&allocator), buffer_(std::move(buffer)), head_(chain.head), tail_(chain.tail),
           prefix_(prefix) {
