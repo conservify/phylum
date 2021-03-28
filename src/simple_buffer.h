@@ -1,16 +1,20 @@
 #pragma once
 
+#include <functional>
+
 #include "phylum.h"
 #include "varint.h"
 
 namespace phylum {
+
+using free_fn_t = std::function<void(uint8_t*)>;
 
 class simple_buffer {
 private:
     uint8_t *ptr_{ nullptr };
     size_t size_{ 0 };
     size_t position_{ 0 };
-    bool free_{ false };
+    free_fn_t free_;
 
 public:
     simple_buffer() {
@@ -19,26 +23,31 @@ public:
     simple_buffer(simple_buffer &other) = delete;
 
     simple_buffer(simple_buffer &&other)
-        : ptr_(exchange(other.ptr_, nullptr)), size_(other.size_), position_(other.position_),
-          free_(exchange(other.free_, false)) {
+        : ptr_(std::exchange(other.ptr_, nullptr)), size_(other.size_), position_(other.position_),
+          free_(std::exchange(other.free_, free_fn_t{ nullptr })) {
     }
 
-    explicit simple_buffer(size_t size) : ptr_((uint8_t *)malloc(size)), size_(size), free_(true) {
+    explicit simple_buffer(size_t size) : ptr_((uint8_t *)malloc(size)), size_(size) {
         assert(size > 0);
+        free_ = std::bind(&::free, std::placeholders::_1);
         clear();
     }
 
-    explicit simple_buffer(uint8_t *ptr, size_t size) : ptr_(ptr), size_(size), position_(0), free_(false) {
+    explicit simple_buffer(uint8_t *ptr, size_t size, free_fn_t free) : ptr_(ptr), size_(size), position_(0), free_(free) {
         assert(size > 0);
     }
 
-    explicit simple_buffer(uint8_t *ptr, size_t size, size_t position) : ptr_(ptr), size_(size), position_(position), free_(false) {
+    explicit simple_buffer(uint8_t *ptr, size_t size) : ptr_(ptr), size_(size), position_(0) {
+        assert(size > 0);
+    }
+
+    explicit simple_buffer(uint8_t *ptr, size_t size, size_t position) : ptr_(ptr), size_(size), position_(position) {
         assert(size > 0);
     }
 
     virtual ~simple_buffer() {
         if (free_ && ptr_ != nullptr) {
-            free(ptr_);
+            free_(ptr_);
             ptr_ = nullptr;
         }
     }
@@ -54,10 +63,10 @@ public:
     }
 
     simple_buffer &operator=(simple_buffer &&other) {
-        ptr_ = exchange(other.ptr_, nullptr);
+        ptr_ = std::exchange(other.ptr_, nullptr);
         size_ = other.size_;
         position_ = other.position_;
-        free_ = exchange(other.free_, false);
+        free_ = std::exchange(other.free_, free_fn_t{ nullptr });
         return *this;
     }
 
