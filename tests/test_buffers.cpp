@@ -7,7 +7,7 @@ using namespace phylum;
 class BuffersFixture : public PhylumFixture {};
 
 TEST_F(BuffersFixture, SimpleMalloc) {
-    malloc_working_buffers<10> buffers{ 256 };
+    malloc_working_buffers buffers{ 256 };
 
     {
         auto b1 = buffers.allocate(256);

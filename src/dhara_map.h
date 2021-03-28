@@ -10,9 +10,11 @@ extern "C" {
 #include "phylum.h"
 #include "sector_map.h"
 #include "flash_memory.h"
+#include "simple_buffer.h"
 
 namespace phylum {
 
+class working_buffers;
 class dhara_sector_map;
 
 typedef struct phylum_dhara_t {
@@ -22,7 +24,9 @@ typedef struct phylum_dhara_t {
 
 class dhara_sector_map : public sector_map {
 private:
+    working_buffers *buffers_{ nullptr };
     flash_memory *target_{ nullptr };
+    simple_buffer buffer_;
     phylum_dhara_t nand_;
     struct dhara_map dmap_;
     uint8_t gc_ratio_{ 20 };
@@ -31,7 +35,7 @@ private:
     uint32_t nblocks_{ 0 };
 
 public:
-    dhara_sector_map(flash_memory &target);
+    dhara_sector_map(working_buffers &buffers, flash_memory &target);
     virtual ~dhara_sector_map();
 
 public:

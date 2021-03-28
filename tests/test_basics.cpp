@@ -29,7 +29,7 @@ TEST_F(BasicsFixture, EntrySizes) {
 TEST_F(BasicsFixture, MountFormatMount) {
     memory.begin(true);
 
-    directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+    directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
     ASSERT_EQ(chain.mount(), -1);
     ASSERT_EQ(chain.format(), 0);
     ASSERT_EQ(chain.flush(), 0);
@@ -40,13 +40,13 @@ TEST_F(BasicsFixture, FormatPersists) {
     memory.begin(true);
 
     memory.sync([&]() {
-        directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+        directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
         ASSERT_EQ(chain.format(), 0);
         ASSERT_EQ(chain.flush(), 0);
     });
 
     memory.sync([&]() {
-        directory_chain chain{ memory.sectors(), memory.allocator(), 0, simple_buffer{ memory.sector_size() } };
+        directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
         ASSERT_EQ(chain.mount(), 0);
     });
 }

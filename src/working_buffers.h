@@ -1,12 +1,12 @@
 #pragma once
 
-#include <simple_buffer.h>
+#include "simple_buffer.h"
 
 namespace phylum {
 
-template<size_t Size>
 class working_buffers {
 protected:
+    static constexpr size_t Size = 8;
     uint8_t *buffers_[Size];
     size_t buffer_size_{ 0 };
     size_t taken_[Size];
@@ -70,21 +70,21 @@ public:
 
 };
 
-template<size_t Size>
-class malloc_working_buffers : public working_buffers<Size> {
+class malloc_working_buffers : public working_buffers {
 private:
     uint8_t *memory_{ nullptr };
 
 public:
-    malloc_working_buffers(size_t buffer_size) : working_buffers<Size>(buffer_size) {
+    malloc_working_buffers(size_t buffer_size) : working_buffers(buffer_size) {
         memory_ = (uint8_t *)malloc(Size * buffer_size);
+        memset(memory_, 0xff, Size * buffer_size);
         for (auto i = 0u; i < Size; ++i) {
             this->lend(memory_ + (i * buffer_size), buffer_size);
         }
     }
 
     virtual ~malloc_working_buffers() {
-        free(memory_);
+        ::free(memory_);
     }
 };
 

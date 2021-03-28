@@ -2,6 +2,7 @@
 
 #include "sector_allocator.h"
 #include "delimited_buffer.h"
+#include "working_buffers.h"
 
 namespace phylum {
 
@@ -10,6 +11,7 @@ private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
+    working_buffers *buffers_;
     sector_map *sectors_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
@@ -23,16 +25,15 @@ private:
     char name_[ChainNameLength];
 
 public:
-    sector_chain(sector_map &sectors, sector_allocator &allocator, simple_buffer &&buffer, head_tail_t chain,
-                 const char *prefix)
-        : sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffer)), head_(chain.head), tail_(chain.tail),
-          prefix_(prefix) {
+    sector_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, head_tail_t chain, const char *prefix)
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffers.allocate(sectors.sector_size()))), head_(chain.head),
+          tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
     sector_chain(sector_chain &other, head_tail_t chain, const char *prefix)
-        : sectors_(other.sectors_), allocator_(other.allocator_), buffer_(other.sector_size()), head_(chain.head),
-          tail_(chain.tail), prefix_(prefix) {
+        : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
+          buffer_(other.sector_size()), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 

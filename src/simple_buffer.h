@@ -118,7 +118,7 @@ public:
     int32_t fill(uint8_t const *source, size_t size, T flush) {
         auto copied = 0u;
         while (copied < size) {
-            auto copying = std::min<file_size_t>(size - copied, size_ - position_);
+            auto copying = std::min<size_t>(size - copied, size_ - position_);
             if (copying > 0) {
                 memcpy(ptr_ + position_, source + copied, copying);
                 position_ += copying;

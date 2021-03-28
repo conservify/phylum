@@ -26,8 +26,9 @@ struct layout_4096 {
 class FlashMemory {
 private:
     size_t sector_size_;
+    malloc_working_buffers buffers_{ sector_size_ };
     memory_flash_memory memory_{ sector_size_ };
-    dhara_sector_map sectors_{ memory_ };
+    dhara_sector_map sectors_{ buffers_, memory_ };
     sector_allocator allocator_{ sectors_ };
     bool formatted_{ false };
     bool initialized_{ false };
@@ -39,6 +40,10 @@ public:
 public:
     size_t sector_size() const {
         return sector_size_;
+    }
+
+    malloc_working_buffers &buffers() {
+        return buffers_;
     }
 
     dhara_sector_map &sectors() {
@@ -77,7 +82,7 @@ public:
             initialized_ = true;
         }
 
-        directory_chain chain{ sectors_, allocator_, 0, simple_buffer{ sector_size() } };
+        directory_chain chain{ buffers_, sectors_, allocator_, 0 };
         if (formatted_) {
             ASSERT_EQ(chain.mount(), 0);
         }

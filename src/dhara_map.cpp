@@ -1,4 +1,5 @@
 #include "dhara_map.h"
+#include "working_buffers.h"
 
 namespace phylum {
 
@@ -18,7 +19,7 @@ static inline uint32_t lfs_npw2(uint32_t a) {
 #endif
 }
 
-dhara_sector_map::dhara_sector_map(flash_memory &target) : target_(&target) {
+dhara_sector_map::dhara_sector_map(working_buffers &buffers, flash_memory &target) : buffers_(&buffers), target_(&target) {
 }
 
 dhara_sector_map::~dhara_sector_map() {
@@ -46,11 +47,10 @@ int32_t dhara_sector_map::begin(bool force_create) {
         .dn = this,
     };
 
-    // TODO Allocates
-    auto buffer = (uint8_t *)malloc(page_size);
+    buffer_ = buffers_->allocate(page_size);
 
     dhara_error_t derr;
-    dhara_map_init(&dmap_, &nand_.dhara, buffer, gc_ratio_);
+    dhara_map_init(&dmap_, &nand_.dhara, buffer_.ptr(), gc_ratio_);
 
     if (dhara_map_resume(&dmap_, &derr) < 0) {
         phywarnf("resume failed, clearing");

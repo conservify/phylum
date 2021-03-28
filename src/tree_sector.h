@@ -3,6 +3,7 @@
 #include "sector_map.h"
 #include "sector_allocator.h"
 #include "delimited_buffer.h"
+#include "working_buffers.h"
 
 namespace phylum {
 
@@ -71,6 +72,7 @@ private:
 
 private:
     BufferAllocatorType buffer_allocator_;
+    working_buffers *buffers_;
     sector_map *sectors_;
     sector_allocator *allocator_;
     delimited_buffer buffer_;
@@ -81,15 +83,14 @@ private:
     char name_[ScopeNameLength];
 
 public:
-    tree_sector(sector_map &sectors, sector_allocator &allocator, simple_buffer &&buffer, dhara_sector_t root,
-                const char *prefix)
-        : sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffer)), root_(root), prefix_(prefix) {
+    tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root, const char *prefix)
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffers.allocate(sectors.sector_size()))), root_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
     tree_sector(tree_sector &other, dhara_sector_t root, const char *prefix)
-        : sectors_(other.sectors_), allocator_(other.allocator_), buffer_(other.sector_size()), root_(root),
-          prefix_(prefix) {
+        : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
+          buffer_(other.sector_size()), root_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 

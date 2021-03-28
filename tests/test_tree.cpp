@@ -39,7 +39,7 @@ TYPED_TEST(TreeFixture, SingleNodeTree) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -68,7 +68,7 @@ TYPED_TEST(TreeFixture, SingleNodeTreeGrowingByOneNode) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -86,7 +86,7 @@ TYPED_TEST(TreeFixture, SingleNodeTreeGrowingByTwoNodes) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -110,7 +110,7 @@ TYPED_TEST(TreeFixture, TreeWith1024Node1Reachable) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -129,7 +129,7 @@ TYPED_TEST(TreeFixture, TreeAllReachableAsAdded) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
@@ -153,7 +153,7 @@ TYPED_TEST(TreeFixture, TreeWith1024) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted([&](directory_chain &chain) {
         auto first = memory.allocator().allocate();
-        typename TypeParam::second_type tree{ memory.sectors(), memory.allocator(), simple_buffer{ memory.sector_size() }, first, "tree" };
+        typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
         ASSERT_EQ(tree.create(), 0);
 
