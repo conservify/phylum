@@ -16,6 +16,16 @@ protected:
     }
 };
 
+TEST_F(BasicsFixture, EntrySizes) {
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 8>), 104u);
+    EXPECT_EQ(sizeof(super_block_t), 9u);
+    EXPECT_EQ(sizeof(directory_chain_header_t), 9u);
+    EXPECT_EQ(sizeof(data_chain_header_t), 11u);
+    EXPECT_EQ(sizeof(file_data_t), 29u);
+    EXPECT_EQ(sizeof(file_attribute_t), 7u);
+    EXPECT_EQ(sizeof(file_entry_t), 71u);
+}
+
 TEST_F(BasicsFixture, MountFormatMount) {
     memory.begin(true);
 

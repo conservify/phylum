@@ -81,9 +81,9 @@ struct PHY_PACKED data_chain_header_t : sector_chain_header_t {
 
 struct PHY_PACKED super_block_t : entry_t {
     uint32_t version{ 0 };
-    uint32_t tail{ 0 };
+    uint32_t reserved{ (uint32_t)-1 };
 
-    super_block_t(uint32_t version, uint32_t tail) : entry_t(entry_type::SuperBlock), version(version), tail(tail) {
+    super_block_t(uint32_t version) : entry_t(entry_type::SuperBlock), version(version) {
     }
 };
 
