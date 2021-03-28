@@ -14,9 +14,9 @@ typedef uint16_t file_flags_t;
 typedef uint16_t record_number_t;
 typedef uint16_t sector_offset_t;
 
-#define PHY_PACKED __attribute__((__packed__))
-
 constexpr dhara_sector_t InvalidSector = (dhara_sector_t)-1;
+
+#define PHY_PACKED __attribute__((__packed__))
 
 struct PHY_PACKED head_tail_t {
     dhara_sector_t head{ InvalidSector };
@@ -113,6 +113,9 @@ struct PHY_PACKED file_data_t : entry_t {
     file_id_t id{ 0 };
     file_size_t size{ 0 };
     head_tail_t chain;
+    dhara_sector_t attributes{ InvalidSector };
+    dhara_sector_t position_index{ InvalidSector };
+    dhara_sector_t record_index{ InvalidSector };
 
     file_data_t(file_id_t id, file_size_t size) : entry_t(entry_type::FileData), id(id), size(size) {
     }
