@@ -10,6 +10,7 @@ protected:
     uint8_t *buffers_[Size];
     size_t buffer_size_{ 0 };
     size_t taken_[Size];
+    size_t highwater_{ 0 };
 
 public:
     working_buffers(size_t buffer_size) : buffer_size_(buffer_size) {
@@ -23,6 +24,7 @@ public:
         for (auto i = 0u; i < Size; ++i) {
             taken_[i] = 0u;
         }
+        phyinfof("wbuffers::dtor hw=%zu", highwater_);
     }
 
 public:
@@ -39,8 +41,20 @@ public:
 
 public:
     simple_buffer allocate(size_t size) {
-        phydebugf("wbuffers: allocate");
         assert(size == buffer_size_);
+
+        auto hw = 1u; // We're going to increase this sum by 1 after
+                      // this function ends or fail horribly.
+        for (auto i = 0u; i < Size; ++i) {
+            if (buffers_[i] == nullptr) break;
+            if (taken_[i]) {
+                hw++;
+            }
+        }
+
+        if (hw > highwater_) {
+            highwater_ = hw;
+        }
 
         for (auto i = 0u; i < Size; ++i) {
             if (buffers_[i] == nullptr) {
@@ -48,6 +62,7 @@ public:
             }
             if (!taken_[i]) {
                 taken_[i] = true;
+                phydebugf("wbuffers[%d]: allocate hw=%zu", i, highwater_);
                 std::function<void(uint8_t*)> free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
                 return simple_buffer{ buffers_[i], size, free_fn };
             }
@@ -58,10 +73,10 @@ public:
     }
 
     void free(uint8_t *ptr) {
-        phydebugf("wbuffers: free");
         assert(ptr != nullptr);
         for (auto i = 0u; i < Size; ++i) {
             if (buffers_[i] == ptr) {
+                phydebugf("wbuffers[%d]: free", i);
                 taken_[i] = 0u;
                 break;
             }

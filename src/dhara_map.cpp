@@ -74,8 +74,8 @@ int32_t dhara_sector_map::begin(bool force_create) {
 
     auto loss = (float)(total_size - capacity_bytes) / total_size * 100.0f;
 
-    phydebugf("dmap: capacity=%d size=%d bytes=%" PRIu32 " total=%" PRIu32 " loss=%.2f",
-              capacity, dhara_map_size(&dmap_), capacity_bytes, total_size, loss);
+    phyinfof("dmap: capacity=%d size=%d bytes=%" PRIu32 " total=%" PRIu32 " loss=%.2f", capacity,
+             dhara_map_size(&dmap_), capacity_bytes, total_size, loss);
 
     return 0;
 }

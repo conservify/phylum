@@ -182,7 +182,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     }
 
     if (file_.id == UINT32_MAX) {
-        phyerrorf("find found no file");
+        phywarnf("find found no file");
         file_ = found_file{};
         return -1;
     }

@@ -30,7 +30,7 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    phyinfof("%s finding inline data begin", directory_.name());
+    phydebugf("%s finding inline data begin", directory_.name());
 
     // TODO This should be in a file reader and reused as part of this mechanism.
 
@@ -62,7 +62,7 @@ int32_t file_appender::make_data_chain() {
         buffer_.clear();
     }
 
-    phyinfof("%s finding inline data end", directory_.name());
+    phydebugf("%s finding inline data end", directory_.name());
 
     return 0;
 }
