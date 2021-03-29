@@ -46,6 +46,13 @@ public:
     delimited_buffer(simple_buffer &&buffer, size_t offset = 0) : buffer_(std::move(buffer)), offset_(offset) {
     }
 
+    delimited_buffer(delimited_buffer &&other)
+        : buffer_(std::exchange(other.buffer_, simple_buffer{ })), offset_(other.offset_) {
+    }
+
+    virtual ~delimited_buffer() {
+    }
+
 public:
     template <typename T>
     sector_offset_t append(T &record) {

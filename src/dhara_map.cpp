@@ -47,7 +47,9 @@ int32_t dhara_sector_map::begin(bool force_create) {
         .dn = this,
     };
 
-    buffer_ = buffers_->allocate(page_size);
+    if (!buffer_.valid()) {
+        buffer_ = buffers_->allocate(page_size);
+    }
 
     dhara_error_t derr;
     dhara_map_init(&dmap_, &nand_.dhara, buffer_.ptr(), gc_ratio_);
