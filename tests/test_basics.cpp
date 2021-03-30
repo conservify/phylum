@@ -24,6 +24,12 @@ TEST_F(BasicsFixture, EntrySizes) {
     EXPECT_EQ(sizeof(file_data_t), 29u);
     EXPECT_EQ(sizeof(file_attribute_t), 7u);
     EXPECT_EQ(sizeof(file_entry_t), 71u);
+    EXPECT_EQ(sizeof(dirtree_entry_t), 67u);
+    EXPECT_EQ(sizeof(dirtree_dir_t), 75u);
+    EXPECT_EQ(sizeof(dirtree_file_t), 91u);
+    EXPECT_EQ(sizeof(entry_t), 1u);
+    EXPECT_EQ(sizeof(dirtree_tree_value_t<128>), 219u);
+    EXPECT_EQ(sizeof(tree_node_t<uint32_t, dirtree_tree_value_t<128 + 29>, 4>), 1024u);
 }
 
 TEST_F(BasicsFixture, MountFormatMount) {

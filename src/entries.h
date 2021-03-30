@@ -34,9 +34,11 @@ enum entry_type : uint8_t {
     DataSector = 2,
     DirectorySector = 3,
     FileEntry = 4,
-    FileData = 5,
-    FileAttribute = 6,
+    FsFileEntry = 9,
+    FsDirectoryEntry = 5,
+    FileData = 6,
     TreeNode = 7,
+    FileAttribute = 8,
 };
 
 struct PHY_PACKED entry_t {
@@ -89,6 +91,47 @@ struct PHY_PACKED super_block_t : entry_t {
 inline uint32_t make_file_id(const char *path) {
     return crc32_checksum(path);
 }
+
+struct PHY_PACKED dirtree_entry_t : entry_t {
+    char name[MaximumNameLength];
+    file_flags_t flags;
+
+    dirtree_entry_t(entry_type type, const char *full_name, uint16_t flags) : entry_t(type), flags(flags) {
+        bzero(name, sizeof(name));
+        strncpy(name, full_name, sizeof(name));
+    }
+};
+
+struct PHY_PACKED dirtree_dir_t : dirtree_entry_t {
+    dhara_sector_t attributes{ InvalidSector };
+    dhara_sector_t children{ InvalidSector };
+
+    dirtree_dir_t(const char *name, uint16_t flags = 0)
+        : dirtree_entry_t(entry_type::FsDirectoryEntry, name, flags) {
+    }
+};
+
+struct PHY_PACKED dirtree_file_t : dirtree_entry_t {
+    file_size_t size{ 0 };
+    head_tail_t chain;
+    dhara_sector_t attributes{ InvalidSector };
+    dhara_sector_t position_index{ InvalidSector };
+    dhara_sector_t record_index{ InvalidSector };
+
+    dirtree_file_t(const char *name, uint16_t flags = 0)
+        : dirtree_entry_t(entry_type::FsFileEntry, name, flags) {
+    }
+};
+
+template<size_t Storage>
+struct PHY_PACKED dirtree_tree_value_t {
+    union PHY_PACKED {
+        dirtree_entry_t e;
+        dirtree_dir_t dir;
+        dirtree_file_t file;
+    } entry;
+    uint8_t data[Storage];
+};
 
 struct PHY_PACKED file_entry_t : entry_t {
     file_id_t id;

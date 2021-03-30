@@ -185,6 +185,16 @@ int32_t sector_chain::log() {
             phyinfof("entry (%zu) id=0x%x name='%s'", record.size_of_record, fe->id, fe->name);
             break;
         }
+        case entry_type::FsDirectoryEntry: {
+            auto fe = record.as<dirtree_dir_t>();
+            phyinfof("entry (%zu) dir name='%s'", record.size_of_record, fe->name);
+            break;
+        }
+        case entry_type::FsFileEntry: {
+            auto fe = record.as<dirtree_file_t>();
+            phyinfof("entry (%zu) file name='%s'", record.size_of_record, fe->name);
+            break;
+        }
         case entry_type::FileData: {
             auto fd = record.as<file_data_t>();
             if (fd->size > 0) {
