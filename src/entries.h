@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cinttypes>
+#include <cstddef>
 
 namespace phylum {
 
@@ -125,12 +126,19 @@ struct PHY_PACKED dirtree_file_t : dirtree_entry_t {
 
 template<size_t Storage>
 struct PHY_PACKED dirtree_tree_value_t {
-    union PHY_PACKED {
+    union PHY_PACKED entry {
         dirtree_entry_t e;
         dirtree_dir_t dir;
         dirtree_file_t file;
-    } entry;
+
+        entry() {
+        }
+    };
+
     uint8_t data[Storage];
+
+    dirtree_tree_value_t() {
+    }
 };
 
 struct PHY_PACKED file_entry_t : entry_t {

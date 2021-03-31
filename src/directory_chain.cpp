@@ -191,7 +191,6 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
 }
 
 found_file directory_chain::open() {
-    logged_task lt{ "dir-open", this->name() };
     assert(file_.id != UINT32_MAX);
     return file_;
 }

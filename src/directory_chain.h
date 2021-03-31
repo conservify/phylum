@@ -43,6 +43,11 @@ public:
     }
 
 public:
+    found_file file() const {
+        return file_;
+    }
+
+public:
     int32_t mount();
 
     int32_t format();
@@ -56,11 +61,6 @@ public:
     friend class file_appender;
 
     friend class file_reader;
-
-public:
-    found_file file() const {
-        return file_;
-    }
 
 protected:
     int32_t write_header() override;

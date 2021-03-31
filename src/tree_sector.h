@@ -207,7 +207,7 @@ private:
             phydebugf("node full, splitting");
 
             node_ptr_t sibling_ptr;
-            return allocate_node(sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t ignored_ptr) {
+            return allocate_node(sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t /*ignored_ptr*/) {
                 auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -342,7 +342,7 @@ private:
         // but it is simpler and does not break the definition.
         if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
-            auto err = allocate_node(ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t &sibling_ptr) {
+            auto err = allocate_node(ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t sibling_ptr) {
                 auto treshold = (Size + 1) / 2;
 
                 new_sibling->type = node_type::Inner;
@@ -585,7 +585,7 @@ public:
     int32_t add(KEY key, VALUE value) {
         logged_task lt{ "tree-add" };
 
-        phydebugf("%s adding %d = %d", name(), key, value);
+        phydebugf("%s adding node", name());
 
         auto err = back_to_root();
         if (err < 0) {
@@ -616,7 +616,7 @@ public:
             // The old root was separated in two parts.
             // We have to create a new root pointing to them
             node_ptr_t ptr;
-            auto err = allocate_node(ptr, [&](default_node_type *new_node, node_ptr_t &ignored_ptr) {
+            auto err = allocate_node(ptr, [&](default_node_type *new_node, node_ptr_t /*ignored_ptr*/) {
                 new_node->type = node_type::Inner;
                 new_node->depth = node->depth + 1;
                 new_node->number_keys = 1;
@@ -639,7 +639,7 @@ public:
             return err;
         }
 
-        phydebugf("%s done adding %d = %d", name(), key, value);
+        phydebugf("%s done adding node", name());
 
         return 0;
     }

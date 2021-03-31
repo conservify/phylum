@@ -41,7 +41,9 @@ TYPED_TEST(TreeFixture, SingleNodeTree) {
         auto first = memory.allocator().allocate();
         typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "tree" };
 
+        ASSERT_EQ(tree.exists(), 0);
         ASSERT_EQ(tree.create(), 0);
+        ASSERT_EQ(tree.exists(), 1);
 
         uint32_t found = 0u;
 
