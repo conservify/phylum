@@ -112,7 +112,7 @@ int32_t dhara_sector_map::find(dhara_sector_t sector, dhara_page_t *page) {
     dhara_error_t derr;
     auto err = dhara_map_find(&dmap_, sector, page, &derr);
     if (err < 0) {
-        phyerrorf("find");
+        phywarnf("find");
         return err;
     }
 

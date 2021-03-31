@@ -545,6 +545,20 @@ private:
     }
 
 public:
+    int32_t exists() {
+        logged_task lt{ "tree-exists" };
+
+        phydebugf("exists!");
+
+        dhara_page_t page = 0;
+        auto err = sectors_->find(root_, &page);
+        if (err < 0) {
+            return 0;
+        }
+
+        return 1;
+    }
+
     int32_t create() {
         logged_task lt{ "tree-create" };
 
