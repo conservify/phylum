@@ -4,6 +4,7 @@
 #include "entries.h"
 #include "tree_sector.h"
 #include "directory.h"
+#include "sector_chain.h"
 
 namespace phylum {
 
@@ -23,19 +24,19 @@ public:
     }
 
 public:
-    int32_t mount();
+    friend class file_appender;
 
-    int32_t format();
+    friend class file_reader;
 
-    int32_t touch(const char *name);
+    int32_t mount() override;
 
-    int32_t find(const char *name, open_file_config file_cfg);
+    int32_t format() override;
 
-    found_file open();
+    int32_t touch(const char *name) override;
 
-    friend class dirtree_file_appender;
+    int32_t find(const char *name, open_file_config file_cfg) override;
 
-    friend class dirtree_file_reader;
+    found_file open() override;
 
 protected:
     int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) override;
@@ -44,7 +45,7 @@ protected:
 
     int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) override;
 
-    int32_t read(file_id_t id, std::function<int32_t(simple_buffer&)> fn) override;
+    int32_t read(file_id_t id, std::function<int32_t(simple_buffer&)> data_fn) override;
 
 };
 

@@ -23,7 +23,15 @@ struct found_file {
 
 class directory {
 public:
-    // virtual const char *name() = 0;
+    virtual int32_t mount() = 0;
+
+    virtual int32_t format() = 0;
+
+    virtual int32_t touch(const char *name) = 0;
+
+    virtual int32_t find(const char *name, open_file_config file_cfg) = 0;
+
+    virtual found_file open() = 0;
 
     virtual int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) = 0;
 
