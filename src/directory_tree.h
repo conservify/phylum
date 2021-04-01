@@ -16,8 +16,8 @@ private:
     value_type node_;
 
 public:
-    directory_tree(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root, const char *prefix)
-        : tree_(buffers, sectors, allocator, root, prefix) {
+    directory_tree(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root)
+        : tree_(buffers, sectors, allocator, root, "dir-chain") {
     }
 
     virtual ~directory_tree() {

@@ -1,4 +1,5 @@
 #include <directory_chain.h>
+#include <directory_tree.h>
 #include <file_appender.h>
 #include <file_reader.h>
 
@@ -11,7 +12,8 @@ template <typename T> class ReadFixture : public PhylumFixture {};
 
 typedef ::testing::Types<
     std::pair<layout_256, directory_chain>,
-    std::pair<layout_4096, directory_chain>>
+    std::pair<layout_4096, directory_chain>,
+    std::pair<layout_4096, directory_tree>>
     Implementations;
 
 TYPED_TEST_SUITE(ReadFixture, Implementations);

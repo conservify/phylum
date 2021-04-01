@@ -8,9 +8,6 @@ using namespace phylum;
 
 template<typename T>
 class WriteFixture : public PhylumFixture {
-protected:
-    FlashMemory memory{ 256 };
-
 };
 
 typedef ::testing::Types<

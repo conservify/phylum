@@ -12,11 +12,11 @@ private:
 
 public:
     directory_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t head)
-        : sector_chain(buffers, sectors, allocator, head_tail_t{ head, InvalidSector }, "directory") {
+        : sector_chain(buffers, sectors, allocator, head_tail_t{ head, InvalidSector }, "dir-tree") {
     }
 
     directory_chain(sector_chain &other, dhara_sector_t head)
-        : sector_chain(other, { head, InvalidSector }, "directory") {
+        : sector_chain(other, { head, InvalidSector }, "dir-tree") {
     }
 
     virtual ~directory_chain() {

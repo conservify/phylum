@@ -9,7 +9,6 @@ using namespace phylum;
 class LayoutFixture_256 : public PhylumFixture {
 protected:
     FlashMemory memory{ 256 };
-
 };
 
 TEST_F(LayoutFixture_256, WriteInlineOnce) {
@@ -369,5 +368,47 @@ TEST_F(LayoutFixture_256, WriteImmediatelyToDataChain_TwoBlocks) {
         EXPECT_TRUE(sg.sector(2).end(1));
 
         phydebugf("strlen(hello) = %d", strlen(hello));
+    });
+}
+
+TEST_F(LayoutFixture_256, TouchAndFindMultiple) {
+    const char *names[] = {
+        "a.txt",
+        "b.txt",
+        "c.txt",
+        "d.txt",
+        "e.txt",
+        "f.txt",
+        "g.txt"
+    };
+    memory.mounted<directory_chain>([&](auto &chain) {
+        for (auto name : names) {
+            ASSERT_EQ(chain.touch(name), 0);
+        }
+    });
+
+    memory.mounted<directory_chain>([&](auto &chain) {
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
+        for (auto name : names) {
+            ASSERT_EQ(chain.find(name, open_file_config{}), 1);
+        }
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
+
+        sector_geometry sg{ memory.sectors() };
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
+        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { names[0] }));
+        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(2, { names[1] }));
+        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(3, { names[2] }));
+        EXPECT_TRUE(sg.sector(0).end(4));
+
+        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, 2 }));
+        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(1, { names[3] }));
+        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(2, { names[4] }));
+        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(3, { names[5] }));
+        EXPECT_TRUE(sg.sector(1).end(4));
+
+        EXPECT_TRUE(sg.sector(2).header<directory_chain_header_t>({ 1, InvalidSector }));
+        EXPECT_TRUE(sg.sector(2).nth<file_entry_t>(1, { names[6] }));
+        EXPECT_TRUE(sg.sector(2).end(2));
     });
 }

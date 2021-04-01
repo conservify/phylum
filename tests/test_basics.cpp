@@ -1,22 +1,12 @@
 #include <directory_chain.h>
-#include <file_appender.h>
+#include <directory_tree.h>
 
 #include "phylum_tests.h"
 #include "geometry.h"
 
 using namespace phylum;
 
-class BasicsFixture : public PhylumFixture {
-protected:
-    FlashMemory memory{ sector_size() };
-
-protected:
-    size_t sector_size() const {
-        return 256;
-    }
-};
-
-TEST_F(BasicsFixture, EntrySizes) {
+TEST(General, EntrySizes) {
     EXPECT_EQ(sizeof(tree_node_t<uint32_t, uint32_t, 8>), 104u);
     EXPECT_EQ(sizeof(super_block_t), 9u);
     EXPECT_EQ(sizeof(directory_chain_header_t), 9u);
@@ -29,57 +19,87 @@ TEST_F(BasicsFixture, EntrySizes) {
     EXPECT_EQ(sizeof(dirtree_file_t), 91u);
     EXPECT_EQ(sizeof(entry_t), 1u);
     EXPECT_EQ(sizeof(tree_node_header_t), 15u);
-    // EXPECT_EQ(sizeof(dirtree_tree_value_t<1>), 128u);
-    // EXPECT_EQ(sizeof(dirtree_tree_value_t<128>), 128u);
-    // EXPECT_EQ(sizeof(tree_node_t<uint32_t, dirtree_tree_value_t<256 - 8>, 4>), 1024u);
 }
 
-TEST_F(BasicsFixture, MountFormatMount) {
+template <typename T> class BasicsFixture : public PhylumFixture {};
+
+typedef ::testing::Types<
+    std::pair<layout_256, directory_chain>,
+    std::pair<layout_4096, directory_chain>,
+    std::pair<layout_4096, directory_tree>
+    >
+    Implementations;
+
+TYPED_TEST_SUITE(BasicsFixture, Implementations);
+
+TYPED_TEST(BasicsFixture, MountFormatMount) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
     memory.begin(true);
 
-    directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
-    ASSERT_EQ(chain.mount(), -1);
-    ASSERT_EQ(chain.format(), 0);
-    ASSERT_EQ(chain.mount(), 0);
+    dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+    ASSERT_EQ(dir.mount(), -1);
+    ASSERT_EQ(dir.format(), 0);
+    ASSERT_EQ(dir.mount(), 0);
 }
 
-TEST_F(BasicsFixture, FormatPersists) {
+TYPED_TEST(BasicsFixture, FormatPersists) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
     memory.begin(true);
 
     memory.sync([&]() {
-        directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
-        ASSERT_EQ(chain.format(), 0);
+        dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+        ASSERT_EQ(dir.format(), 0);
     });
 
     memory.sync([&]() {
-        directory_chain chain{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
-        ASSERT_EQ(chain.mount(), 0);
+        dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+        ASSERT_EQ(dir.mount(), 0);
     });
 }
 
-TEST_F(BasicsFixture, FindAndTouch) {
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
-        ASSERT_EQ(chain.touch("test.logs"), 0);
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 1);
+TYPED_TEST(BasicsFixture, FindAndTouch) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
+        ASSERT_EQ(dir.touch("test.logs"), 0);
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 1);
+        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
     });
 }
 
-TEST_F(BasicsFixture, TouchPersists) {
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
+TYPED_TEST(BasicsFixture, TouchPersists) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
     });
 
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.touch("test.logs"), 0);
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("test.logs"), 0);
     });
 
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 1);
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 1);
     });
 }
 
-TEST_F(BasicsFixture, TouchAndFindMultiple) {
+TYPED_TEST(BasicsFixture, TouchAndFindMultiple) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
     const char *names[] = {
         "a.txt",
         "b.txt",
@@ -89,34 +109,17 @@ TEST_F(BasicsFixture, TouchAndFindMultiple) {
         "f.txt",
         "g.txt"
     };
-    memory.mounted<directory_chain>([&](auto &chain) {
+    memory.mounted<dir_type>([&](auto &dir) {
         for (auto name : names) {
-            ASSERT_EQ(chain.touch(name), 0);
+            ASSERT_EQ(dir.touch(name), 0);
         }
     });
 
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
         for (auto name : names) {
-            ASSERT_EQ(chain.find(name, open_file_config{}), 1);
+            ASSERT_EQ(dir.find(name, open_file_config{}), 1);
         }
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { names[0] }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(2, { names[1] }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(3, { names[2] }));
-        EXPECT_TRUE(sg.sector(0).end(4));
-
-        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, 2 }));
-        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(1, { names[3] }));
-        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(2, { names[4] }));
-        EXPECT_TRUE(sg.sector(1).nth<file_entry_t>(3, { names[5] }));
-        EXPECT_TRUE(sg.sector(1).end(4));
-
-        EXPECT_TRUE(sg.sector(2).header<directory_chain_header_t>({ 1, InvalidSector }));
-        EXPECT_TRUE(sg.sector(2).nth<file_entry_t>(1, { names[6] }));
-        EXPECT_TRUE(sg.sector(2).end(2));
+        ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
     });
 }
