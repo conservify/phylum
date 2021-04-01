@@ -60,7 +60,7 @@ TEST_F(BasicsFixture, FormatPersists) {
 }
 
 TEST_F(BasicsFixture, FindAndTouch) {
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
         ASSERT_EQ(chain.touch("test.logs"), 0);
@@ -70,22 +70,22 @@ TEST_F(BasicsFixture, FindAndTouch) {
 }
 
 TEST_F(BasicsFixture, TouchPersists) {
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.touch("test.logs"), 0);
         phydebugf("ok done");
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("test.logs"), 0);
         ASSERT_EQ(chain.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("test.logs", open_file_config{}), 1);
     });
 }
@@ -100,14 +100,14 @@ TEST_F(BasicsFixture, TouchAndFindMultiple) {
         "f.txt",
         "g.txt"
     };
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         for (auto name : names) {
             ASSERT_EQ(chain.touch(name), 0);
         }
         ASSERT_EQ(chain.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
         for (auto name : names) {
             ASSERT_EQ(chain.find(name, open_file_config{}), 1);

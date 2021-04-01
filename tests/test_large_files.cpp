@@ -23,7 +23,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -43,7 +43,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
         ASSERT_EQ(opened.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.log(), 0);
     });
 }
@@ -52,7 +52,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyteIndexed) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 

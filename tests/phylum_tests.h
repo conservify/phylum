@@ -71,8 +71,8 @@ public:
         ASSERT_EQ(sectors_.sync(), 0);
     }
 
-    template<typename T>
-    void mounted(T fn) {
+    template<typename DirectoryType>
+    void mounted(std::function<void(DirectoryType &dir)> fn) {
         if (formatted_) {
             ASSERT_EQ(sectors_.begin(false), 0);
         }
@@ -82,16 +82,16 @@ public:
             initialized_ = true;
         }
 
-        directory_chain chain{ buffers_, sectors_, allocator_, 0 };
+        DirectoryType dir{ buffers_, sectors_, allocator_, 0 };
         if (formatted_) {
-            ASSERT_EQ(chain.mount(), 0);
+            ASSERT_EQ(dir.mount(), 0);
         }
         else {
-            ASSERT_EQ(chain.format(), 0);
+            ASSERT_EQ(dir.format(), 0);
             formatted_ = true;
         }
 
-        fn(chain);
+        fn(dir);
 
         ASSERT_EQ(sectors_.sync(), 0);
     }

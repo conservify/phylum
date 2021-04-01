@@ -19,7 +19,7 @@ TYPED_TEST(ReadFixture, ReadInlineWrite) {
 
     auto hello = "Hello, world! How are you?";
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -29,7 +29,7 @@ TYPED_TEST(ReadFixture, ReadInlineWrite) {
         ASSERT_EQ(opened.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ chain, &chain, chain.open() };
 
@@ -46,7 +46,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
 
     auto hello = "Hello, world! How are you?";
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -58,7 +58,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
         ASSERT_EQ(opened.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ chain, &chain, chain.open() };
 
@@ -75,7 +75,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
 
     auto hello = "Hello, world! How are you?";
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -87,7 +87,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
         }
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ chain, &chain, chain.open() };
 
@@ -105,7 +105,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
     auto hello = "Hello, world! How are you!";
     auto bytes_wrote = 0u;
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -119,7 +119,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
         ASSERT_EQ(opened.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ chain, &chain, chain.open() };
 
@@ -144,7 +144,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
     auto hello = "Hello, world! How are you!";
     auto bytes_wrote = 0u;
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
@@ -158,7 +158,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
         ASSERT_EQ(opened.flush(), 0);
     });
 
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ chain, &chain, chain.open() };
 

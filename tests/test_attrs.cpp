@@ -38,7 +38,7 @@ TYPED_TEST(AttributesFixture, Initialize) {
 
     layout_type layout;
     FlashMemory memory{ layout.sector_size };
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         auto first = memory.allocator().allocate();
         tree_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), first, "attrs-tree" };
 

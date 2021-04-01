@@ -16,7 +16,7 @@ TYPED_TEST_SUITE(DirectoryTreeFixture, Implementations);
 TYPED_TEST(DirectoryTreeFixture, CreatingAndTouchFiles) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
-    memory.mounted([&](directory_chain &chain) {
+    memory.mounted<directory_chain>([&](auto &chain) {
         auto first = memory.allocator().allocate();
 
         directory_tree dir(memory.buffers(), memory.sectors(), memory.allocator(), first, "tree");
