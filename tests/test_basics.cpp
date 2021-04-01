@@ -62,7 +62,7 @@ TEST_F(BasicsFixture, FormatPersists) {
 TEST_F(BasicsFixture, FindAndTouch) {
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.flush(), 0);
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), -1);
+        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
         ASSERT_EQ(chain.touch("test.logs"), 0);
         ASSERT_EQ(chain.flush(), 0);
         ASSERT_EQ(chain.find("test.logs", open_file_config{}), 1);
@@ -77,7 +77,7 @@ TEST_F(BasicsFixture, TouchPersists) {
     });
 
     memory.mounted([&](directory_chain &chain) {
-        ASSERT_EQ(chain.find("test.logs", open_file_config{}), -1);
+        ASSERT_EQ(chain.find("test.logs", open_file_config{}), 0);
     });
 
     memory.mounted([&](directory_chain &chain) {
@@ -108,11 +108,11 @@ TEST_F(BasicsFixture, TouchAndFindMultiple) {
     });
 
     memory.mounted([&](directory_chain &chain) {
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), -1);
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
         for (auto name : names) {
             ASSERT_EQ(chain.find(name, open_file_config{}), 1);
         }
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), -1);
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
 
         sector_geometry sg{ memory.sectors() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
