@@ -112,10 +112,37 @@ int32_t directory_chain::file_attribute(file_id_t id, open_file_attribute attrib
     return 0;
 }
 
+int32_t directory_chain::file_attributes(file_id_t file_id, open_file_attribute *attributes, size_t nattrs) {
+    for (auto i = 0u; i < nattrs; ++i) {
+        auto &attr = attributes[i];
+        if (attr.dirty) {
+            if (attr.size == sizeof(uint32_t)) {
+                uint32_t value = *(uint32_t *)attr.ptr;
+                phydebugf("attribute[%d] write type=%d size=%d value=0x%x", i, attr.type, attr.size, value);
+            } else {
+                phydebugf("attribute[%d] write type=%d size=%d", i, attr.type, attr.size);
+            }
+            assert(file_attribute(file_id, attr) >= 0);
+        }
+    }
+
+    auto err = flush();
+    if (err < 0) {
+        return err;
+    }
+
+    return 0;
+}
+
 int32_t directory_chain::file_chain(file_id_t id, head_tail_t chain) {
     logged_task lt{ "dir-file-chain" };
 
     assert(emplace<file_data_t>(id, chain) >= 0);
+
+    auto err = flush();
+    if (err < 0) {
+        return err;
+    }
 
     return 0;
 }
@@ -125,6 +152,11 @@ int32_t directory_chain::file_data(file_id_t id, uint8_t const *buffer, size_t s
 
     file_data_t fd{ id, (uint32_t)size };
     assert(append<file_data_t>(fd, buffer, size) >= 0);
+
+    auto err = flush();
+    if (err < 0) {
+        return err;
+    }
 
     return 0;
 }

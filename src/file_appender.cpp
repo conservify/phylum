@@ -20,34 +20,19 @@ int32_t file_appender::write(uint8_t const *data, size_t size) {
 int32_t file_appender::make_data_chain() {
     logged_task lt{ "fa-mdc" };
 
-    auto err = directory_.back_to_head();
-    if (err < 0) {
-        return err;
-    }
-
-    err = data_chain_.create_if_necessary();
+    auto err = data_chain_.create_if_necessary();
     if (err < 0) {
         return err;
     }
 
     phydebugf("%s finding inline data begin", directory_.name());
 
-    // TODO This should be in a file reader and reused as part of this mechanism.
-
-    err = directory_.walk([&](entry_t const *entry, written_record &record) {
-        if (entry->type == entry_type::FileData) {
-            auto fd = record.as<file_data_t>();
-            if (fd->id == file_.id) {
-                phydebugf("%s (copy) id=0x%x bytes=%d size=%d", directory_.name(), fd->id, fd->size, file_.size);
-
-                auto data_buffer = record.data<file_data_t>();
-                auto err = data_chain_.write(data_buffer.ptr(), data_buffer.size());
-                if (err < 0) {
-                    return err;
-                }
-            }
+    err = directory_.read(file_.id, [&](simple_buffer &data_buffer) {
+        auto err = data_chain_.write(data_buffer.ptr(), data_buffer.size());
+        if (err < 0) {
+            return err;
         }
-        return (int32_t)0;
+        return 0;
     });
     if (err < 0) {
         return err;
@@ -75,7 +60,7 @@ int32_t file_appender::flush() {
     // Do we already have a data chain?
     auto had_chain = data_chain_.valid();
     if (had_chain) {
-        phyinfof("%s writing to chain", directory_.name());
+        phyinfof("writing to chain");
 
         auto err = data_chain_.write(buffer_.ptr(), buffer_.position());
         if (err < 0) {
@@ -90,17 +75,13 @@ int32_t file_appender::flush() {
         }
 
         if (pending < buffer_.size() / 2) {
-            phyinfof("%s flush: inline id=0x%x bytes=%zu begin", directory_.name(), file_.id, pending);
+            phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
             assert(directory_.file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
 
             buffer_.clear();
 
-            auto err = directory_.flush();
-
-            phyinfof("%s flush: inline done", directory_.name());
-
-            return err;
+            phyinfof("flush: inline done");
         } else {
             phyinfof("flush making chain (%d)", buffer_.position());
 
@@ -126,11 +107,6 @@ int32_t file_appender::flush() {
             file_.chain.head = data_chain_.head();
             file_.chain.tail = data_chain_.tail();
             err = directory_.file_chain(file_.id, file_.chain);
-            if (err < 0) {
-                return err;
-            }
-
-            err = directory_.flush();
             if (err < 0) {
                 return err;
             }
@@ -179,20 +155,7 @@ int32_t file_appender::close() {
         return err;
     }
 
-    for (auto i = 0u; i < file_.cfg.nattrs; ++i) {
-        auto &attr = file_.cfg.attributes[i];
-        if (attr.dirty) {
-            if (attr.size == sizeof(uint32_t)) {
-                uint32_t value = *(uint32_t *)attr.ptr;
-                phydebugf("attribute[%d] write type=%d size=%d value=0x%x", i, attr.type, attr.size, value);
-            } else {
-                phydebugf("attribute[%d] write type=%d size=%d", i, attr.type, attr.size);
-            }
-            assert(directory_.file_attribute(file_.id, attr) >= 0);
-        }
-    }
-
-    err = directory_.flush();
+    err = directory_.file_attributes(file_.id, file_.cfg.attributes, file_.cfg.nattrs);
     if (err < 0) {
         return err;
     }
