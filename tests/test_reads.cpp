@@ -9,12 +9,15 @@ using namespace phylum;
 
 template <typename T> class ReadFixture : public PhylumFixture {};
 
-typedef ::testing::Types<layout_256, layout_4096> Implementations;
+typedef ::testing::Types<
+    std::pair<layout_256, directory_chain>,
+    std::pair<layout_4096, directory_chain>>
+    Implementations;
 
 TYPED_TEST_SUITE(ReadFixture, Implementations);
 
 TYPED_TEST(ReadFixture, ReadInlineWrite) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
     auto hello = "Hello, world! How are you?";
@@ -41,7 +44,7 @@ TYPED_TEST(ReadFixture, ReadInlineWrite) {
 }
 
 TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
     auto hello = "Hello, world! How are you?";
@@ -70,7 +73,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
 }
 
 TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
     auto hello = "Hello, world! How are you?";
@@ -99,7 +102,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
 }
 
 TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
     auto hello = "Hello, world! How are you!";
@@ -138,7 +141,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
 }
 
 TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
     auto hello = "Hello, world! How are you!";

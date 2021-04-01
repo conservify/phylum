@@ -13,12 +13,14 @@ protected:
 
 };
 
-typedef ::testing::Types<layout_256> Implementations;
+typedef ::testing::Types<
+    std::pair<layout_256, directory_chain>
+    > Implementations;
 
 TYPED_TEST_SUITE(WriteFixture, Implementations);
 
 TYPED_TEST(WriteFixture, WriteInlineOnce) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -35,7 +37,7 @@ TYPED_TEST(WriteFixture, WriteInlineOnce) {
 }
 
 TYPED_TEST(WriteFixture, WriteInlineBuffersMultipleSmall) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -54,7 +56,7 @@ TYPED_TEST(WriteFixture, WriteInlineBuffersMultipleSmall) {
 }
 
 TYPED_TEST(WriteFixture, WriteInlineMultipleFlushEach) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -75,7 +77,7 @@ TYPED_TEST(WriteFixture, WriteInlineMultipleFlushEach) {
 }
 
 TYPED_TEST(WriteFixture, WriteThreeInlineWritesAndTriggerDataChain) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -98,7 +100,7 @@ TYPED_TEST(WriteFixture, WriteThreeInlineWritesAndTriggerDataChain) {
 }
 
 TYPED_TEST(WriteFixture, WriteAppendsToDataChain) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -123,7 +125,7 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChain) {
 }
 
 TYPED_TEST(WriteFixture, WriteAppendsToDataChainGrowingToNewBlock) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -148,7 +150,7 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChainGrowingToNewBlock) {
 }
 
 TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -170,7 +172,7 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
 }
 
 TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -191,7 +193,7 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
 }
 
 TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -221,7 +223,7 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
 TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SingleBlock) {
     auto hello = "Hello, world! How are you!";
 
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
@@ -242,7 +244,7 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SingleBlock) {
 TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocks) {
     auto hello = "Hello, world! How are you!";
 
-    TypeParam layout;
+    typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
