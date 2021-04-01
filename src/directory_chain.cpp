@@ -5,8 +5,7 @@ namespace phylum {
 int32_t directory_chain::mount() {
     logged_task lt{ "mount" };
 
-    head(0);
-    sector(0);
+    sector(head());
 
     dhara_page_t page = 0;
     auto find = sectors()->find(0, &page);
@@ -28,8 +27,7 @@ int32_t directory_chain::mount() {
 int32_t directory_chain::format() {
     logged_task lt{ "format" };
 
-    head(0);
-    sector(0);
+    sector(head());
 
     phyinfof("formatting");
     auto err = write_header();
@@ -42,6 +40,11 @@ int32_t directory_chain::format() {
 
     appendable(true);
     dirty(true);
+
+    err = flush();
+    if (err < 0) {
+        return err;
+    }
 
     return 0;
 }
@@ -99,6 +102,11 @@ int32_t directory_chain::touch(const char *name) {
     logged_task lt{ "dir-touch" };
 
     assert(emplace<file_entry_t>(name) >= 0);
+
+    auto err = flush();
+    if (err < 0) {
+        return err;
+    }
 
     return 0;
 }
