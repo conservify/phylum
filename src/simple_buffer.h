@@ -111,7 +111,7 @@ public:
 
     template <typename T>
     int32_t fill(simple_buffer &sb, T flush) {
-        return fill(sb.ptr(), sb.position(), flush);
+        return fill(sb.ptr() + sb.position(), sb.size() - sb.position(), flush);
     }
 
     template <typename T>

@@ -28,8 +28,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
 
         phydebugf("suppressing 1MB of writes from debug");
         suppress_logs sl;
@@ -58,8 +57,7 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyteIndexed) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
 
         auto tree_sector = memory.allocator().allocate();
         typename TypeParam::second_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), tree_sector, "tree" };

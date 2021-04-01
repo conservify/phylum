@@ -2,8 +2,9 @@
 
 namespace phylum {
 
-file_reader::file_reader(directory_chain &directory, found_file file, simple_buffer &&buffer)
-    : directory_(directory), file_(file), buffer_(std::move(buffer)), data_chain_(directory, file.chain) {
+file_reader::file_reader(sector_chain &other, directory *directory, found_file file)
+    : directory_(directory), file_(file), buffer_(std::move(other.buffers().allocate(other.buffers().buffer_size()))),
+      data_chain_(other, file.chain, "file-rdr") {
 }
 
 file_reader::~file_reader() {
@@ -28,7 +29,15 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
     // directory_chain::read
     assert(size >= file_.size);
 
-    auto err = directory_.read(file_.id, data, size);
+    simple_buffer filling{ data, size };
+
+    auto err = directory_->read(file_.id, [&](simple_buffer &data_buffer) {
+        auto f = filling.fill(data_buffer, [](simple_buffer&) {
+            phyerrorf("unexpected flush");
+            return -1;
+        });
+        return f;
+    });
     if (err < 0) {
         return err;
     }

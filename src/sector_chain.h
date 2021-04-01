@@ -61,6 +61,10 @@ public:
         return length_sectors_;
     }
 
+    working_buffers &buffers() {
+        return *buffers_;
+    }
+
     int32_t log();
 
     int32_t create_if_necessary();

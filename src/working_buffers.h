@@ -28,6 +28,11 @@ public:
     }
 
 public:
+    size_t buffer_size() {
+        return buffer_size_;
+    }
+
+public:
     void lend(uint8_t *ptr, size_t size) {
         assert(buffer_size_ == size);
         for (auto i = 0u; i < Size; ++i) {

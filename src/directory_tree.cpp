@@ -57,4 +57,20 @@ found_file directory_tree::open() {
     return file_;
 }
 
+int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) {
+    return -1;
+}
+
+int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
+    return -1;
+}
+
+int32_t directory_tree::file_data(file_id_t id, uint8_t const *buffer, size_t size) {
+    return -1;
+}
+
+int32_t directory_tree::read(file_id_t id, std::function<int32_t(simple_buffer&)> fn) {
+    return -1;
+}
+
 } // namespace phylum

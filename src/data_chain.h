@@ -31,6 +31,10 @@ private:
     file_size_t position_at_start_of_sector_{ 0 };
 
 public:
+    data_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, head_tail_t chain, const char *prefix)
+        : sector_chain(buffers, sectors, allocator, chain, prefix) {
+    }
+
     data_chain(sector_chain &other, head_tail_t chain) : sector_chain(other, chain, "data"), chain_(chain) {
     }
 

@@ -2,8 +2,14 @@
 
 namespace phylum {
 
-file_appender::file_appender(directory_chain &directory, found_file file, simple_buffer &&buffer)
-    : directory_(directory), file_(file), buffer_(std::move(buffer)), data_chain_(directory, file.chain) {
+file_appender::file_appender(sector_chain &other, directory *directory, found_file file)
+    : directory_(directory), file_(file), buffer_(std::move(other.buffers().allocate(other.buffers().buffer_size()))),
+      data_chain_(other, file.chain, "file-app") {
+}
+
+file_appender::file_appender(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file)
+    : directory_(directory), file_(file), buffer_(std::move(buffers.allocate(sectors.sector_size()))),
+      data_chain_(buffers, sectors, allocator, file.chain, "file-app") {
 }
 
 file_appender::~file_appender() {
@@ -25,14 +31,14 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    phydebugf("%s finding inline data begin", directory_.name());
+    // phydebugf("%s finding inline data begin", directory_->name());
 
-    err = directory_.read(file_.id, [&](simple_buffer &data_buffer) {
+    err = directory_->read(file_.id, [&](simple_buffer &data_buffer) {
         auto err = data_chain_.write(data_buffer.ptr(), data_buffer.size());
         if (err < 0) {
             return err;
         }
-        return 0;
+        return err;
     });
     if (err < 0) {
         return err;
@@ -47,7 +53,7 @@ int32_t file_appender::make_data_chain() {
         buffer_.clear();
     }
 
-    phydebugf("%s finding inline data end", directory_.name());
+    // phydebugf("%s finding inline data end", directory_->name());
 
     return 0;
 }
@@ -77,7 +83,7 @@ int32_t file_appender::flush() {
         if (pending < buffer_.size() / 2) {
             phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
-            assert(directory_.file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
+            assert(directory_->file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
 
             buffer_.clear();
 
@@ -87,6 +93,7 @@ int32_t file_appender::flush() {
 
             auto err = make_data_chain();
             if (err < 0) {
+                phyerrorf("mdc failed");
                 return err;
             }
 
@@ -106,7 +113,7 @@ int32_t file_appender::flush() {
             phyinfof("%s updating directory", data_chain_.name());
             file_.chain.head = data_chain_.head();
             file_.chain.tail = data_chain_.tail();
-            err = directory_.file_chain(file_.id, file_.chain);
+            err = directory_->file_chain(file_.id, file_.chain);
             if (err < 0) {
                 return err;
             }
@@ -155,7 +162,7 @@ int32_t file_appender::close() {
         return err;
     }
 
-    err = directory_.file_attributes(file_.id, file_.cfg.attributes, file_.cfg.nattrs);
+    err = directory_->file_attributes(file_.id, file_.cfg.attributes, file_.cfg.nattrs);
     if (err < 0) {
         return err;
     }

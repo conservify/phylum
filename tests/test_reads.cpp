@@ -24,16 +24,14 @@ TYPED_TEST(ReadFixture, ReadInlineWrite) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
     });
 
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_reader reader{ chain, chain.open(), std::move(file_buffer) };
+        file_reader reader{ chain, &chain, chain.open() };
 
         uint8_t buffer[256];
         ASSERT_EQ(reader.read(buffer, sizeof(buffer)), (int32_t)strlen(hello));
@@ -53,8 +51,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
         for (auto i = 0u; i < 3; ++i) {
             ASSERT_GT(opened.write(hello), 0);
         }
@@ -63,8 +60,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSameBlock) {
 
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_reader reader{ chain, chain.open(), std::move(file_buffer) };
+        file_reader reader{ chain, &chain, chain.open() };
 
         uint8_t buffer[256];
         ASSERT_EQ(reader.read(buffer, sizeof(buffer)), (int32_t)strlen(hello) * 3);
@@ -85,8 +81,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
 
         for (auto i = 0u; i < 3; ++i) {
             ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-            simple_buffer file_buffer{ memory.sector_size() };
-            file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+            file_appender opened{ chain, &chain, chain.open() };
             ASSERT_GT(opened.write(hello), 0);
             ASSERT_EQ(opened.flush(), 0);
         }
@@ -94,8 +89,7 @@ TYPED_TEST(ReadFixture, ReadInlineWriteMultipleSeparateBlocks) {
 
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_reader reader{ chain, chain.open(), std::move(file_buffer) };
+        file_reader reader{ chain, &chain, chain.open() };
 
         uint8_t buffer[256];
         ASSERT_EQ(reader.read(buffer, sizeof(buffer)), (int32_t)strlen(hello) * 3);
@@ -116,8 +110,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
 
         for (auto i = 0u; i < 2 * memory.sector_size() / strlen(hello); ++i) {
             ASSERT_GT(opened.write(hello), 0);
@@ -128,8 +121,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_TwoBlocks) {
 
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_reader reader{ chain, chain.open(), std::move(file_buffer) };
+        file_reader reader{ chain, &chain, chain.open() };
 
         auto bytes_read = 0u;
         while (bytes_read < bytes_wrote) {
@@ -157,8 +149,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
         ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_appender opened{ chain, chain.open(), std::move(file_buffer) };
+        file_appender opened{ chain, &chain, chain.open() };
 
         for (auto i = 0u; i < 100; ++i) {
             ASSERT_GT(opened.write(hello), 0);
@@ -169,8 +160,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
 
     memory.mounted([&](directory_chain &chain) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        simple_buffer file_buffer{ memory.sector_size() };
-        file_reader reader{ chain, chain.open(), std::move(file_buffer) };
+        file_reader reader{ chain, &chain, chain.open() };
 
         auto bytes_read = 0u;
         while (bytes_read < bytes_wrote) {
