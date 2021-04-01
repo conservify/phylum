@@ -38,11 +38,11 @@ public:
     found_file open() override;
 
 protected:
-    int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) override;
+    int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) override;
 
     int32_t file_chain(file_id_t id, head_tail_t chain) override;
 
-    int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) override;
+    int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) override;
 
     int32_t read(file_id_t id, std::function<int32_t(simple_buffer&)> data_fn) override;
 

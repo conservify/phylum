@@ -16,10 +16,9 @@ private:
 public:
     file_appender(sector_chain &other, directory *directory, found_file file);
 
-    virtual ~file_appender();
-
-private:
     file_appender(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file);
+
+    virtual ~file_appender();
 
 public:
     int32_t write(char const *str) {

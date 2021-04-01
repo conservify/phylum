@@ -174,6 +174,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
 
     file_ = found_file{};
     file_.cfg = file_cfg;
+    file_.directory_capacity = buffer().size() / 2;
 
     // Zero attribute values before we scan.
     for (auto i = 0u; i < file_cfg.nattrs; ++i) {
@@ -193,10 +194,11 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
             auto fd = record.as<file_data_t>();
             if (fd->id == file_.id) {
                 if (fd->chain.head != InvalidSector || fd->chain.tail != InvalidSector) {
-                    file_.size = 0;
+                    file_.directory_size = 0;
                     file_.chain = fd->chain;
                 } else {
-                    file_.size += fd->size;
+                    file_.directory_size += fd->size;
+                    file_.directory_capacity -= fd->size;
                 }
             }
         }
@@ -256,7 +258,7 @@ int32_t directory_chain::read(file_id_t id, std::function<int32_t(simple_buffer 
         if (entry->type == entry_type::FileData) {
             auto fd = record.as<file_data_t>();
             if (fd->id == id) {
-                phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.size);
+                phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);
 
                 auto data_buffer = record.data<file_data_t>();
                 auto err = data_fn(data_buffer);

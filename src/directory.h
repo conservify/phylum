@@ -16,7 +16,8 @@ struct open_file_config {
 
 struct found_file {
     file_id_t id{ UINT32_MAX };
-    file_size_t size{ UINT32_MAX };
+    file_size_t directory_size{ UINT32_MAX };
+    file_size_t directory_capacity{ UINT32_MAX };
     head_tail_t chain;
     open_file_config cfg;
 };

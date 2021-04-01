@@ -80,10 +80,12 @@ int32_t file_appender::flush() {
             return 0;
         }
 
-        if (pending < buffer_.size() / 2) {
+        if (pending < file_.directory_capacity) {
             phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
             assert(directory_->file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
+
+            file_.directory_capacity -= pending;
 
             buffer_.clear();
 

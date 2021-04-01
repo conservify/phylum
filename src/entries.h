@@ -27,6 +27,10 @@ struct PHY_PACKED head_tail_t {
 
     head_tail_t(dhara_sector_t head, dhara_sector_t tail) : head(head), tail(tail) {
     }
+
+    bool valid() const {
+        return head != InvalidSector;
+    }
 };
 
 enum entry_type : uint8_t {
@@ -113,7 +117,7 @@ struct PHY_PACKED dirtree_dir_t : dirtree_entry_t {
 };
 
 struct PHY_PACKED dirtree_file_t : dirtree_entry_t {
-    file_size_t size{ 0 };
+    file_size_t directory_size{ 0 };
     head_tail_t chain;
     dhara_sector_t attributes{ InvalidSector };
     dhara_sector_t position_index{ InvalidSector };
@@ -126,14 +130,14 @@ struct PHY_PACKED dirtree_file_t : dirtree_entry_t {
 
 template<size_t Storage>
 struct PHY_PACKED dirtree_tree_value_t {
-    union PHY_PACKED entry {
+    union PHY_PACKED entry_union {
         dirtree_entry_t e;
         dirtree_dir_t dir;
         dirtree_file_t file;
 
-        entry() {
+        entry_union() {
         }
-    };
+    } u;
 
     uint8_t data[Storage];
 

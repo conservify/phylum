@@ -7,6 +7,11 @@ file_reader::file_reader(sector_chain &other, directory *directory, found_file f
       data_chain_(other, file.chain, "file-rdr") {
 }
 
+file_reader::file_reader(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file)
+    : directory_(directory), file_(file), buffer_(std::move(buffers.allocate(sectors.sector_size()))),
+      data_chain_(buffers, sectors, allocator, file.chain, "file-rdr") {
+}
+
 file_reader::~file_reader() {
 }
 
@@ -27,7 +32,7 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
     // the case, can fix later. I'm only doing this check here because
     // we have the file size. There's a similar warning inside
     // directory_chain::read
-    assert(size >= file_.size);
+    assert(size >= file_.directory_size);
 
     simple_buffer filling{ data, size };
 
