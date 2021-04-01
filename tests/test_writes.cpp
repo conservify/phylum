@@ -6,39 +6,42 @@
 
 using namespace phylum;
 
-class WriteFixture_SectorSize_256 : public PhylumFixture {
+template<typename T>
+class WriteFixture : public PhylumFixture {
 protected:
     FlashMemory memory{ 256 };
 
 };
 
-TEST_F(WriteFixture_SectorSize_256, WriteInlineOnce) {
+typedef ::testing::Types<layout_256> Implementations;
+
+TYPED_TEST_SUITE(WriteFixture, Implementations);
+
+TYPED_TEST(WriteFixture, WriteInlineOnce) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(3));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteInlineBuffersMultipleSmall) {
+TYPED_TEST(WriteFixture, WriteInlineBuffersMultipleSmall) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -47,21 +50,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteInlineBuffersMultipleSmall) {
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) * 3 }));
-        EXPECT_TRUE(sg.sector(0).end(3));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteInlineMultipleFlushEach) {
+TYPED_TEST(WriteFixture, WriteInlineMultipleFlushEach) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -72,23 +71,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteInlineMultipleFlushEach) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
+TYPED_TEST(WriteFixture, WriteThreeInlineWritesAndTriggerDataChain) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -101,29 +94,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteThreeInlineWritesAndTriggerDataChain) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
-
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (memory.sector_size() / 2 + 8)) }));
-        EXPECT_TRUE(sg.sector(1).end(1));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChain) {
+TYPED_TEST(WriteFixture, WriteAppendsToDataChain) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -138,29 +119,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChain) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
-
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (memory.sector_size() / 2 + 8)) }));
-        EXPECT_TRUE(sg.sector(1).end(1));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
+TYPED_TEST(WriteFixture, WriteAppendsToDataChainGrowingToNewBlock) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -175,32 +144,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteAppendsToDataChainGrowingToNewBlock) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello, memory.sector_size()), 0);
         ASSERT_EQ(opened.flush(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
-
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 3 }));
-        EXPECT_TRUE(sg.sector(1).end(1));
-
-        EXPECT_TRUE(sg.sector(3).header<data_chain_header_t>({ (uint16_t)228, 1, InvalidSector }));
-        EXPECT_TRUE(sg.sector(3).end(1));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttribute) {
+TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -212,27 +166,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttribute) {
         }
 
         ASSERT_GE(opened.close(), 0);
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
-
-        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(1, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 3));
-        EXPECT_TRUE(sg.sector(1).end(2));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
+TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -243,29 +187,17 @@ TEST_F(WriteFixture_SectorSize_256, WriteAndIncrementAttributeThreeTimes) {
             ASSERT_GE(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
         }
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_attribute_t>(3, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 1));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_attribute_t>(5, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 2));
-        EXPECT_TRUE(sg.sector(0).end(6));
-
-        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
-        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(2, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 3));
-        EXPECT_TRUE(sg.sector(1).end(3));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTimes) {
+TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
@@ -283,40 +215,19 @@ TEST_F(WriteFixture_SectorSize_256, WriteToDataChainAndIncrementAttributeThreeTi
             ASSERT_EQ(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
         }
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_attribute_t>(3, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 1));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_attribute_t>(5, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 2));
-        EXPECT_TRUE(sg.sector(0).end(6));
-
-        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
-        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(2, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 3));
-        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(3, { make_file_id("data.txt"), head_tail_t{ 2, 2 } }));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(4, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 4));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(5, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 5));
-        EXPECT_TRUE(sg.sector(1).end(6));
-
-        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 3 }));
-        EXPECT_TRUE(sg.sector(2).end(1));
-
-        EXPECT_TRUE(sg.sector(3).header<data_chain_header_t>({ (uint16_t)108, 2, InvalidSector }));
-        EXPECT_TRUE(sg.sector(3).end(1));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
+TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SingleBlock) {
     auto hello = "Hello, world! How are you!";
 
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         for (auto i = 0u; i < 5; ++i) {
@@ -325,28 +236,19 @@ TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_SingleBlock) {
         ASSERT_EQ(opened.flush(), 0);
 
         chain.log();
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, InvalidSector }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(0).end(3));
-
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)130, InvalidSector, InvalidSector }));
-        EXPECT_TRUE(sg.sector(1).end(1));
-
-        phydebugf("strlen(hello) = %d", strlen(hello));
     });
 }
 
-TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_TwoBlocks) {
+TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocks) {
     auto hello = "Hello, world! How are you!";
 
+    TypeParam layout;
+    FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
         ASSERT_EQ(chain.flush(), 0);
 
-        ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
+        ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
 
         for (auto i = 0u; i < 10; ++i) {
@@ -355,19 +257,5 @@ TEST_F(WriteFixture_SectorSize_256, WriteImmediatelyToDataChain_TwoBlocks) {
         ASSERT_EQ(opened.flush(), 0);
 
         chain.log();
-
-        sector_geometry sg{ memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, InvalidSector }));
-        EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 1, 2 } }));
-        EXPECT_TRUE(sg.sector(0).end(3));
-
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 2 }));
-        EXPECT_TRUE(sg.sector(1).end(1));
-
-        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)18, 1, InvalidSector }));
-        EXPECT_TRUE(sg.sector(2).end(1));
-
-        phydebugf("strlen(hello) = %d", strlen(hello));
     });
 }
