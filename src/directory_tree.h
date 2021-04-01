@@ -8,17 +8,44 @@
 
 namespace phylum {
 
+template <size_t Size> struct PHY_PACKED attribute_value_t {
+    uint8_t data[Size];
+
+    attribute_value_t() {
+    }
+
+    attribute_value_t(uint32_t value) {
+        memset(data, 0, sizeof(data));
+        memcpy(data, &value, sizeof(uint32_t));
+    }
+
+    attribute_value_t(void const *buffer, size_t size) {
+        assert(size <= Size);
+        memset(data, 0, sizeof(data));
+        memcpy(data, buffer, size);
+    }
+};
+
 class directory_tree : public directory {
 private:
     static constexpr size_t DataCapacity = 128 + 29;
-    using value_type = dirtree_tree_value_t<DataCapacity>;
-    tree_sector<uint32_t, value_type, 4> tree_;
+    static constexpr size_t AttributeCapacity = 256;
+    using dir_node_type = dirtree_tree_value_t<DataCapacity>;
+    using dir_tree_type = tree_sector<uint32_t, dir_node_type, 4>;
+    using attr_node_type = attribute_value_t<AttributeCapacity>;
+    using attr_tree_type = tree_sector<uint32_t, attr_node_type, 15>;
+
+private:
+    working_buffers *buffers_{ nullptr };
+    sector_map *sectors_{ nullptr };
+    sector_allocator *allocator_{ nullptr };
+    dir_tree_type tree_;
     found_file file_;
-    value_type node_;
+    dir_node_type node_;
 
 public:
     directory_tree(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root)
-        : tree_(buffers, sectors, allocator, root, "dir-chain") {
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), tree_(buffers, sectors, allocator, root, "dir-chain") {
     }
 
     virtual ~directory_tree() {

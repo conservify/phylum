@@ -202,11 +202,11 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
                 }
             }
         }
-        if (entry->type == entry_type::FileAttribute) {
+        if (entry->type == entry_type::FileAttribute && file_cfg.nattrs > 0) {
             auto fa = record.as<file_attribute_t>();
             if (fa->id == file_.id) {
                 for (auto i = 0u; i < file_cfg.nattrs; ++i) {
-                    if (entry->type == file_cfg.attributes[i].type) {
+                    if (fa->type == file_cfg.attributes[i].type) {
                         auto data = record.data<file_attribute_t>();
                         assert(data.size() == file_cfg.attributes[i].size);
                         memcpy(file_cfg.attributes[i].ptr, data.ptr(), data.size());

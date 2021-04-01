@@ -57,8 +57,17 @@ int32_t file_reader::close() {
     return 0;
 }
 
-uint32_t file_reader::u32(uint8_t /*type*/) {
-    return -1;
+uint32_t file_reader::u32(uint8_t type) {
+    assert(file_.cfg.nattrs > 0);
+    for (auto i = 0u; i < file_.cfg.nattrs; ++i) {
+        auto &attr = file_.cfg.attributes[i];
+        if (attr.type == type) {
+            assert(sizeof(uint32_t) == attr.size);
+            return *(uint32_t *)attr.ptr;
+        }
+    }
+    assert(false);
+    return 0;
 }
 
 } // namespace phylum

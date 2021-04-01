@@ -11,9 +11,9 @@ private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
-    working_buffers *buffers_;
-    sector_map *sectors_;
-    sector_allocator *allocator_;
+    working_buffers *buffers_{ nullptr };
+    sector_map *sectors_{ nullptr };
+    sector_allocator *allocator_{ nullptr };
     delimited_buffer buffer_;
     dhara_sector_t head_{ InvalidSector };
     dhara_sector_t tail_{ InvalidSector };

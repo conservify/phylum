@@ -65,6 +65,25 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
         file_.chain = node_.u.file.chain;
     }
 
+    // If we're being asked to load attributes.
+    if (file_cfg.nattrs > 0) {
+        if (node_.u.file.attributes != InvalidSector) {
+            attr_tree_type tree{ *buffers_, *sectors_, *allocator_, node_.u.file.attributes, "attrs" };
+            for (auto i = 0u; i < file_cfg.nattrs; ++i) {
+                auto &attr = file_cfg.attributes[i];
+                attr_node_type attr_node;
+
+                auto err = tree.find(attr.type, &attr_node);
+                if (err < 0) {
+                    return err;
+                }
+
+                assert(attr.size <= AttributeCapacity);
+                memcpy(attr.ptr, attr_node.data, attr.size);
+            }
+        }
+    }
+
     return 1;
 }
 
@@ -111,7 +130,49 @@ int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
 int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) {
     assert(file_.id == id);
 
-    return -1;
+    auto attribute_size = 0u;
+    for (auto i = 0u; i < nattrs; ++i) {
+        assert(attributes[i].size <= AttributeCapacity);
+        attribute_size += attributes[i].size;
+    }
+
+    phydebugf("saving attributes total-size=%zu", attribute_size);
+
+    // TODO Store attributes in inline data when we can.
+    auto sector = node_.u.file.attributes;
+    auto create = false;
+    if (node_.u.file.attributes == InvalidSector) {
+        sector = allocator_->allocate();
+        create = true;
+    }
+
+    attr_tree_type tree{ *buffers_, *sectors_, *allocator_, sector, "attrs" };
+
+    if (create) {
+        auto err = tree.create();
+        if (err < 0) {
+            return err;
+        }
+    }
+
+    for (auto i = 0u; i < nattrs; ++i) {
+        auto &attr = attributes[i];
+        auto err = tree.add(attr.type, attr_node_type{ attr.ptr, attr.size });
+        if (err < 0) {
+            return err;
+        }
+    }
+
+    if (node_.u.file.attributes != sector) {
+        node_.u.file.attributes = sector;
+
+        auto err = flush();
+        if (err < 0) {
+            return err;
+        }
+    }
+
+    return 0;
 }
 
 int32_t directory_tree::read(file_id_t id, std::function<int32_t(simple_buffer&)> fn) {

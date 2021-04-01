@@ -33,16 +33,7 @@ public:
     }
 };
 
-class heap_buffer_allocator {
-public:
-    simple_buffer allocate(size_t size) {
-        assert(size > 0);
-        return simple_buffer{ size };
-    }
-
-};
-
-template <typename KEY, typename VALUE, size_t Size, typename BufferAllocatorType = heap_buffer_allocator>
+template <typename KEY, typename VALUE, size_t Size>
 class tree_sector {
 public:
     using key_type = KEY;
@@ -71,10 +62,9 @@ private:
     };
 
 private:
-    BufferAllocatorType buffer_allocator_;
-    working_buffers *buffers_;
-    sector_map *sectors_;
-    sector_allocator *allocator_;
+    working_buffers *buffers_{ nullptr };
+    sector_map *sectors_{ nullptr };
+    sector_allocator *allocator_{ nullptr };
     delimited_buffer buffer_;
     dhara_sector_t sector_{ InvalidSector };
     dhara_sector_t root_{ InvalidSector };
@@ -432,7 +422,7 @@ private:
 
         phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
-        delimited_buffer buffer{ buffer_allocator_.allocate(sector_size()) };
+        delimited_buffer buffer{ std::move(buffers_->allocate(sector_size())) };
         auto placed = buffer.template reserve<default_node_type>();
 
         ptr = node_ptr_t{ allocated, placed.position };

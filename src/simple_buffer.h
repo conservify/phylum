@@ -35,6 +35,7 @@ public:
 
     explicit simple_buffer(uint8_t *ptr, size_t size, free_fn_t free) : ptr_(ptr), size_(size), position_(0), free_(free) {
         assert(size > 0);
+        clear();
     }
 
     explicit simple_buffer(uint8_t *ptr, size_t size) : ptr_(ptr), size_(size), position_(0) {

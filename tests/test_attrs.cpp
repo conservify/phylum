@@ -1,4 +1,5 @@
 #include <directory_chain.h>
+#include <directory_tree.h>
 #include <file_appender.h>
 #include <tree_sector.h>
 
@@ -7,18 +8,6 @@
 using namespace phylum;
 
 template <typename T> class AttributesFixture : public PhylumFixture {};
-
-template <size_t Size> struct PHY_PACKED attribute_value_t {
-    uint8_t data[Size];
-
-    attribute_value_t() {
-    }
-
-    attribute_value_t(uint32_t value) {
-        memset(data, 0, sizeof(data));
-        memcpy(data, &value, sizeof(uint32_t));
-    }
-};
 
 typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, attribute_value_t<32>, 6>>,
                          std::pair<layout_4096, tree_sector<uint32_t, attribute_value_t<256>, 15>>>
