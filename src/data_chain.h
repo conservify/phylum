@@ -103,9 +103,11 @@ protected:
                 }
 
                 // Do this before we grow so the details are saved.
-                auto hdr = db().header<data_chain_header_t>();
-                assert(hdr->bytes + err <= (int32_t)sector_size());
-                hdr->bytes += err;
+                assert(db().write_header<data_chain_header_t>([&](auto header) {
+                    assert(header->bytes + err <= (int32_t)sector_size());
+                    header->bytes += err;
+                    return 0;
+                }) == 0);
                 written += err;
                 position_ += err;
                 db().skip(err); // TODO Remove

@@ -35,8 +35,10 @@ int32_t directory_chain::format() {
         return err;
     }
 
-    auto hdr = db().header<sector_chain_header_t>();
-    hdr->pp = InvalidSector;
+    assert(db().write_header<sector_chain_header_t>([&](auto header) {
+        header->pp = InvalidSector;
+        return 0;
+    }) == 0);
 
     appendable(true);
     dirty(true);

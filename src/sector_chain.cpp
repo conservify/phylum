@@ -260,9 +260,11 @@ int32_t sector_chain::grow_tail() {
     if (sector_ != InvalidSector) {
         assert(db().begin() != db().end());
 
-        auto hdr = db().header<sector_chain_header_t>();
-        assert(hdr != nullptr);
-        hdr->np = allocated;
+        assert(db().write_header<sector_chain_header_t>([&](auto header) {
+            header->np = allocated;
+            return 0;
+        }) == 0);
+
         dirty(true);
 
         auto err = flush();
@@ -282,9 +284,12 @@ int32_t sector_chain::grow_tail() {
         return err;
     }
 
-    auto hdr = db().header<sector_chain_header_t>();
-    assert(hdr != nullptr);
-    hdr->pp = previous_sector;
+    assert(db().write_header<sector_chain_header_t>([&](auto header) {
+        header->pp = previous_sector;
+        return 0;
+    }) == 0);
+
+    dirty(true);
 
     return 0;
 }

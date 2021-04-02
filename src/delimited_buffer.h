@@ -152,11 +152,6 @@ public:
         return buffer_.read_to_position<T>(fn);
     }
 
-    template <typename T>
-    T *header() {
-        return begin()->as<T>();
-    }
-
     read_buffer to_read_buffer() {
         return read_buffer{ buffer_.ptr(), buffer_.size(), buffer_.position() };
     }
@@ -164,6 +159,13 @@ public:
     template <typename T>
     T const *header() const {
         return begin()->as<T>();
+    }
+
+    template<typename THeader>
+    int32_t write_header(std::function<int32_t(THeader *header)> fn) {
+        return unsafe_all([&](uint8_t */*ptr*/, size_t /*size*/) {
+            return fn(begin()->as<THeader>());
+        });
     }
 
     int32_t write_view(std::function<int32_t(write_buffer)> fn) {
