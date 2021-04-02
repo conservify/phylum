@@ -70,7 +70,7 @@ public:
             if (pages_[i].refs == 0) {
                 pages_[i].refs++;
                 phydebugf("wbuffers[%d]: allocate hw=%zu", i, highwater_);
-                std::function<void(uint8_t*)> free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
+                std::function<void(uint8_t const *)> free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
                 return simple_buffer{ pages_[i].buffer, size, free_fn };
             }
         }
@@ -79,11 +79,15 @@ public:
         return simple_buffer{ nullptr, 0u };
     }
 
-    void free(uint8_t *ptr) {
+    void free(uint8_t const *ptr) {
         assert(ptr != nullptr);
         for (auto i = 0u; i < Size; ++i) {
             if (pages_[i].buffer == ptr) {
                 pages_[i].refs--;
+
+                if (pages_[i].refs == 0) {
+                    pages_[i].sector = InvalidSector;
+                }
                 phydebugf("wbuffers[%d]: free refs=%d", i, pages_[i].refs);
                 break;
             }

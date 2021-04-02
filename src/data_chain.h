@@ -61,8 +61,7 @@ protected:
 
     int32_t seek_end_of_buffer() override;
 
-    template <typename T>
-    int32_t write_chain(T data_fn) {
+    int32_t write_chain(std::function<int32_t(write_buffer, bool&)> data_fn) {
         logged_task lt{ "write-data-chain" };
 
         if (!appendable()) {
@@ -83,7 +82,7 @@ protected:
             }
 
             if (err == 0) {
-                auto hdr = header<data_chain_header_t>();
+                auto hdr = db().header<data_chain_header_t>();
                 phydebugf("write resuming sector-bytes=%d", hdr->bytes);
                 assert(db().skip(hdr->bytes) >= 0);
             }
@@ -94,20 +93,28 @@ protected:
         auto written = 0;
 
         while (true) {
-            phydebugf("read buffer: position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
+            phydebugf("write: position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
 
             auto grow = false;
-            auto rv = data_fn(db().write_view(), grow);
-            if (rv < 0) {
-                return rv;
-            }
+            auto err = db().write_view([&](write_buffer wb) {
+                auto err = data_fn(std::move(wb), grow);
+                if (err < 0) {
+                    return err;
+                }
 
-            // Do this before we grow so the details are saved.
-            auto hdr = header<data_chain_header_t>();
-            assert(hdr->bytes + rv < (int32_t)sector_size());
-            hdr->bytes += rv;
-            written += rv;
-            position_ += rv;
+                // Do this before we grow so the details are saved.
+                auto hdr = db().header<data_chain_header_t>();
+                assert(hdr->bytes + err <= (int32_t)sector_size());
+                hdr->bytes += err;
+                written += err;
+                position_ += err;
+                db().skip(err); // TODO Remove
+
+                return err;
+            });
+            if (err < 0) {
+                return err;
+            }
 
             dirty(true);
 
@@ -120,7 +127,7 @@ protected:
 
                 position_at_start_of_sector_ = position_;
             } else {
-                if (rv == 0) {
+                if (err == 0) {
                     break;
                 }
             }
@@ -128,8 +135,7 @@ protected:
         return written;
     }
 
-    template <typename T>
-    int32_t read_chain(T data_fn) {
+    int32_t read_chain(std::function<int32_t(read_buffer)> data_fn) {
         logged_task lt{ "read-data-chain", name() };
 
         assert_valid();
@@ -149,11 +155,11 @@ protected:
                     return err;
                 }
 
-                db().skip(1); // HACK Skip terminator.
+                db().skip(1); // HACK TODO Skip terminator.
 
                 // Constrain is relative, by the way so this will preventing
                 // reading from more than hdr->bytes.
-                auto hdr = header<data_chain_header_t>();
+                auto hdr = db().header<data_chain_header_t>();
                 assert(db().constrain(hdr->bytes) >= 0);
 
                 phydebugf("read resuming sector-bytes=%d position=%d", hdr->bytes, db().position());
@@ -163,13 +169,14 @@ protected:
             if (db().available() > 0) {
                 phydebugf("view position=%zu available=%zu", db().position(), db().available());
 
-                auto rv = data_fn(db().read_view());
-                if (rv < 0) {
-                    return rv;
+                auto err = data_fn(db().to_read_buffer());
+                if (err < 0) {
+                    return err;
                 }
-                if (rv >= 0) {
-                    position_ += rv;
-                    return rv;
+                if (err >= 0) {
+                    position_ += err;
+                    db().skip(err); // TODO Remove
+                    return err;
                 }
             }
 

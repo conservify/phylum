@@ -32,13 +32,13 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
     logged_task{ "dc-write", name() };
 
     auto copied = 0u;
-    return write_chain([&](simple_buffer &buffer, bool &grow) {
+    return write_chain([&](auto buffer, auto &grow) {
         auto remaining = size - copied;
         auto copying = std::min<int32_t>(buffer.available(), remaining);
         if (copying > 0) {
             memcpy(buffer.cursor(), data + copied, copying);
             copied += copying;
-            buffer.skip(copying);
+            // buffer.skip(copying);
         }
         if (size - copied > 0) {
             grow = true;
@@ -53,7 +53,7 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
     assert_valid();
 
     simple_buffer reading{ data, size };
-    return read_chain([&](simple_buffer &view) {
+    return read_chain([&](auto view) {
         return reading.fill_from(view);
     });
 }
@@ -65,7 +65,7 @@ uint32_t data_chain::total_bytes() {
 
     auto bytes = 0u;
     while (forward() > 0) {
-        bytes += header<data_chain_header_t>()->bytes;
+        bytes += db().header<data_chain_header_t>()->bytes;
     }
 
     phydebugf("done (%d)", bytes);

@@ -35,7 +35,7 @@ int32_t directory_chain::format() {
         return err;
     }
 
-    auto hdr = header<sector_chain_header_t>();
+    auto hdr = db().header<sector_chain_header_t>();
     hdr->pp = InvalidSector;
 
     appendable(true);
@@ -66,7 +66,7 @@ int32_t directory_chain::prepare(size_t required) {
         return err;
     }
 
-    assert(header<directory_chain_header_t>()->type == entry_type::DirectorySector);
+    assert(db().header<directory_chain_header_t>()->type == entry_type::DirectorySector);
 
     appendable(true);
     dirty(true);
@@ -174,7 +174,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
 
     file_ = found_file{};
     file_.cfg = file_cfg;
-    file_.directory_capacity = buffer().size() / 2;
+    file_.directory_capacity = db().size() / 2;
 
     // Zero attribute values before we scan.
     for (auto i = 0u; i < file_cfg.nattrs; ++i) {
@@ -207,9 +207,14 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
             if (fa->id == file_.id) {
                 for (auto i = 0u; i < file_cfg.nattrs; ++i) {
                     if (fa->type == file_cfg.attributes[i].type) {
-                        auto data = record.data<file_attribute_t>();
-                        assert(data.size() == file_cfg.attributes[i].size);
-                        memcpy(file_cfg.attributes[i].ptr, data.ptr(), data.size());
+                        auto err = record.data<file_attribute_t>([&](uint8_t *ptr, size_t size) {
+                            assert(size == file_cfg.attributes[i].size);
+                            memcpy(file_cfg.attributes[i].ptr, ptr, size);
+                            return size;
+                        });
+                        if (err < 0) {
+                            return err;
+                        }
                     }
                 }
             }
@@ -251,7 +256,7 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
     });
 }
 
-int32_t directory_chain::read(file_id_t id, std::function<int32_t(simple_buffer &)> data_fn) {
+int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
     auto copied = 0u;
 
     auto err = walk([&](entry_t const *entry, written_record &record) {
@@ -260,8 +265,9 @@ int32_t directory_chain::read(file_id_t id, std::function<int32_t(simple_buffer 
             if (fd->id == id) {
                 phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);
 
-                auto data_buffer = record.data<file_data_t>();
-                auto err = data_fn(data_buffer);
+                auto err = record.read_data<file_data_t>([&](auto data_buffer) -> int32_t {
+                    return data_fn(std::move(data_buffer));
+                });
                 if (err < 0) {
                     return err;
                 }

@@ -175,15 +175,14 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
     return 0;
 }
 
-int32_t directory_tree::read(file_id_t id, std::function<int32_t(simple_buffer&)> fn) {
+int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> fn) {
     assert(file_.id == id);
 
     if (node_.u.file.directory_size == 0) {
         return 0;
     }
 
-    simple_buffer inline_data{ node_.data, node_.u.file.directory_size };
-    return fn(inline_data);
+    return fn(read_buffer{ node_.data, node_.u.file.directory_size });
 }
 
 int32_t directory_tree::flush() {

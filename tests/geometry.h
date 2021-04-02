@@ -4,10 +4,11 @@ namespace phylum {
 
 class sector_geometry {
 private:
+    working_buffers &buffers_;
     sector_map &map_;
 
 public:
-    sector_geometry(sector_map &map) : map_(map) {
+    sector_geometry(working_buffers &buffers, sector_map &map) : buffers_(buffers), map_(map) {
     }
 
 public:
@@ -17,7 +18,7 @@ public:
         delimited_buffer buffer_;
 
     public:
-        verify_sector(sector_map &map, dhara_sector_t sector) : sector_(sector), buffer_(map.sector_size()) {
+        verify_sector(working_buffers &buffers, sector_map &map, dhara_sector_t sector) : sector_(sector), buffer_(std::move(buffers.allocate(map.sector_size()))) {
             buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
                 auto err = map.read(sector_, ptr, size);
                 // phydebug_dump_memory("verify ", ptr, size);
@@ -61,13 +62,18 @@ public:
             auto actual = iter->as<T>();
             if (memcmp(&expected, actual, sizeof(T)) == 0) {
                 if (payload_size > 0) {
-                    auto actual_payload = iter->data<T>();
-                    if (memcmp(expected_payload, actual_payload.ptr(), actual_payload.size()) == 0) {
-                        return testing::AssertionSuccess();
+                    auto err = iter->data<T>([&](uint8_t *ptr, size_t size) {
+                        if (memcmp(expected_payload, ptr, size) == 0) {
+                            return 0;
+                        }
+                        phydebug_dump_memory("payload-actual   ", (uint8_t *)ptr, size);
+                        phydebug_dump_memory("payload-expected ", (uint8_t *)expected_payload, payload_size);
+                        return -1;
+                    });
+                    if (err < 0) {
+                        return testing::AssertionFailure() << "Header record";
                     }
-                    phydebug_dump_memory("payload-actual   ", (uint8_t *)actual_payload.ptr(), actual_payload.size());
-                    phydebug_dump_memory("payload-expected ", (uint8_t *)expected_payload, payload_size);
-                    return testing::AssertionFailure() << "Header record";
+                    return testing::AssertionSuccess();
                 }
                 return testing::AssertionSuccess();
             }
@@ -84,7 +90,7 @@ public:
 
 public:
     verify_sector sector(dhara_sector_t sector) {
-        return verify_sector{ map_, sector };
+        return verify_sector{ buffers_, map_, sector };
     }
 };
 

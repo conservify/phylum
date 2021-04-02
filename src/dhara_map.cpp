@@ -51,9 +51,19 @@ int32_t dhara_sector_map::begin(bool force_create) {
         buffer_ = buffers_->allocate(page_size);
     }
 
-    dhara_error_t derr;
-    dhara_map_init(&dmap_, &nand_.dhara, buffer_.ptr(), gc_ratio_);
+    // Notice that this is just named this way to indicate that we're
+    // doing something unusual compared to the other calls to
+    // unsafe_all, in that dhara basically owns this buffer now.
+    auto err = buffer_.unsafe_forever([&](uint8_t *ptr, size_t size) {
+        assert(size == page_size);
+        dhara_map_init(&dmap_, &nand_.dhara, ptr, gc_ratio_);
+        return 0;
+    });
+    if (err < 0) {
+        return err;
+    }
 
+    dhara_error_t derr;
     if (dhara_map_resume(&dmap_, &derr) < 0) {
         phywarnf("resume failed, clearing");
         dhara_map_clear(&dmap_);

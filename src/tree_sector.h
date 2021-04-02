@@ -383,7 +383,9 @@ private:
 
     int32_t flush() {
         if (dirty()) {
-            auto err = sectors_->write(sector_, db().read_view().ptr(), db().read_view().size());
+            auto err = db().read_to_end([&](read_buffer rb) {
+                return sectors_->write(sector_, rb.ptr(), rb.size());
+            });
             if (err < 0) {
                 return err;
             }
@@ -432,7 +434,9 @@ private:
             return err;
         }
 
-        err = sectors_->write(allocated, buffer.read_view().ptr(), buffer.read_view().size());
+        err = buffer.read_to_end([&](read_buffer rb) {
+            return sectors_->write(allocated, rb.ptr(), rb.size());
+        });
         if (err < 0) {
             return err;
         }

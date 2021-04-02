@@ -33,19 +33,19 @@ int32_t file_appender::make_data_chain() {
 
     // phydebugf("%s finding inline data begin", directory_->name());
 
-    err = directory_->read(file_.id, [&](simple_buffer &data_buffer) {
-        auto err = data_chain_.write(data_buffer.ptr(), data_buffer.size());
-        if (err < 0) {
-            return err;
-        }
-        return err;
+    err = directory_->read(file_.id, [&](auto data_buffer) {
+        return data_buffer.read_to_end([&](auto rb) {
+            return data_chain_.write(rb.ptr(), rb.size());
+        });
     });
     if (err < 0) {
         return err;
     }
 
     if (buffer_.position() > 0) {
-        auto err = data_chain_.write(buffer_.ptr(), buffer_.position());
+        auto err = buffer_.read_to_position([&](auto rb) {
+            return data_chain_.write(rb.ptr(), rb.size());
+        });
         if (err < 0) {
             return err;
         }
@@ -68,7 +68,9 @@ int32_t file_appender::flush() {
     if (had_chain) {
         phyinfof("writing to chain");
 
-        auto err = data_chain_.write(buffer_.ptr(), buffer_.position());
+        auto err = buffer_.read_to_position([&](auto buffer) {
+            return data_chain_.write(buffer.ptr(), buffer.size());
+        });
         if (err < 0) {
             return err;
         }
@@ -83,7 +85,13 @@ int32_t file_appender::flush() {
         if (pending < file_.directory_capacity) {
             phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
-            assert(directory_->file_data(file_.id, buffer_.ptr(), buffer_.position()) >= 0);
+            auto err = buffer_.read_to_position([&](auto buffer) {
+                assert(directory_->file_data(file_.id, buffer.ptr(), buffer.size()) >= 0);
+                return buffer.size();
+            });
+            if (err < 0) {
+                return err;
+            }
 
             file_.directory_capacity -= pending;
 

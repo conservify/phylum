@@ -35,7 +35,9 @@ int32_t sector_chain::flush() {
 
     phydebugf("%s flush", name());
 
-    auto err = sectors_->write(sector_, buffer_.read_view().ptr(), buffer_.read_view().size());
+    auto err = buffer_.read_to_end([&](auto buffer) {
+        return sectors_->write(sector_, buffer.ptr(), buffer.size());
+    });
     if (err < 0) {
         return err;
     }
@@ -103,10 +105,10 @@ int32_t sector_chain::forward() {
         phydebugf("%s first load", name());
         sector_ = head_;
     } else {
-        auto hdr = header<sector_chain_header_t>();
+        auto hdr = db().header<sector_chain_header_t>();
         if (hdr->np == 0 || hdr->np == UINT32_MAX) {
             if (hdr->type == entry_type::DataSector) {
-                auto dchdr = header<data_chain_header_t>();
+                auto dchdr = db().header<data_chain_header_t>();
                 phydebugf("%s sector=%d bytes=%d length=%d (end)", name(), sector_, dchdr->bytes, length_sectors_);
             } else {
                 phydebugf("%s sector=%d length=%d (end)", name(), sector_, length_sectors_);
@@ -117,7 +119,7 @@ int32_t sector_chain::forward() {
         sector(hdr->np);
 
         if (hdr->type == entry_type::DataSector) {
-            auto dchdr = header<data_chain_header_t>();
+            auto dchdr = db().header<data_chain_header_t>();
             phydebugf("%s sector=%d bytes=%d length=%d", name(), sector_, dchdr->bytes, length_sectors_);
         } else {
             phydebugf("%s sector=%d length=%d", name(), sector_, length_sectors_);
@@ -156,6 +158,8 @@ int32_t sector_chain::load() {
 
 int32_t sector_chain::log() {
     logged_task lt{ "log" };
+
+    assert_valid();
 
     return walk([&](entry_t const *entry, written_record &record) {
         logged_task lt{ this->name() };
@@ -256,7 +260,7 @@ int32_t sector_chain::grow_tail() {
     if (sector_ != InvalidSector) {
         assert(db().begin() != db().end());
 
-        auto hdr = header<sector_chain_header_t>();
+        auto hdr = db().header<sector_chain_header_t>();
         assert(hdr != nullptr);
         hdr->np = allocated;
         dirty(true);
@@ -278,7 +282,7 @@ int32_t sector_chain::grow_tail() {
         return err;
     }
 
-    auto hdr = header<sector_chain_header_t>();
+    auto hdr = db().header<sector_chain_header_t>();
     assert(hdr != nullptr);
     hdr->pp = previous_sector;
 

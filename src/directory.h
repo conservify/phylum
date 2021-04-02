@@ -40,7 +40,7 @@ public:
 
     virtual int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) = 0;
 
-    virtual int32_t read(file_id_t id, std::function<int32_t(simple_buffer&)> fn) = 0;
+    virtual int32_t read(file_id_t id, std::function<int32_t(read_buffer)> fn) = 0;
 };
 
 }

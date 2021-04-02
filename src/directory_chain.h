@@ -44,7 +44,7 @@ protected:
 
     int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) override;
 
-    int32_t read(file_id_t id, std::function<int32_t(simple_buffer&)> data_fn) override;
+    int32_t read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) override;
 
 private:
     int32_t write_header() override;

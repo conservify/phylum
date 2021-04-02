@@ -11,10 +11,11 @@ private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
+    using buffer_type = delimited_buffer;
     working_buffers *buffers_{ nullptr };
     sector_map *sectors_{ nullptr };
     sector_allocator *allocator_{ nullptr };
-    delimited_buffer buffer_;
+    buffer_type buffer_;
     dhara_sector_t head_{ InvalidSector };
     dhara_sector_t tail_{ InvalidSector };
     dhara_sector_t sector_{ InvalidSector };
@@ -98,15 +99,11 @@ protected:
         return appendable_;
     }
 
-    delimited_buffer const &buffer() {
-        return buffer_;
-    }
-
     sector_allocator &allocator() {
         return *allocator_;
     }
 
-    delimited_buffer &db() {
+    buffer_type &db() {
         return buffer_;
     }
 
