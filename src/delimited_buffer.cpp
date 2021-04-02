@@ -7,16 +7,14 @@ void *delimited_buffer::reserve(size_t length, sector_offset_t &start_position) 
 
     // If this is our first record, write the offset value first.
     if (buffer_.position() == 0) {
-        if (offset_ > 0) {
-            phydebugf("writing offset: %zu", offset_);
-        }
-        auto needed = varint_encoding_length(offset_);
+        auto offset = 0u;
+        auto needed = varint_encoding_length(offset);
         auto p = buffer_.take(needed);
         if (*p != 0xff) {
             phydebug_dump_memory("overwrite ", p, needed);
             assert(*p == 0xff);
         }
-        varint_encode(offset_, p, needed);
+        varint_encode(offset, p, needed);
     }
 
     // Verify enough room for the record and its prefix.

@@ -37,17 +37,16 @@ struct written_record {
 class delimited_buffer {
 private:
     simple_buffer buffer_;
-    size_t offset_{ 0 };
 
 public:
-    delimited_buffer(size_t size, size_t offset = 0) : buffer_(size), offset_(offset) {
-    }
-
-    delimited_buffer(simple_buffer &&buffer, size_t offset = 0) : buffer_(std::move(buffer)), offset_(offset) {
+    delimited_buffer(simple_buffer &&buffer) : buffer_(std::move(buffer)) {
     }
 
     delimited_buffer(delimited_buffer &&other)
-        : buffer_(std::exchange(other.buffer_, simple_buffer{ })), offset_(other.offset_) {
+        : buffer_(std::exchange(other.buffer_, simple_buffer{ })) {
+    }
+
+    explicit delimited_buffer(size_t size) : buffer_(size) {
     }
 
     virtual ~delimited_buffer() {

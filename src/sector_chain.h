@@ -33,7 +33,7 @@ public:
 
     sector_chain(sector_chain &other, head_tail_t chain, const char *prefix)
         : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
-          buffer_(other.sector_size()), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
+          buffer_(std::move(buffers().allocate(other.sector_size()))), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
