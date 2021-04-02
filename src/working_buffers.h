@@ -6,24 +6,26 @@ namespace phylum {
 
 class working_buffers {
 protected:
+    struct page_t {
+        uint8_t *buffer{ nullptr };
+        size_t size{ 0 };
+        dhara_sector_t sector{ InvalidSector };
+        int32_t refs{ 0 };
+    };
+
     static constexpr size_t Size = 8;
-    uint8_t *buffers_[Size];
     size_t buffer_size_{ 0 };
-    size_t taken_[Size];
+    page_t pages_[Size];
     size_t highwater_{ 0 };
 
 public:
     working_buffers(size_t buffer_size) : buffer_size_(buffer_size) {
         for (auto i = 0u; i < Size; ++i) {
-            buffers_[i] = nullptr;
-            taken_[i] = 0u;
+            pages_[i] = { };
         }
     }
 
     virtual ~working_buffers() {
-        for (auto i = 0u; i < Size; ++i) {
-            taken_[i] = 0u;
-        }
         phyinfof("wbuffers::dtor hw=%zu", highwater_);
     }
 
@@ -36,9 +38,9 @@ public:
     void lend(uint8_t *ptr, size_t size) {
         assert(buffer_size_ == size);
         for (auto i = 0u; i < Size; ++i) {
-            if (buffers_[i] == nullptr) {
-                buffers_[i] = ptr;
-                taken_[i] = 0u;
+            if (pages_[i].buffer == nullptr) {
+                pages_[i].buffer = ptr;
+                pages_[i].size = size;
                 break;
             }
         }
@@ -51,8 +53,8 @@ public:
         auto hw = 1u; // We're going to increase this sum by 1 after
                       // this function ends or fail horribly.
         for (auto i = 0u; i < Size; ++i) {
-            if (buffers_[i] == nullptr) break;
-            if (taken_[i]) {
+            if (pages_[i].buffer == nullptr) break;
+            if (pages_[i].refs > 0) {
                 hw++;
             }
         }
@@ -62,14 +64,14 @@ public:
         }
 
         for (auto i = 0u; i < Size; ++i) {
-            if (buffers_[i] == nullptr) {
+            if (pages_[i].buffer == nullptr) {
                 break;
             }
-            if (!taken_[i]) {
-                taken_[i] = true;
+            if (pages_[i].refs == 0) {
+                pages_[i].refs++;
                 phydebugf("wbuffers[%d]: allocate hw=%zu", i, highwater_);
                 std::function<void(uint8_t*)> free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
-                return simple_buffer{ buffers_[i], size, free_fn };
+                return simple_buffer{ pages_[i].buffer, size, free_fn };
             }
         }
 
@@ -80,9 +82,9 @@ public:
     void free(uint8_t *ptr) {
         assert(ptr != nullptr);
         for (auto i = 0u; i < Size; ++i) {
-            if (buffers_[i] == ptr) {
-                phydebugf("wbuffers[%d]: free", i);
-                taken_[i] = 0u;
+            if (pages_[i].buffer == ptr) {
+                pages_[i].refs--;
+                phydebugf("wbuffers[%d]: free refs=%d", i, pages_[i].refs);
                 break;
             }
         }
