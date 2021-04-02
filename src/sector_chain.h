@@ -41,8 +41,16 @@ public:
     }
 
 public:
-    const char *name() const {
-        return name_;
+    working_buffers &buffers() {
+        return *buffers_;
+    }
+
+    dhara_sector_t length_sectors() const {
+        return length_sectors_;
+    }
+
+    bool valid() const {
+        return head_ != 0 && head_ != InvalidSector && tail_ != 0 && tail_ != InvalidSector;
     }
 
     dhara_sector_t head() const {
@@ -53,32 +61,22 @@ public:
         return tail_;
     }
 
-    dhara_sector_t sector() const {
-        return sector_;
-    }
-
-    dhara_sector_t length_sectors() const {
-        return length_sectors_;
-    }
-
-    working_buffers &buffers() {
-        return *buffers_;
-    }
-
     int32_t log();
 
     int32_t create_if_necessary();
 
     int32_t flush();
 
-    int32_t back_to_head();
-
-    bool valid() const {
-        return head_ != 0 && head_ != InvalidSector && tail_ != 0 && tail_ != InvalidSector;
+    const char *name() const {
+        return name_;
     }
 
 protected:
     void name(const char *f, ...);
+
+    dhara_sector_t sector() const {
+        return sector_;
+    }
 
     sector_map *sectors() {
         return sectors_;
@@ -149,6 +147,8 @@ protected:
 
         return 0;
     }
+
+    int32_t back_to_head();
 
     int32_t back_to_tail();
 
