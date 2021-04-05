@@ -21,7 +21,6 @@ TYPED_TEST(WriteFixture, WriteInlineOnce) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -38,7 +37,6 @@ TYPED_TEST(WriteFixture, WriteInlineBuffersMultipleSmall) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -57,7 +55,6 @@ TYPED_TEST(WriteFixture, WriteInlineMultipleFlushEach) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -78,7 +75,6 @@ TYPED_TEST(WriteFixture, WriteThreeInlineWritesAndTriggerDataChain) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -101,7 +97,6 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChain) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -126,7 +121,6 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChainGrowingToNewBlock) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -151,7 +145,6 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -173,7 +166,6 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -194,7 +186,6 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -224,7 +215,6 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SingleBlock) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -245,7 +235,6 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocks) {
     FlashMemory memory{ layout.sector_size };
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };

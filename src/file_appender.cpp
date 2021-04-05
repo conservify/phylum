@@ -123,7 +123,7 @@ int32_t file_appender::flush() {
             phyinfof("%s updating directory", data_chain_.name());
             file_.chain.head = data_chain_.head();
             file_.chain.tail = data_chain_.tail();
-            err = directory_->file_chain(file_.id, file_.chain);
+            auto err = directory_->file_chain(file_.id, file_.chain);
             if (err < 0) {
                 return err;
             }

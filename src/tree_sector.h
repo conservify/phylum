@@ -5,6 +5,9 @@
 #include "delimited_buffer.h"
 #include "working_buffers.h"
 
+// For page_lock
+#include "sector_chain.h"
+
 namespace phylum {
 
 class Keys {

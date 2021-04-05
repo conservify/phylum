@@ -1,11 +1,13 @@
 #include "sector_chain.h"
-#include "directory_chain.h" // For file_entry_t, etc...
 #include "data_chain.h"
+#include "directory_chain.h" // For file_entry_t, etc...
 
 namespace phylum {
 
 int32_t sector_chain::create_if_necessary() {
     logged_task lt{ "create" };
+
+    auto page_lock = db().writing(sector());
 
     if (head_ != InvalidSector || tail_ != InvalidSector) {
         return 0;
@@ -13,7 +15,7 @@ int32_t sector_chain::create_if_necessary() {
 
     name("creating");
 
-    auto err = grow_tail();
+    auto err = grow_tail(page_lock);
     if (err < 0) {
         return err;
     }
@@ -24,6 +26,12 @@ int32_t sector_chain::create_if_necessary() {
 }
 
 int32_t sector_chain::flush() {
+    auto page_lock = db().reading(sector());
+
+    return flush(page_lock);
+}
+
+int32_t sector_chain::flush(page_lock &/*page_lock*/) {
     logged_task lt{ "sc-flush" };
 
     assert_valid();
@@ -47,7 +55,7 @@ int32_t sector_chain::flush() {
     return 0;
 }
 
-int32_t sector_chain::seek_end_of_chain() {
+int32_t sector_chain::seek_end_of_chain(page_lock &page_lock) {
     logged_task lt{ "seek-eoc" };
 
     assert_valid();
@@ -55,7 +63,7 @@ int32_t sector_chain::seek_end_of_chain() {
     phydebugf("%s starting", name());
 
     while (true) {
-        auto err = forward();
+        auto err = forward(page_lock);
         if (err < 0) {
             phydebugf("%s end (%d)", name(), err);
             return err;
@@ -64,7 +72,7 @@ int32_t sector_chain::seek_end_of_chain() {
         }
     }
 
-    auto err = seek_end_of_buffer();
+    auto err = seek_end_of_buffer(page_lock);
     if (err < 0) {
         return err;
     }
@@ -89,12 +97,7 @@ int32_t sector_chain::back_to_head() {
     return 0;
 }
 
-int32_t sector_chain::back_to_tail() {
-    assert(false);
-    return 0;
-}
-
-int32_t sector_chain::forward() {
+int32_t sector_chain::forward(page_lock &page_lock) {
     logged_task lt{ "forward" };
 
     assert_valid();
@@ -128,7 +131,7 @@ int32_t sector_chain::forward() {
 
     db().clear();
 
-    auto err = load();
+    auto err = load(page_lock);
     if (err < 0) {
         phydebugf("%s: load failed", name());
         return err;
@@ -139,7 +142,7 @@ int32_t sector_chain::forward() {
     return 1;
 }
 
-int32_t sector_chain::load() {
+int32_t sector_chain::load(page_lock & /*page_lock*/) {
     logged_task lt{ "load" };
 
     assert_valid();
@@ -151,9 +154,7 @@ int32_t sector_chain::load() {
 
     db().rewind();
 
-    return buffer_.unsafe_all([&](uint8_t *ptr, size_t size) {
-        return sectors_->read(sector_, ptr, size);
-    });
+    return buffer_.unsafe_all([&](uint8_t *ptr, size_t size) { return sectors_->read(sector_, ptr, size); });
 }
 
 int32_t sector_chain::log() {
@@ -205,7 +206,7 @@ int32_t sector_chain::log() {
                 phyinfof("data (%zu) id=0x%x size=%d", record.size_of_record(), fd->id, fd->size);
             } else {
                 phyinfof("data (%zu) id=0x%x chain=%d/%d", record.size_of_record(), fd->id, fd->chain.head,
-                       fd->chain.tail);
+                         fd->chain.tail);
 
                 data_chain dc{ *this, fd->chain };
                 phyinfof("chain total-bytes=%d", dc.total_bytes());
@@ -227,14 +228,14 @@ int32_t sector_chain::log() {
     });
 }
 
-int32_t sector_chain::write_header_if_at_start() {
+int32_t sector_chain::write_header_if_at_start(page_lock &page_lock) {
     if (db().position() > 0) {
         return 0;
     }
 
     phydebugf("%s write header", name());
 
-    auto err = write_header();
+    auto err = write_header(page_lock);
     if (err < 0) {
         return err;
     }
@@ -242,13 +243,7 @@ int32_t sector_chain::write_header_if_at_start() {
     return 1;
 }
 
-int32_t sector_chain::grow_head() {
-    assert(false);
-
-    return 0;
-}
-
-int32_t sector_chain::grow_tail() {
+int32_t sector_chain::grow_tail(page_lock &page_lock) {
     logged_task lt{ "grow" };
 
     auto previous_sector = sector_;
@@ -267,7 +262,7 @@ int32_t sector_chain::grow_tail() {
 
         dirty(true);
 
-        auto err = flush();
+        auto err = flush(page_lock);
         if (err < 0) {
             return err;
         }
@@ -279,7 +274,7 @@ int32_t sector_chain::grow_tail() {
     buffer_.clear();
     length_sectors_++;
 
-    auto err = write_header();
+    auto err = write_header(page_lock);
     if (err < 0) {
         return err;
     }
@@ -299,6 +294,16 @@ void sector_chain::name(const char *f, ...) {
     va_start(args, f);
     phy_vsnprintf(name_, sizeof(name_), f, args);
     va_end(args);
+}
+
+page_lock::~page_lock() {
+    buffer_->release();
+}
+
+void lazy_delimited_buffer::release() {
+    phydebugf("page-lock: release");
+    assert(valid_);
+    valid_ = false;
 }
 
 } // namespace phylum

@@ -2,7 +2,7 @@
 
 namespace phylum {
 
-int32_t integer_chain::seek_end_of_buffer() {
+int32_t integer_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     auto err = db().seek_once();
     if (err < 0) {
         return err;
@@ -13,7 +13,7 @@ int32_t integer_chain::seek_end_of_buffer() {
     return 0;
 }
 
-int32_t integer_chain::write_header() {
+int32_t integer_chain::write_header(page_lock &/*page_lock*/) {
     logged_task lt{ "ic-write-hdr", name() };
 
     assert_valid();

@@ -25,7 +25,6 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
 
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -54,7 +53,6 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyteIndexed) {
 
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_appender opened{ chain, &chain, chain.open() };

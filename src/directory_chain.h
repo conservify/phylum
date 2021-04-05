@@ -47,23 +47,23 @@ protected:
     int32_t read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) override;
 
 private:
-    int32_t write_header() override;
+    int32_t write_header(page_lock &page_lock) override;
 
-    int32_t seek_end_of_buffer() override;
+    int32_t seek_end_of_buffer(page_lock &page_lock) override;
 
     int32_t seek_file_entry(file_id_t id);
 
     int32_t file_attribute(file_id_t id, open_file_attribute attribute);
 
-    int32_t prepare(size_t required);
+    int32_t prepare(page_lock &page_lock, size_t required);
 
-    int32_t grow_if_necessary(size_t required);
+    int32_t grow_if_necessary(page_lock &page_lock, size_t required);
 
     template <typename T, class... Args>
-    int32_t emplace(Args &&... args) {
+    int32_t emplace(page_lock &page_lock, Args &&... args) {
         assert(sizeof(T) <= db().size());
 
-        auto err = prepare(sizeof(T));
+        auto err = prepare(page_lock, sizeof(T));
         if (err < 0) {
             return err;
         }
@@ -78,10 +78,10 @@ private:
     }
 
     template <typename T>
-    int32_t append(T &record, uint8_t const *buffer, size_t size) {
+    int32_t append(page_lock &page_lock, T &record, uint8_t const *buffer, size_t size) {
         assert(sizeof(T) + size <= db().size());
 
-        auto err = prepare(sizeof(T) + size);
+        auto err = prepare(page_lock, sizeof(T) + size);
         if (err < 0) {
             return err;
         }

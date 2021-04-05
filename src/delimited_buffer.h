@@ -126,6 +126,7 @@ public:
      * and that acts a NULL terminator.
      */
     sector_offset_t terminate() {
+        ensure_valid();
         sector_offset_t start_position{ 0 };
         (uint8_t *)reserve(0, start_position);
         return start_position;
@@ -137,62 +138,75 @@ public:
     }
 
     bool room_for(size_t length) {
+        // ensure_valid();
         return buffer_.room_for(varint_encoding_length(length) + length);
     }
 
     template <typename T>
     int32_t unsafe_all(T fn) {
+        ensure_valid();
         return buffer_.unsafe_all<T>(fn);
     }
 
     template <typename T>
     int32_t unsafe_forever(T fn) {
+        ensure_valid();
         return buffer_.unsafe_forever<T>(fn);
     }
 
     template <typename T>
     int32_t read_to_end(T fn) const {
+        ensure_valid();
         return buffer_.read_to_end<T>(fn);
     }
 
     template <typename T>
     int32_t read_to_position(T fn) const {
+        ensure_valid();
         return buffer_.read_to_position<T>(fn);
     }
 
     read_buffer to_read_buffer() const {
+        ensure_valid();
         return read_buffer{ buffer_.ptr(), buffer_.size(), buffer_.position() };
     }
 
     template <typename T>
     T const *header() const {
+        ensure_valid();
         return begin()->as<T>();
     }
 
     template<typename THeader>
     int32_t write_header(std::function<int32_t(THeader *header)> fn) {
+        ensure_valid();
         return fn(as_mutable<THeader>(*begin()));
     }
 
     int32_t write_view(std::function<int32_t(write_buffer)> fn) {
+        ensure_valid();
         return unsafe_all([&](uint8_t *ptr, size_t size) {
             return fn(write_buffer(ptr, size, position()));
         });
     }
 
     int32_t skip_end() {
+        ensure_valid();
         return buffer_.skip_end();
     }
 
     int32_t skip(size_t bytes) {
+        ensure_valid();
         return buffer_.skip(bytes);
     }
 
     int32_t constrain(size_t bytes) {
+        ensure_valid();
         return buffer_.constrain(bytes);
     }
 
     int32_t seek_end() {
+        ensure_valid();
         auto iter = begin();
         while (iter != end()) {
             buffer_.position(iter->position() + iter->size_of_record());
@@ -202,6 +216,7 @@ public:
     }
 
     int32_t seek_once() {
+        ensure_valid();
         auto iter = begin();
         while (iter != end()) {
             buffer_.position(iter->position() + iter->size_of_record());
@@ -211,34 +226,42 @@ public:
     }
 
     size_t size() const {
+        // ensure_valid();
         return buffer_.size();
     }
 
     size_t position() const {
+        ensure_valid();
         return buffer_.position();
     }
 
     bool empty() const {
+        ensure_valid();
         return buffer_.position() == 0;
     }
 
     bool at_start() const {
+        ensure_valid();
         return empty();
     }
 
     void position(size_t position) {
+        ensure_valid();
         buffer_.position(position);
     }
 
     size_t available() const {
+        ensure_valid();
         return buffer_.available();
     }
 
     void clear(uint8_t value = 0xff) {
+        ensure_valid();
         buffer_.clear(value);
     }
 
     void rewind() {
+        ensure_valid();
         buffer_.rewind();
     }
 
@@ -336,15 +359,21 @@ public:
 
 public:
     iterator begin() const {
+        ensure_valid();
         return iterator(buffer_.begin_view());
     }
 
     iterator end() const {
+        ensure_valid();
         return iterator(buffer_.end_view());
     }
 
 private:
     void *reserve(size_t length, sector_offset_t &start_position);
+
+protected:
+    virtual void ensure_valid() const {
+    }
 
 };
 

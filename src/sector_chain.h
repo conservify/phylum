@@ -1,17 +1,87 @@
 #pragma once
 
-#include "sector_allocator.h"
 #include "delimited_buffer.h"
+#include "sector_allocator.h"
 #include "working_buffers.h"
 
 namespace phylum {
+
+namespace waiting {
+
+class page_lock {
+private:
+    working_buffers &buffers_;
+    delimited_buffer &buffer_;
+    dhara_sector_t sector_{ InvalidSector };
+    bool read_only_{ true };
+
+public:
+    page_lock(working_buffers &buffers, delimited_buffer &buffer, dhara_sector_t sector)
+        : buffers_(buffers), buffer_(buffer), sector_(sector) {
+    }
+
+    page_lock(working_buffers &buffers, delimited_buffer &buffer, dhara_sector_t sector, bool read_only)
+        : buffers_(buffers), buffer_(buffer), sector_(sector), read_only_(read_only) {
+    }
+
+    virtual ~page_lock() {
+    }
+};
+
+}; // namespace waiting
+
+class lazy_delimited_buffer;
+
+class page_lock {
+private:
+    lazy_delimited_buffer *buffer_{ nullptr };
+
+public:
+    page_lock(lazy_delimited_buffer *buffer) : buffer_(buffer) {
+    }
+
+    virtual ~page_lock();
+};
+
+class lazy_delimited_buffer : public delimited_buffer {
+private:
+    bool valid_{ false };
+
+public:
+    lazy_delimited_buffer(delimited_buffer &&other) : delimited_buffer(std::move(other)) {
+    }
+
+public:
+    page_lock reading(dhara_sector_t sector) {
+        phydebugf("page-lock: reading %d", sector);
+        assert(!valid_);
+        valid_ = true;
+        return page_lock{ this };
+    }
+
+    page_lock writing(dhara_sector_t sector) {
+        phydebugf("page-lock: writing %d", sector);
+        assert(!valid_);
+        valid_ = true;
+        return page_lock{ this };
+    }
+
+protected:
+    void ensure_valid() const override {
+        assert(valid_);
+    }
+
+    void release();
+
+    friend class page_lock;
+};
 
 class sector_chain {
 private:
     static constexpr size_t ChainNameLength = 32;
 
 private:
-    using buffer_type = delimited_buffer;
+    using buffer_type = lazy_delimited_buffer;
     working_buffers *buffers_{ nullptr };
     sector_map *sectors_{ nullptr };
     sector_allocator *allocator_{ nullptr };
@@ -66,13 +136,15 @@ public:
 
     int32_t create_if_necessary();
 
-    int32_t flush();
-
     const char *name() const {
         return name_;
     }
 
+    int32_t flush();
+
 protected:
+    int32_t flush(page_lock &page_lock);
+
     void name(const char *f, ...);
 
     dhara_sector_t sector() const {
@@ -135,11 +207,11 @@ protected:
         return 0;
     }
 
-    int32_t ensure_loaded() {
+    int32_t ensure_loaded(page_lock &page_lock) {
         assert_valid();
 
         if (sector_ == InvalidSector) {
-            return forward();
+            return forward(page_lock);
         }
 
         return 0;
@@ -149,7 +221,7 @@ protected:
 
     int32_t back_to_tail();
 
-    int32_t forward();
+    int32_t forward(page_lock &page_lock);
 
     template <typename T>
     int32_t walk(T fn) {
@@ -159,10 +231,12 @@ protected:
 
         assert(!dirty());
 
+        auto page_lock = db().reading(head());
+
         assert(back_to_head() >= 0);
 
         while (true) {
-            auto err = forward();
+            auto err = forward(page_lock);
             if (err < 0) {
                 return err;
             }
@@ -185,23 +259,17 @@ protected:
         return 0;
     }
 
-    template <typename T> T *header() {
-        return db().begin()->as<T>();
-    }
+    int32_t load(page_lock &page_lock);
 
-    int32_t load();
+    int32_t grow_tail(page_lock &page_lock);
 
-    int32_t grow_head();
+    int32_t write_header_if_at_start(page_lock &page_lock);
 
-    int32_t grow_tail();
+    virtual int32_t seek_end_of_chain(page_lock &page_lock);
 
-    int32_t write_header_if_at_start();
+    virtual int32_t seek_end_of_buffer(page_lock &page_lock) = 0;
 
-    virtual int32_t seek_end_of_chain();
-
-    virtual int32_t seek_end_of_buffer() = 0;
-
-    virtual int32_t write_header() = 0;
+    virtual int32_t write_header(page_lock &page_lock) = 0;
 };
 
 } // namespace phylum

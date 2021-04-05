@@ -14,7 +14,6 @@ protected:
 TEST_F(LayoutFixture_256, WriteInlineOnce) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -35,7 +34,6 @@ TEST_F(LayoutFixture_256, WriteInlineOnce) {
 TEST_F(LayoutFixture_256, WriteInlineBuffersMultipleSmall) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -58,7 +56,6 @@ TEST_F(LayoutFixture_256, WriteInlineBuffersMultipleSmall) {
 TEST_F(LayoutFixture_256, WriteInlineMultipleFlushEach) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -85,7 +82,6 @@ TEST_F(LayoutFixture_256, WriteInlineMultipleFlushEach) {
 TEST_F(LayoutFixture_256, WriteThreeInlineWritesAndTriggerDataChain) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -120,7 +116,6 @@ TEST_F(LayoutFixture_256, WriteThreeInlineWritesAndTriggerDataChain) {
 TEST_F(LayoutFixture_256, WriteAppendsToDataChain) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -157,7 +152,6 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChain) {
 TEST_F(LayoutFixture_256, WriteAppendsToDataChainGrowingToNewBlock) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -197,7 +191,6 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChainGrowingToNewBlock) {
 TEST_F(LayoutFixture_256, WriteAndIncrementAttribute) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -229,7 +222,6 @@ TEST_F(LayoutFixture_256, WriteAndIncrementAttribute) {
 TEST_F(LayoutFixture_256, WriteAndIncrementAttributeThreeTimes) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -262,7 +254,6 @@ TEST_F(LayoutFixture_256, WriteAndIncrementAttributeThreeTimes) {
 TEST_F(LayoutFixture_256, WriteToDataChainAndIncrementAttributeThreeTimes) {
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -313,7 +304,6 @@ TEST_F(LayoutFixture_256, WriteImmediatelyToDataChain_SingleBlock) {
 
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };
@@ -343,7 +333,6 @@ TEST_F(LayoutFixture_256, WriteImmediatelyToDataChain_TwoBlocks) {
 
     memory.mounted<directory_chain>([&](auto &chain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
-        ASSERT_EQ(chain.flush(), 0);
 
         ASSERT_EQ(chain.find("data.txt", file_cfg()), 1);
         file_appender opened{ chain, &chain, chain.open() };

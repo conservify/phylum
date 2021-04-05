@@ -28,7 +28,6 @@ public:
 
     uint32_t u32(uint8_t type);
 
-public:
     file_size_t position() const {
         return position_;
     }

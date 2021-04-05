@@ -7,13 +7,15 @@ int32_t directory_chain::mount() {
 
     sector(head());
 
+    auto page_lock = db().writing(sector());
+
     dhara_page_t page = 0;
     auto find = sectors()->find(0, &page);
     if (find < 0) {
         return find;
     }
 
-    auto err = load();
+    auto err = load(page_lock);
     if (err < 0) {
         return err;
     }
@@ -26,11 +28,12 @@ int32_t directory_chain::mount() {
 
 int32_t directory_chain::format() {
     logged_task lt{ "format" };
+    auto page_lock = db().writing(head());
 
     sector(head());
 
     phyinfof("formatting");
-    auto err = write_header();
+    auto err = write_header(page_lock);
     if (err < 0) {
         return err;
     }
@@ -43,7 +46,7 @@ int32_t directory_chain::format() {
     appendable(true);
     dirty(true);
 
-    err = flush();
+    err = flush(page_lock);
     if (err < 0) {
         return err;
     }
@@ -51,18 +54,18 @@ int32_t directory_chain::format() {
     return 0;
 }
 
-int32_t directory_chain::prepare(size_t required) {
+int32_t directory_chain::prepare(page_lock &page_lock, size_t required) {
     logged_task lt{ "prepare" };
 
     if (!appendable()) {
-        auto err = seek_end_of_chain();
+        auto err = seek_end_of_chain(page_lock);
         if (err < 0) {
             phyerrorf("seek-end failed");
             return err;
         }
     }
 
-    auto err = grow_if_necessary(required);
+    auto err = grow_if_necessary(page_lock, required);
     if (err < 0) {
         phyerrorf("grow failed");
         return err;
@@ -76,21 +79,21 @@ int32_t directory_chain::prepare(size_t required) {
     return 0;
 }
 
-int32_t directory_chain::grow_if_necessary(size_t required) {
+int32_t directory_chain::grow_if_necessary(page_lock &page_lock, size_t required) {
     auto delimiter_overhead = varint_encoding_length(required);
     auto total_required = delimiter_overhead + required;
     if (db().room_for(total_required)) {
         return 0;
     }
 
-    return grow_tail();
+    return grow_tail(page_lock);
 }
 
-int32_t directory_chain::seek_end_of_buffer() {
+int32_t directory_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     return db().seek_end();
 }
 
-int32_t directory_chain::write_header() {
+int32_t directory_chain::write_header(page_lock &/*page_lock*/) {
     logged_task lt{ "dc-write-hdr", this->name() };
 
     db().emplace<directory_chain_header_t>();
@@ -102,10 +105,11 @@ int32_t directory_chain::write_header() {
 
 int32_t directory_chain::touch(const char *name) {
     logged_task lt{ "dir-touch" };
+    auto page_lock = db().writing(sector());
 
-    assert(emplace<file_entry_t>(name) >= 0);
+    assert(emplace<file_entry_t>(page_lock, name) >= 0);
 
-    auto err = flush();
+    auto err = flush(page_lock);
     if (err < 0) {
         return err;
     }
@@ -115,9 +119,10 @@ int32_t directory_chain::touch(const char *name) {
 
 int32_t directory_chain::file_attribute(file_id_t id, open_file_attribute attribute) {
     logged_task lt{ "dir-file-attribute" };
+    auto page_lock = db().writing(sector());
 
     file_attribute_t fa{ id, attribute.type, attribute.size };
-    assert(append<file_attribute_t>(fa, (uint8_t const *)attribute.ptr, attribute.size) >= 0);
+    assert(append<file_attribute_t>(page_lock, fa, (uint8_t const *)attribute.ptr, attribute.size) >= 0);
 
     return 0;
 }
@@ -146,10 +151,11 @@ int32_t directory_chain::file_attributes(file_id_t file_id, open_file_attribute 
 
 int32_t directory_chain::file_chain(file_id_t id, head_tail_t chain) {
     logged_task lt{ "dir-file-chain" };
+    auto page_lock = db().writing(sector());
 
-    assert(emplace<file_data_t>(id, chain) >= 0);
+    assert(emplace<file_data_t>(page_lock, id, chain) >= 0);
 
-    auto err = flush();
+    auto err = flush(page_lock);
     if (err < 0) {
         return err;
     }
@@ -159,11 +165,12 @@ int32_t directory_chain::file_chain(file_id_t id, head_tail_t chain) {
 
 int32_t directory_chain::file_data(file_id_t id, uint8_t const *buffer, size_t size) {
     logged_task lt{ "dir-file-data" };
+    auto page_lock = db().writing(sector());
 
     file_data_t fd{ id, (uint32_t)size };
-    assert(append<file_data_t>(fd, buffer, size) >= 0);
+    assert(append<file_data_t>(page_lock, fd, buffer, size) >= 0);
 
-    auto err = flush();
+    auto err = flush(page_lock);
     if (err < 0) {
         return err;
     }
