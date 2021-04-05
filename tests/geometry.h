@@ -30,13 +30,17 @@ public:
         testing::AssertionResult end(size_t n) {
             auto iter = buffer_.begin();
             while (n > 0) {
+                if (iter == buffer_.end()) {
+                    return testing::AssertionFailure() << "unexpected end of records";
+                }
+
                 ++iter;
                 --n;
             }
             if (iter == buffer_.end()) {
                 return testing::AssertionSuccess();
             }
-            return testing::AssertionFailure() << "Unexpected end of records";
+            return testing::AssertionFailure() << "too many records";
         }
 
         template <typename T>
@@ -53,16 +57,21 @@ public:
         testing::AssertionResult nth(size_t n, T expected, uint8_t const *expected_payload, size_t payload_size) {
             auto iter = buffer_.begin();
             while (n > 0) {
-                ++iter;
                 if (iter == buffer_.end()) {
-                    return testing::AssertionFailure() << "Unexpected end of records";
+                    return testing::AssertionFailure() << "unexpected end of records";
                 }
+                ++iter;
                 --n;
+            }
+            if (iter == buffer_.end()) {
+                return testing::AssertionFailure() << "unexpected end of records";
             }
             auto actual = iter->as<T>();
             if (memcmp(&expected, actual, sizeof(T)) == 0) {
                 if (payload_size > 0) {
-                    auto err = iter->data<T>([&](uint8_t *ptr, size_t size) {
+                    auto err = iter->read_data<T>([&](auto data_buffer) {
+                        auto ptr = data_buffer.cursor();
+                        auto size = data_buffer.available();
                         if (memcmp(expected_payload, ptr, size) == 0) {
                             return 0;
                         }
@@ -71,7 +80,7 @@ public:
                         return -1;
                     });
                     if (err < 0) {
-                        return testing::AssertionFailure() << "Header record";
+                        return testing::AssertionFailure() << "unexpected record payload";
                     }
                     return testing::AssertionSuccess();
                 }
@@ -79,11 +88,10 @@ public:
             }
             phydebug_dump_memory("actual   ", (uint8_t *)actual, sizeof(T));
             phydebug_dump_memory("expected ", (uint8_t *)&expected, sizeof(T));
-            return testing::AssertionFailure() << "Header record";
+            return testing::AssertionFailure() << "unexpected record data";
         }
 
-        template <typename T>
-        testing::AssertionResult header(T expected) {
+        template <typename T> testing::AssertionResult header(T expected) {
             return nth(0, expected);
         }
     };

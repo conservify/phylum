@@ -35,7 +35,7 @@ int32_t directory_chain::format() {
         return err;
     }
 
-    assert(db().write_header<sector_chain_header_t>([&](auto header) {
+    assert(db().write_header<directory_chain_header_t>([&](auto header) {
         header->pp = InvalidSector;
         return 0;
     }) == 0);
@@ -184,7 +184,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
         bzero(attr.ptr, attr.size);
     }
 
-    auto err = walk([&](entry_t const *entry, written_record &record) {
+    auto err = walk([&](auto *entry, record_ptr &record) {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (strncmp(fe->name, name, MaximumNameLength) == 0) {
@@ -209,10 +209,10 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
             if (fa->id == file_.id) {
                 for (auto i = 0u; i < file_cfg.nattrs; ++i) {
                     if (fa->type == file_cfg.attributes[i].type) {
-                        auto err = record.data<file_attribute_t>([&](uint8_t *ptr, size_t size) {
-                            assert(size == file_cfg.attributes[i].size);
-                            memcpy(file_cfg.attributes[i].ptr, ptr, size);
-                            return size;
+                        auto err = record.read_data<file_attribute_t>([&](auto data_buffer) {
+                            assert(data_buffer.available() == file_cfg.attributes[i].size);
+                            memcpy(file_cfg.attributes[i].ptr, data_buffer.cursor(), data_buffer.available());
+                            return data_buffer.available();
                         });
                         if (err < 0) {
                             return err;
@@ -245,11 +245,10 @@ found_file directory_chain::open() {
 }
 
 int32_t directory_chain::seek_file_entry(file_id_t id) {
-    return walk([&](entry_t const *entry, written_record &record) {
+    return walk([&](entry_t const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (fe->id == id) {
-                phydebugf("found file entry position=%d", record.position);
                 appendable(false);
                 return 1;
             }
@@ -261,13 +260,13 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
 int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
     auto copied = 0u;
 
-    auto err = walk([&](entry_t const *entry, written_record &record) {
+    auto err = walk([&](entry_t const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileData) {
             auto fd = record.as<file_data_t>();
             if (fd->id == id) {
                 phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);
 
-                auto err = record.read_data<file_data_t>([&](auto data_buffer) -> int32_t {
+                auto err = record.read_data<file_data_t>([&](auto data_buffer) {
                     return data_fn(std::move(data_buffer));
                 });
                 if (err < 0) {

@@ -38,6 +38,7 @@ public:
 
     explicit general_buffer(PointerType *ptr, size_t size, size_t position) : ptr_(ptr), size_(size), position_(position) {
         assert(size > 0);
+        assert(position <= size);
     }
 
     virtual ~general_buffer() {
@@ -132,12 +133,12 @@ public:
     }
 
     template <typename T>
-    int32_t read_to_end(T fn) {
+    int32_t read_to_end(T fn) const {
         return fn(general_buffer<uint8_t const>(ptr_, size_));
     }
 
     template <typename T>
-    int32_t read_to_position(T fn) {
+    int32_t read_to_position(T fn) const {
         return fn(general_buffer<uint8_t const>(ptr_, position_));
     }
 
@@ -189,12 +190,12 @@ public:
         return bytes + position_ <= size_;
     }
 
-    general_buffer begin_view() const {
-        return general_buffer(ptr_, size_);
+    general_buffer<uint8_t const> begin_view() const {
+        return general_buffer<uint8_t const>(ptr_, size_, 0u);
     }
 
-    general_buffer end_view() const {
-        return general_buffer(nullptr, size_, size_);
+    general_buffer<uint8_t const> end_view() const {
+        return general_buffer<uint8_t const>(nullptr, size_, size_);
     }
 
     int32_t constrain(size_t bytes) {

@@ -7,39 +7,47 @@ namespace phylum {
 
 class delimited_buffer;
 
-struct written_record {
-    delimited_buffer *db{ nullptr };
-    simple_buffer view;
-    size_t size_of_record;
-    size_t size_with_delimiter;
-    size_t position;
+struct record_ptr {
+private:
+    read_buffer buffer_;
+    size_t size_of_record_;
 
-    template <typename T>
-    T *as() {
-        return reinterpret_cast<T *>(view.cursor());
+public:
+    size_t position() const {
+        return buffer_.position();
     }
 
-    template<typename DataType, typename T>
-    int32_t data(T fn);
-
-    template<typename DataType, typename T>
-    int32_t read_data(T fn);
-};
-
-struct const_written_record {
-    delimited_buffer const *db{ nullptr };
-    simple_buffer view;
-    size_t size_of_record;
-    size_t size_with_delimiter;
-    size_t position;
-
-    template <typename T>
-    T *as() {
-        return reinterpret_cast<T *>(view.cursor());
+    size_t size_of_record() const {
+        return buffer_.available();
     }
 
-    template<typename DataType, typename T>
-    int32_t data(T fn);
+    size_t start_of_record() const {
+        auto size_overhead = varint_encoding_length(size_of_record_);
+        return buffer_.position() + size_overhead;
+    }
+
+public:
+    record_ptr() {
+    }
+
+    record_ptr(read_buffer buffer, size_t size_of_record) : buffer_(std::move(buffer)), size_of_record_(size_of_record) {
+    }
+
+public:
+    template <typename DataType, typename T>
+    int32_t read_data(T fn) const {
+        auto size_overhead = varint_encoding_length(size_of_record_);
+        read_buffer data_buffer{ buffer_.cursor() + sizeof(DataType) + size_overhead,
+                                 size_of_record() - sizeof(DataType) - size_overhead };
+        return fn(std::move(data_buffer));
+    }
+
+    template <typename TRecord>
+    TRecord const *as() {
+        auto size_overhead = varint_encoding_length(size_of_record_);
+        return reinterpret_cast<TRecord const *>(buffer_.cursor() + size_overhead);
+    }
+
 };
 
 /**
@@ -143,16 +151,16 @@ public:
     }
 
     template <typename T>
-    int32_t read_to_end(T fn) {
+    int32_t read_to_end(T fn) const {
         return buffer_.read_to_end<T>(fn);
     }
 
     template <typename T>
-    int32_t read_to_position(T fn) {
+    int32_t read_to_position(T fn) const {
         return buffer_.read_to_position<T>(fn);
     }
 
-    read_buffer to_read_buffer() {
+    read_buffer to_read_buffer() const {
         return read_buffer{ buffer_.ptr(), buffer_.size(), buffer_.position() };
     }
 
@@ -163,9 +171,7 @@ public:
 
     template<typename THeader>
     int32_t write_header(std::function<int32_t(THeader *header)> fn) {
-        return unsafe_all([&](uint8_t */*ptr*/, size_t /*size*/) {
-            return fn(begin()->as<THeader>());
-        });
+        return fn(as_mutable<THeader>(*begin()));
     }
 
     int32_t write_view(std::function<int32_t(write_buffer)> fn) {
@@ -186,209 +192,10 @@ public:
         return buffer_.constrain(bytes);
     }
 
-private:
-    void *reserve(size_t length, sector_offset_t &start_position);
-
-public:
-    class const_iterator {
-    private:
-        delimited_buffer const *db_{ nullptr };
-        simple_buffer view_;
-        const_written_record record_;
-
-    public:
-        size_t position() {
-            return view_.position();
-        }
-
-    public:
-        const_iterator(delimited_buffer const *db, simple_buffer &&view) : db_(db), view_(std::move(view)) {
-            if (view_.valid()) {
-                uint32_t offset = 0u;
-                if (!view_.try_read(offset)) {
-                    view_ = view_.end_view();
-                } else {
-                    if (!read()) {
-                        view_ = view_.end_view();
-                    }
-                }
-            }
-        }
-
-    private:
-        bool read() {
-            assert(view_.valid());
-
-            // Position of the delimiter, rather than the record.
-            auto record_position = position();
-
-            uint32_t maybe_record_length = 0u;
-            if (!view_.try_read(maybe_record_length)) {
-                record_ = const_written_record{};
-                return false;
-            }
-
-            if (maybe_record_length == 0) {
-                record_ = const_written_record{};
-                return false;
-            }
-
-            auto delimiter_overhead = varint_encoding_length(maybe_record_length);
-
-            // Clear record and fill in the details we have.
-            record_ = const_written_record{};
-            record_.db = db_;
-            record_.view = view_;
-            record_.position = record_position;
-            record_.size_of_record = maybe_record_length;
-            record_.size_with_delimiter = maybe_record_length + delimiter_overhead;
-
-            return true;
-        }
-
-    public:
-        const_iterator &operator++() {
-            // Advance to the record after this one, we only adjust
-            // position_, then we do a read and see if we have a
-            // legitimate record length.
-            view_.skip(record_.size_of_record);
-            if (!view_.valid()) {
-                view_ = view_.end_view();
-                return *this;
-            }
-            if (!read()) {
-                view_ = view_.end_view();
-            }
-            return *this;
-        }
-
-        bool operator!=(const const_iterator &other) const {
-            return view_.position() != other.view_.position();
-        }
-
-        bool operator==(const const_iterator &other) const {
-            return view_.position() == other.view_.position();
-        }
-
-        const_written_record &operator*() {
-            return record_;
-        }
-
-        const_written_record *operator->() {
-            return &record_;
-        }
-    };
-
-    class iterator {
-    private:
-        delimited_buffer *db_{ nullptr };
-        simple_buffer view_;
-        written_record record_;
-
-    public:
-        size_t position() {
-            return view_.position();
-        }
-
-    public:
-        iterator(delimited_buffer *db, simple_buffer &&view) : db_(db), view_(std::move(view)) {
-            if (view_.valid()) {
-                uint32_t offset = 0u;
-                if (!view_.try_read(offset)) {
-                    view_ = view_.end_view();
-                } else {
-                    if (!read()) {
-                        view_ = view_.end_view();
-                    }
-                }
-            }
-        }
-
-    private:
-        bool read() {
-            assert(view_.valid());
-
-            // Position of the delimiter, rather than the record.
-            auto record_position = position();
-
-            uint32_t maybe_record_length = 0u;
-            if (!view_.try_read(maybe_record_length)) {
-                record_ = written_record{};
-                return false;
-            }
-
-            if (maybe_record_length == 0) {
-                record_ = written_record{};
-                return false;
-            }
-
-            auto delimiter_overhead = varint_encoding_length(maybe_record_length);
-
-            // Clear record and fill in the details we have.
-            record_ = written_record{};
-            record_.db = db_;
-            record_.view = view_;
-            record_.position = record_position;
-            record_.size_of_record = maybe_record_length;
-            record_.size_with_delimiter = maybe_record_length + delimiter_overhead;
-
-            return true;
-        }
-
-    public:
-        iterator &operator++() {
-            // Advance to the record after this one, we only adjust
-            // position_, then we do a read and see if we have a
-            // legitimate record length.
-            view_.skip(record_.size_of_record);
-            if (!view_.valid()) {
-                view_ = view_.end_view();
-                return *this;
-            }
-            if (!read()) {
-                view_ = view_.end_view();
-            }
-            return *this;
-        }
-
-        bool operator!=(const iterator &other) const {
-            return view_.position() != other.view_.position();
-        }
-
-        bool operator==(const iterator &other) const {
-            return view_.position() == other.view_.position();
-        }
-
-        written_record &operator*() {
-            return record_;
-        }
-
-        written_record *operator->() {
-            return &record_;
-        }
-    };
-
-public:
-    iterator begin() {
-        return iterator(this, buffer_.begin_view());
-    }
-
-    iterator end() {
-        return iterator(this, buffer_.end_view());
-    }
-
-    const_iterator begin() const {
-        return const_iterator(this, buffer_.begin_view());
-    }
-
-    const_iterator end() const {
-        return const_iterator(this, buffer_.end_view());
-    }
-
     int32_t seek_end() {
         auto iter = begin();
         while (iter != end()) {
-            buffer_.position(iter.position() + iter->size_of_record);
+            buffer_.position(iter->position() + iter->size_of_record());
             iter = ++iter;
         }
         return 0;
@@ -397,7 +204,7 @@ public:
     int32_t seek_once() {
         auto iter = begin();
         while (iter != end()) {
-            buffer_.position(iter.position() + iter->size_of_record);
+            buffer_.position(iter->position() + iter->size_of_record());
             return 0;
         }
         return -1;
@@ -434,23 +241,111 @@ public:
     void rewind() {
         buffer_.rewind();
     }
+
+    template<typename T>
+    T* as_mutable(record_ptr &record_ptr) {
+        return reinterpret_cast<T*>(buffer_.ptr() + record_ptr.start_of_record());
+    }
+
+public:
+    class iterator {
+    private:
+        int32_t size_of_record_{ -1 };
+        record_ptr record_;
+        read_buffer buffer_;
+
+    public:
+        size_t position() {
+            return buffer_.position();
+        }
+
+    public:
+        iterator(read_buffer buffer) : buffer_(std::move(buffer)) {
+            if (buffer_.valid()) {
+                uint32_t offset = 0u;
+                if (!buffer_.try_read(offset)) {
+                    buffer_ = buffer_.end_view();
+                } else {
+                    if (!read()) {
+                        buffer_ = buffer_.end_view();
+                    }
+                }
+            }
+        }
+
+    private:
+        bool read() {
+            assert(buffer_.valid());
+
+            auto position = buffer_.position();
+
+            uint32_t maybe_record_length = 0u;
+            if (!buffer_.try_read(maybe_record_length)) {
+                record_ = record_ptr{};
+                return false;
+            }
+
+            if (maybe_record_length == 0) {
+                record_ = record_ptr{};
+                return false;
+            }
+
+            auto delimiter_overhead = varint_encoding_length(maybe_record_length);
+            auto size_at_end_of_record = position + maybe_record_length + delimiter_overhead;
+
+            read_buffer record_buffer( buffer_.ptr(), size_at_end_of_record, position );
+            record_ = record_ptr{ std::move(record_buffer), maybe_record_length };
+
+            size_of_record_ = maybe_record_length;
+
+            return true;
+        }
+
+    public:
+        iterator &operator++() {
+            // Advance to the record after this one, we only adjust
+            // position_, then we do a read and see if we have a
+            // legitimate record length.
+            buffer_.skip(size_of_record_);
+            if (!buffer_.valid()) {
+                buffer_ = buffer_.end_view();
+                return *this;
+            }
+            if (!read()) {
+                buffer_ = buffer_.end_view();
+            }
+            return *this;
+        }
+
+        bool operator!=(const iterator &other) const {
+            return buffer_.position() != other.buffer_.position();
+        }
+
+        bool operator==(const iterator &other) const {
+            return buffer_.position() == other.buffer_.position();
+        }
+
+        record_ptr &operator*() {
+            return record_;
+        }
+
+        record_ptr *operator->() {
+            return &record_;
+        }
+    };
+
+public:
+    iterator begin() const {
+        return iterator(buffer_.begin_view());
+    }
+
+    iterator end() const {
+        return iterator(buffer_.end_view());
+    }
+
+private:
+    void *reserve(size_t length, sector_offset_t &start_position);
+
 };
-
-template <typename DataType, typename T>
-int32_t written_record::data(T fn) {
-    assert(db != nullptr);
-    return db->unsafe_all([&](uint8_t */*ptr*/, size_t /*size*/) -> int32_t {
-        return fn((uint8_t *)view.cursor() + sizeof(DataType), size_of_record - sizeof(DataType));
-    });
-}
-
-template<typename DataType, typename T>
-int32_t written_record::read_data(T fn) {
-    assert(db != nullptr);
-    return db->read_to_end([&](read_buffer all_buffer) -> int32_t {
-        read_buffer data_buffer(all_buffer.ptr() + sizeof(DataType), size_of_record - sizeof(DataType));
-        return fn(std::move(data_buffer));
-    });
-}
 
 } // namespace phylum

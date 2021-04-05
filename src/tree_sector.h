@@ -131,9 +131,9 @@ private:
     static persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            auto node = iter->as<default_node_type>();
+            auto node = db.as_mutable<default_node_type>(*iter);
             if (selected.node == nullptr || selected.node->depth < node->depth) {
-                selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position } };
+                selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position() } };
             }
         }
         return selected;
@@ -142,12 +142,12 @@ private:
     static persisted_node_t find_node_in_sector(delimited_buffer &db, node_ptr_t ptr) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            auto node = iter->as<default_node_type>();
-            if (iter->position == ptr.position) {
-                phydebugf("find-node-in-sector: %d:%d (%d) !", ptr.sector, ptr.position, iter->position);
+            auto node = db.as_mutable<default_node_type>(*iter);
+            if (iter->position() == ptr.position) {
+                phydebugf("find-node-in-sector: %d:%d (%d) !", ptr.sector, ptr.position, iter->position());
                 return persisted_node_t{ node, ptr };
             } else {
-                phydebugf("find-node-in-sector: %d:%d (%d)", ptr.sector, ptr.position, iter->position);
+                phydebugf("find-node-in-sector: %d:%d (%d)", ptr.sector, ptr.position, iter->position());
             }
         }
         phydebugf("find-node-in-sector: eos");
@@ -528,10 +528,6 @@ private:
                         return err;
                     }
                 }
-            }
-        } else {
-            for (auto i = 0u; i < node->number_keys; ++i) {
-                phyinfof("leaf #%d %d = %d", i, node->keys[i], node->d.values[i]);
             }
         }
 

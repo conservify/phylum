@@ -169,10 +169,10 @@ protected:
             if (err == 0) {
                 break;
             }
-            for (auto &record : buffer_) {
-                auto entry = record.as<entry_t>();
+            for (auto &record_ptr : buffer_) {
+                auto entry = record_ptr.as<entry_t>();
                 assert(entry != nullptr);
-                auto err = fn(entry, record);
+                auto err = fn(entry, record_ptr);
                 if (err < 0) {
                     return err;
                 }

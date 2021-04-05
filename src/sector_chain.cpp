@@ -161,50 +161,50 @@ int32_t sector_chain::log() {
 
     assert_valid();
 
-    return walk([&](entry_t const *entry, written_record &record) {
+    return walk([&](auto *entry, record_ptr &record) {
         logged_task lt{ this->name() };
 
         switch (entry->type) {
         case entry_type::None: {
-            phyinfof("none (%zu)", record.size_of_record);
+            phyinfof("none (%zu)", record.size_of_record());
             break;
         }
         case entry_type::SuperBlock: {
             auto sb = record.as<super_block_t>();
-            phyinfof("super-block (%zu) version=%d", record.size_of_record, sb->version);
+            phyinfof("super-block (%zu) version=%d", record.size_of_record(), sb->version);
             break;
         }
         case entry_type::DirectorySector: {
             auto sh = record.as<sector_chain_header_t>();
-            phyinfof("dir-sector (%zu) p=%d n=%d", record.size_of_record, sh->pp, sh->np);
+            phyinfof("dir-sector (%zu) p=%d n=%d", record.size_of_record(), sh->pp, sh->np);
             break;
         }
         case entry_type::DataSector: {
             auto sh = record.as<data_chain_header_t>();
-            phyinfof("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record, sh->pp, sh->np, sh->bytes);
+            phyinfof("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record(), sh->pp, sh->np, sh->bytes);
             break;
         }
         case entry_type::FileEntry: {
             auto fe = record.as<file_entry_t>();
-            phyinfof("entry (%zu) id=0x%x name='%s'", record.size_of_record, fe->id, fe->name);
+            phyinfof("entry (%zu) id=0x%x name='%s'", record.size_of_record(), fe->id, fe->name);
             break;
         }
         case entry_type::FsDirectoryEntry: {
             auto fe = record.as<dirtree_dir_t>();
-            phyinfof("entry (%zu) dir name='%s'", record.size_of_record, fe->name);
+            phyinfof("entry (%zu) dir name='%s'", record.size_of_record(), fe->name);
             break;
         }
         case entry_type::FsFileEntry: {
             auto fe = record.as<dirtree_file_t>();
-            phyinfof("entry (%zu) file name='%s'", record.size_of_record, fe->name);
+            phyinfof("entry (%zu) file name='%s'", record.size_of_record(), fe->name);
             break;
         }
         case entry_type::FileData: {
             auto fd = record.as<file_data_t>();
             if (fd->size > 0) {
-                phyinfof("data (%zu) id=0x%x size=%d", record.size_of_record, fd->id, fd->size);
+                phyinfof("data (%zu) id=0x%x size=%d", record.size_of_record(), fd->id, fd->size);
             } else {
-                phyinfof("data (%zu) id=0x%x chain=%d/%d", record.size_of_record, fd->id, fd->chain.head,
+                phyinfof("data (%zu) id=0x%x chain=%d/%d", record.size_of_record(), fd->id, fd->chain.head,
                        fd->chain.tail);
 
                 data_chain dc{ *this, fd->chain };
@@ -214,12 +214,12 @@ int32_t sector_chain::log() {
         }
         case entry_type::FileAttribute: {
             auto fa = record.as<file_attribute_t>();
-            phyinfof("attr (%zu) id=0x%x attr=%d", record.size_of_record, fa->id, fa->type);
+            phyinfof("attr (%zu) id=0x%x attr=%d", record.size_of_record(), fa->id, fa->type);
             break;
         }
         case entry_type::TreeNode: {
             auto node = record.as<tree_node_header_t>();
-            phyinfof("node (%zu) id=0x%x", record.size_of_record, node->id);
+            phyinfof("node (%zu) id=0x%x", record.size_of_record(), node->id);
             break;
         }
         }

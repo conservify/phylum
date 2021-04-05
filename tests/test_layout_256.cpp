@@ -109,11 +109,11 @@ TEST_F(LayoutFixture_256, WriteThreeInlineWritesAndTriggerDataChain) {
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).end(5));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
         EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (memory.sector_size() / 2 + 8)) }));
         EXPECT_TRUE(sg.sector(1).end(1));
+
+        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
+        EXPECT_TRUE(sg.sector(2).end(2));
     });
 }
 
@@ -146,11 +146,11 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChain) {
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).end(5));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
         EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (memory.sector_size() / 2 + 8)) }));
         EXPECT_TRUE(sg.sector(1).end(1));
+
+        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
+        EXPECT_TRUE(sg.sector(2).end(2));
     });
 }
 
@@ -183,11 +183,11 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChainGrowingToNewBlock) {
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).end(5));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
-
         EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 3 }));
         EXPECT_TRUE(sg.sector(1).end(1));
+
+        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
+        EXPECT_TRUE(sg.sector(2).end(2));
 
         EXPECT_TRUE(sg.sector(3).header<data_chain_header_t>({ (uint16_t)228, 1, InvalidSector }));
         EXPECT_TRUE(sg.sector(3).end(1));
