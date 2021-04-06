@@ -296,14 +296,4 @@ void sector_chain::name(const char *f, ...) {
     va_end(args);
 }
 
-page_lock::~page_lock() {
-    buffer_->release();
-}
-
-void lazy_delimited_buffer::release() {
-    phydebugf("page-lock: release");
-    assert(valid_);
-    valid_ = false;
-}
-
 } // namespace phylum
