@@ -28,14 +28,14 @@ private:
 
 public:
     sector_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, head_tail_t chain, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffers.allocate(sectors.sector_size()))), head_(chain.head),
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), head_(chain.head),
           tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
     sector_chain(sector_chain &other, head_tail_t chain, const char *prefix)
         : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
-          buffer_(std::move(buffers().allocate(other.sector_size()))), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
+          buffer_(*other.buffers_, *other.sectors_), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
@@ -148,9 +148,7 @@ protected:
         return 0;
     }
 
-    int32_t back_to_head();
-
-    int32_t back_to_tail();
+    int32_t back_to_head(page_lock &page_lock);
 
     int32_t forward(page_lock &page_lock);
 
@@ -164,16 +162,9 @@ protected:
 
         auto page_lock = db().reading(head());
 
-        assert(back_to_head() >= 0);
+        assert(back_to_head(page_lock) >= 0);
 
         while (true) {
-            auto err = forward(page_lock);
-            if (err < 0) {
-                return err;
-            }
-            if (err == 0) {
-                break;
-            }
             for (auto &record_ptr : buffer_) {
                 auto entry = record_ptr.as<entry_t>();
                 assert(entry != nullptr);
@@ -184,6 +175,14 @@ protected:
                 if (err > 0) {
                     return err;
                 }
+            }
+
+            auto err = forward(page_lock);
+            if (err < 0) {
+                return err;
+            }
+            if (err == 0) {
+                break;
             }
         }
 

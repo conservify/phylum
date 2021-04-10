@@ -76,13 +76,13 @@ private:
 
 public:
     tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(std::move(buffers.allocate(sectors.sector_size()))), root_(root), prefix_(prefix) {
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
     tree_sector(tree_sector &other, dhara_sector_t root, const char *prefix)
         : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
-          buffer_(other.sector_size()), root_(root), prefix_(prefix) {
+          buffer_(*other.buffers_, *other.sectors_), root_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
@@ -164,7 +164,7 @@ private:
         va_end(args);
     }
 
-    int32_t leaf_insert_nonfull(page_lock &/*page_lock*/, default_node_type *node, KEY &key, VALUE &value, unsigned index) {
+    int32_t leaf_insert_nonfull(page_lock &page_lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, unsigned index) {
         assert(node->type == node_type::Leaf);
         assert(node->number_keys < Size);
         assert(index < Size);
@@ -183,14 +183,15 @@ private:
             node->d.values[index] = value;
         }
 
-        phydebugf("%s value node", name());
+        phydebugf("%s value node=%d:%d depth=%d", name(), node_ptr.sector, node_ptr.position, depth);
 
         dirty(true);
+        page_lock.dirty();
 
         return 0;
     }
 
-    int32_t leaf_node_insert(page_lock &page_lock, default_node_type *node, node_ptr_t node_ptr, KEY &key, VALUE &value, insertion_t &insertion) {
+    int32_t leaf_node_insert(page_lock &page_lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "leaf-node" };
 
         auto index = Keys::leaf_position_for(key, *node);
@@ -199,7 +200,7 @@ private:
             phydebugf("node full, splitting");
 
             node_ptr_t sibling_ptr;
-            return allocate_node(page_lock, sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t /*ignored_ptr*/) {
+            return allocate_node(page_lock, sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) {
                 auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -210,14 +211,15 @@ private:
 
                 node->number_keys = threshold;
                 dirty(true); // Reorder?
+                page_lock.dirty();
 
                 if (index < threshold) {
-                    auto err = leaf_insert_nonfull(page_lock, node, key, value, index);
+                    auto err = leaf_insert_nonfull(page_lock, depth - 1, new_sibling_ptr, node, key, value, index);
                     if (err < 0) {
                         return err;
                     }
                 } else {
-                    auto err = leaf_insert_nonfull(page_lock, new_sibling, key, value, index - threshold);
+                    auto err = leaf_insert_nonfull(page_lock, depth - 1, new_sibling_ptr, new_sibling, key, value, index - threshold);
                     if (err < 0) {
                         return err;
                     }
@@ -231,24 +233,25 @@ private:
                 return 0;
             });
         } else {
-            return leaf_insert_nonfull(page_lock, node, key, value, index);
+            phydebugf("node ok, inserting");
+
+            return leaf_insert_nonfull(page_lock, depth + 1, node_ptr, node, key, value, index);
         }
     }
 
-    int32_t inner_insert_nonfull(page_lock &page_lock, depth_type current_depth, default_node_type *node, KEY &key, VALUE &value) {
+    int32_t inner_insert_nonfull(page_lock &page_lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value) {
         logged_task lt{ "inner-nonfull" };
 
         assert(node->type == node_type::Inner);
         assert(node->number_keys < Size);
-        assert(current_depth != 0);
+        assert(depth != 0);
 
         auto left = sector();
 
-        phydebugf("%s entered (%d)", name(), dirty());
+        phydebugf("%s entered (%d) node-ptr=%d:%d", name(), dirty(), node_ptr.sector, node_ptr.position);
 
         insertion_t insertion;
         auto index = Keys::inner_position_for(key, *node);
-
         auto child_ptr = node->d.children[index];
         persisted_node_t followed;
         auto err = follow_node_ptr(page_lock, child_ptr, followed);
@@ -256,22 +259,22 @@ private:
             return err;
         }
 
-        if (current_depth - 1 == 0) {
+        if (depth - 1 == 0) {
             // Children are leaf.
-            err = leaf_node_insert(page_lock, followed.node, followed.ptr, key, value, insertion);
+            err = leaf_node_insert(page_lock, depth - 1, followed.ptr, followed.node, key, value, insertion);
             if (err < 0) {
                 return err;
             }
         } else {
             // Children are inner.
-            err = inner_node_insert(page_lock, current_depth - 1, followed.node, followed.ptr, key, value, insertion);
+            err = inner_node_insert(page_lock, depth - 1, followed.ptr, followed.node, key, value, insertion);
             if (err < 0) {
                 return err;
             }
         }
 
         if (left != sector()) {
-            phydebugf("reloading previous");
+            phydebugf("reloading previous=%d (from sector=%d) page-lock-sector=%d dirty=%d", left, sector(), page_lock.sector(), dirty());
 
             if (dirty()) {
                 auto err = flush(page_lock);
@@ -282,14 +285,24 @@ private:
 
             assert(!dirty());
 
-            sector(left);
-
-            auto err =
-                db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(sector(), buffer, size); });
+            auto err = page_lock.replace(left);
             if (err < 0) {
                 return err;
             }
+
+            sector(left);
         }
+        else {
+            phydebugf("same sector %d", left);
+        }
+
+        // After the above we can end up with a different page in the
+        // buffer and so we need to find the node we were on again. We
+        // should fail due to other reasons before here.
+        auto relocated = find_node_in_sector(db(), node_ptr);
+        assert(relocated.node != nullptr);
+
+        node = relocated.node;
 
         assert(node->number_keys < Size);
 
@@ -316,6 +329,7 @@ private:
             phydebugf("recording split, dirty");
 
             dirty(true);
+            page_lock.dirty();
         } else {
             phydebugf("no changes");
         }
@@ -323,18 +337,18 @@ private:
         return 0;
     }
 
-    int32_t inner_node_insert(page_lock &page_lock, depth_type current_depth, default_node_type *node, node_ptr_t node_ptr, KEY &key, VALUE &value, insertion_t &insertion) {
+    int32_t inner_node_insert(page_lock &page_lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "inner-node" };
 
         assert(node->type == node_type::Inner);
-        assert(current_depth != 0);
+        assert(depth != 0);
 
         // Early split if node is full.
         // This is not the canonical algorithm for B+ trees,
         // but it is simpler and does not break the definition.
         if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
-            auto err = allocate_node(page_lock, ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t sibling_ptr) {
+            auto err = allocate_node(page_lock, ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) {
                 auto treshold = (Size + 1) / 2;
 
                 new_sibling->type = node_type::Inner;
@@ -348,21 +362,22 @@ private:
 
                 node->number_keys = treshold - 1;
                 dirty(true);
+                page_lock.dirty();
 
                 // Set up the return variable
                 insertion.split = true;
                 insertion.key = node->keys[treshold - 1];
                 insertion.left = node_ptr;
-                insertion.right = sibling_ptr;
+                insertion.right = new_sibling_ptr;
 
                 // Now insert in the appropriate sibling
                 if (key < insertion.key) {
-                    auto err = inner_insert_nonfull(page_lock, current_depth, node, key, value);
+                    auto err = inner_insert_nonfull(page_lock, depth, new_sibling_ptr, node, key, value);
                     if (err < 0) {
                         return err;
                     }
                 } else {
-                    auto err = inner_insert_nonfull(page_lock, current_depth, new_sibling, key, value);
+                    auto err = inner_insert_nonfull(page_lock, depth, new_sibling_ptr, new_sibling, key, value);
                     if (err < 0) {
                         return err;
                     }
@@ -374,7 +389,7 @@ private:
                 return err;
             }
         } else {
-            auto err = inner_insert_nonfull(page_lock, current_depth, node, key, value);
+            auto err = inner_insert_nonfull(page_lock, depth, node_ptr, node, key, value);
             if (err < 0) {
                 return err;
             }
@@ -383,11 +398,9 @@ private:
         return 0;
     }
 
-    int32_t flush(page_lock &/*page_lock*/) {
+    int32_t flush(page_lock &page_lock) {
         if (dirty()) {
-            auto err = db().read_to_end([&](read_buffer rb) {
-                return sectors_->write(sector_, rb.ptr(), rb.size());
-            });
+            auto err = page_lock.flush(sector_);
             if (err < 0) {
                 return err;
             }
@@ -401,7 +414,7 @@ private:
     }
 
     template<typename TFill>
-    int32_t allocate_node(page_lock &/*page_lock*/, node_ptr_t &ptr, TFill fill_fn) {
+    int32_t allocate_node(page_lock &page_lock, node_ptr_t &ptr, TFill fill_fn) {
         db().seek_end();
 
         if (db().template room_for<default_node_type>()) {
@@ -417,6 +430,7 @@ private:
             }
 
             dirty(true);
+            page_lock.dirty();
 
             return 0;
         }
@@ -426,8 +440,8 @@ private:
 
         phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
-        buffer_type buffer{ std::move(buffers_->allocate(sector_size())) };
-        auto child_page_lock = buffer.writing(allocated);
+        buffer_type buffer{ *buffers_, *sectors_ };
+        auto child_page_lock = buffer.overwrite(allocated);
         auto placed = buffer.template reserve<default_node_type>();
 
         ptr = node_ptr_t{ allocated, placed.position };
@@ -437,9 +451,7 @@ private:
             return err;
         }
 
-        err = buffer.read_to_end([&](read_buffer rb) {
-            return sectors_->write(allocated, rb.ptr(), rb.size());
-        });
+        err = child_page_lock.flush(allocated);
         if (err < 0) {
             return err;
         }
@@ -451,19 +463,24 @@ private:
         if (ptr.sector != sector_) {
             phydebugf("follow %d:%d (load-sector)", ptr.sector, ptr.position);
 
-            auto err = flush(page_lock);
+            // TODO Move this into replace.
+            if (page_lock.is_dirty()) {
+                auto err = page_lock.flush(sector());
+                if (err < 0) {
+                    return err;
+                }
+            }
+
+            auto err = page_lock.replace(ptr.sector);
             if (err < 0) {
                 return err;
             }
 
-            assert(!dirty());
-
-            err = db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(ptr.sector, buffer, size); });
-            if (err < 0) {
-                return err;
-            }
+            assert(page_lock.sector() == ptr.sector);
 
             sector(ptr.sector);
+
+            phydebugf("follow %d:%d (done) page-lock-sector=%d", ptr.sector, ptr.position, page_lock.sector());
         } else {
             phydebugf("follow %d:%d (same-sector)", ptr.sector, ptr.position);
         }
@@ -477,19 +494,15 @@ private:
         return 0;
     }
 
-    int32_t back_to_root(page_lock &/*page_lock*/) {
-        if (sector_ != root_) {
-            phydebugf("%s back-to-root %d -> %d", name(), sector_, root_);
-            sector(root_);
+    int32_t back_to_root(page_lock &page_lock) {
+        phydebugf("%s back-to-root %d -> %d", name(), sector_, root_);
+        sector(root_);
 
-            assert(!dirty());
-            auto err =
-                db().unsafe_all([&](uint8_t *buffer, size_t size) { return sectors_->read(sector_, buffer, size); });
-            if (err < 0) {
-                return err;
-            }
-        } else {
-            phydebugf("%s back-to-root %d (NOOP)", name(), sector_);
+        assert(!dirty());
+
+        auto err = page_lock.replace(sector_);
+        if (err < 0) {
+            return err;
         }
 
         db().rewind();
@@ -525,8 +538,7 @@ private:
                     phyinfof("reloading");
                     sector(left);
 
-                    auto err = db().unsafe_all(
-                        [&](uint8_t *buffer, size_t size) { return sectors_->read(sector(), buffer, size); });
+                    auto err = page_lock.replace(sector());
                     if (err < 0) {
                         return err;
                     }
@@ -568,6 +580,7 @@ public:
         phydebugf("creating new node");
         db().template emplace<default_node_type>(node_type::Leaf);
         dirty(true);
+        page_lock.dirty();
 
         auto err = flush(page_lock);
         if (err < 0) {
@@ -598,12 +611,12 @@ public:
         insertion_t insertion;
 
         if (node->depth == 0) {
-            auto err = leaf_node_insert(page_lock, node, node_ptr, key, value, insertion);
+            auto err = leaf_node_insert(page_lock, node->depth, node_ptr, node, key, value, insertion);
             if (err < 0) {
                 return err;
             }
         } else {
-            auto err = inner_node_insert(page_lock, node->depth, node, node_ptr, key, value, insertion);
+            auto err = inner_node_insert(page_lock, node->depth, node_ptr, node, key, value, insertion);
             if (err < 0) {
                 return err;
             }

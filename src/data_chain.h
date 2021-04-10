@@ -65,6 +65,8 @@ protected:
 
     int32_t read_chain(std::function<int32_t(read_buffer)> data_fn);
 
+    int32_t constrain();
+
 };
 
 } // namespace phylum

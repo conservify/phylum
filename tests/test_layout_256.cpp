@@ -377,12 +377,6 @@ TEST_F(LayoutFixture_256, TouchAndFindMultiple) {
     });
 
     memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
-        for (auto name : names) {
-            ASSERT_EQ(chain.find(name, open_file_config{}), 1);
-        }
-        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
-
         sector_geometry sg{ memory.buffers(), memory.sectors() };
         EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { names[0] }));
@@ -399,5 +393,12 @@ TEST_F(LayoutFixture_256, TouchAndFindMultiple) {
         EXPECT_TRUE(sg.sector(2).header<directory_chain_header_t>({ 1, InvalidSector }));
         EXPECT_TRUE(sg.sector(2).nth<file_entry_t>(1, { names[6] }));
         EXPECT_TRUE(sg.sector(2).end(2));
+
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
+        for (auto name : names) {
+            phydebugf("finding %s", name);
+            ASSERT_EQ(chain.find(name, open_file_config{}), 1);
+        }
+        ASSERT_EQ(chain.find("nope.txt", open_file_config{}), 0);
     });
 }

@@ -71,6 +71,12 @@ public:
         return ptr_;
     }
 
+    void ptr(PointerType *ptr, size_t size) {
+        assert((ptr_ != nullptr && ptr == nullptr) || (ptr_ == nullptr && ptr != nullptr));
+        ptr_ = ptr;
+        size_ = size;
+    }
+
     size_t available() const {
         return size_ - position_;
     }
@@ -199,7 +205,7 @@ public:
     }
 
     int32_t constrain(size_t bytes) {
-        size_ = position_ + bytes;
+        size_ = bytes;
         return 0;
     }
 

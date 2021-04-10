@@ -61,7 +61,8 @@ private:
 
     template <typename T, class... Args>
     int32_t emplace(page_lock &page_lock, Args &&... args) {
-        assert(sizeof(T) <= db().size());
+        // NOTE Buffer has 0 size until paged in.
+        // assert(sizeof(T) <= db().size());
 
         auto err = prepare(page_lock, sizeof(T));
         if (err < 0) {
@@ -79,7 +80,8 @@ private:
 
     template <typename T>
     int32_t append(page_lock &page_lock, T &record, uint8_t const *buffer, size_t size) {
-        assert(sizeof(T) + size <= db().size());
+        // NOTE Buffer has 0 size until paged in.
+        // assert(sizeof(T) <= db().size());
 
         auto err = prepare(page_lock, sizeof(T) + size);
         if (err < 0) {

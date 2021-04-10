@@ -7,21 +7,22 @@ int32_t directory_chain::mount() {
 
     sector(head());
 
-    auto page_lock = db().writing(sector());
-
     dhara_page_t page = 0;
     auto find = sectors()->find(0, &page);
     if (find < 0) {
         return find;
     }
 
+    auto page_lock = db().writing(sector());
+
     auto err = load(page_lock);
     if (err < 0) {
         return err;
     }
 
-    phyinfof("mounted");
-    back_to_head();
+    back_to_head(page_lock);
+
+    phyinfof("mounted %d", sector());
 
     return 0;
 }
@@ -45,6 +46,7 @@ int32_t directory_chain::format() {
 
     appendable(true);
     dirty(true);
+    page_lock.dirty();
 
     err = flush(page_lock);
     if (err < 0) {
@@ -75,6 +77,7 @@ int32_t directory_chain::prepare(page_lock &page_lock, size_t required) {
 
     appendable(true);
     dirty(true);
+    page_lock.dirty();
 
     return 0;
 }
@@ -93,18 +96,20 @@ int32_t directory_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     return db().seek_end();
 }
 
-int32_t directory_chain::write_header(page_lock &/*page_lock*/) {
+int32_t directory_chain::write_header(page_lock &page_lock) {
     logged_task lt{ "dc-write-hdr", this->name() };
 
     db().emplace<directory_chain_header_t>();
 
     dirty(true);
+    page_lock.dirty();
 
     return 0;
 }
 
 int32_t directory_chain::touch(const char *name) {
     logged_task lt{ "dir-touch" };
+
     auto page_lock = db().writing(sector());
 
     assert(emplace<file_entry_t>(page_lock, name) >= 0);
@@ -119,6 +124,7 @@ int32_t directory_chain::touch(const char *name) {
 
 int32_t directory_chain::file_attribute(file_id_t id, open_file_attribute attribute) {
     logged_task lt{ "dir-file-attribute" };
+
     auto page_lock = db().writing(sector());
 
     file_attribute_t fa{ id, attribute.type, attribute.size };
@@ -183,7 +189,6 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
 
     file_ = found_file{};
     file_.cfg = file_cfg;
-    file_.directory_capacity = db().size() / 2;
 
     // Zero attribute values before we scan.
     for (auto i = 0u; i < file_cfg.nattrs; ++i) {
@@ -192,10 +197,12 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     }
 
     auto err = walk([&](auto *entry, record_ptr &record) {
+        // HACK Buffer is unpaged outside of this lambda.
+        file_.directory_capacity = db().size() / 2;
+
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (strncmp(fe->name, name, MaximumNameLength) == 0) {
-                phyinfof("found(file) '%s' id=0x%x", name, fe->id);
                 file_.id = fe->id;
             }
         }

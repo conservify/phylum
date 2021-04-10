@@ -5,7 +5,7 @@
 namespace phylum {
 
 int32_t sector_chain::create_if_necessary() {
-    logged_task lt{ "create" };
+    logged_task lt{ "sc-create" };
 
     auto page_lock = db().writing(sector());
 
@@ -13,7 +13,7 @@ int32_t sector_chain::create_if_necessary() {
         return 0;
     }
 
-    name("creating");
+    phydebugf("creating sector=%d", sector());
 
     auto err = grow_tail(page_lock);
     if (err < 0) {
@@ -82,17 +82,18 @@ int32_t sector_chain::seek_end_of_chain(page_lock &page_lock) {
     return 0;
 }
 
-int32_t sector_chain::back_to_head() {
-    if (sector_ != InvalidSector) {
-        phydebugf("%s back-to-head %d -> %d", name(), sector_, head_);
-        sector_ = InvalidSector;
-    } else {
-        phydebugf("%s back-to-head %d (NOOP)", name(), sector_);
+int32_t sector_chain::back_to_head(page_lock &page_lock) {
+    phydebugf("%s back-to-head %d -> %d", name(), sector_, head_);
+
+    auto err = page_lock.replace(head_);
+    if (err < 0) {
+        return 0;
     }
 
-    length_sectors_ = 0;
-
     db().rewind();
+
+    sector_ = head_;
+    length_sectors_ = 0;
 
     return 0;
 }
@@ -129,8 +130,6 @@ int32_t sector_chain::forward(page_lock &page_lock) {
         }
     }
 
-    db().clear();
-
     auto err = load(page_lock);
     if (err < 0) {
         phydebugf("%s: load failed", name());
@@ -142,7 +141,7 @@ int32_t sector_chain::forward(page_lock &page_lock) {
     return 1;
 }
 
-int32_t sector_chain::load(page_lock & /*page_lock*/) {
+int32_t sector_chain::load(page_lock &page_lock) {
     logged_task lt{ "load" };
 
     assert_valid();
@@ -152,9 +151,14 @@ int32_t sector_chain::load(page_lock & /*page_lock*/) {
         return -1;
     }
 
+    auto err = page_lock.replace(sector_);
+    if (err < 0) {
+        return err;
+    }
+
     db().rewind();
 
-    return buffer_.unsafe_all([&](uint8_t *ptr, size_t size) { return sectors_->read(sector_, ptr, size); });
+    return 0;
 }
 
 int32_t sector_chain::log() {
@@ -250,7 +254,8 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
     auto allocated = allocator_->allocate();
     assert(allocated != sector_); // Don't ask.
 
-    phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
+    // Assertion on db().size()
+    // phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
     if (sector_ != InvalidSector) {
         assert(db().begin() != db().end());
@@ -271,10 +276,15 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
     tail(allocated);
     sector(allocated);
 
+    auto err = page_lock.replace(allocated);
+    if (err < 0) {
+        return err;
+    }
+
     buffer_.clear();
     length_sectors_++;
 
-    auto err = write_header(page_lock);
+    err = write_header(page_lock);
     if (err < 0) {
         return err;
     }

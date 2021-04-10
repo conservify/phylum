@@ -65,6 +65,10 @@ class delimited_buffer {
 private:
     simple_buffer buffer_;
 
+protected:
+    delimited_buffer() {
+    }
+
 public:
     delimited_buffer(simple_buffer &&buffer) : buffer_(std::move(buffer)) {
     }
@@ -226,7 +230,7 @@ public:
     }
 
     size_t size() const {
-        // ensure_valid();
+        assert(buffer_.size() > 0);
         return buffer_.size();
     }
 
@@ -265,9 +269,24 @@ public:
         buffer_.rewind();
     }
 
+    void debug(const char *prefix, size_t bytes) {
+        if (false) {
+            phydebug_dump_memory(prefix, ptr(), bytes);
+        }
+    }
+
     template<typename T>
     T* as_mutable(record_ptr &record_ptr) {
         return reinterpret_cast<T*>(buffer_.ptr() + record_ptr.start_of_record());
+    }
+
+protected:
+    void ptr(uint8_t *ptr, size_t size) {
+        buffer_.ptr(ptr, size);
+    }
+
+    uint8_t *ptr() {
+        return buffer_.ptr();
     }
 
 public:
@@ -373,6 +392,7 @@ private:
 
 protected:
     virtual void ensure_valid() const {
+        assert(buffer_.ptr() != nullptr);
     }
 
 };

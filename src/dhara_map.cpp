@@ -111,6 +111,10 @@ int32_t dhara_sector_map::write(dhara_sector_t sector, uint8_t const *data, size
         return err;
     }
 
+    if (false) {
+        phydebug_dump_memory("write ", data, size);
+    }
+
     return 0;
 }
 
@@ -155,6 +159,10 @@ int32_t dhara_sector_map::read(dhara_sector_t sector, uint8_t *data, size_t size
     if (err < 0) {
         phyerrorf("read");
         return err;
+    }
+
+    if (false) {
+        phydebug_dump_memory("read ", data, size);
     }
 
     return 0;

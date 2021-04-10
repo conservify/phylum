@@ -63,12 +63,13 @@ uint32_t data_chain::total_bytes() {
 
     auto page_lock = db().reading(head());
 
-    back_to_head();
+    back_to_head(page_lock);
 
     auto bytes = 0u;
-    while (forward(page_lock) > 0) {
+    do {
         bytes += db().header<data_chain_header_t>()->bytes;
     }
+    while (forward(page_lock) > 0);
 
     phydebugf("done (%d)", bytes);
 
@@ -87,7 +88,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
 
         auto page_lock = db().writing(head());
 
-        assert(back_to_head() >= 0);
+        assert(back_to_head(page_lock) >= 0);
 
         logged_task lt{ name() };
 
@@ -159,6 +160,14 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     return written;
 }
 
+
+int32_t data_chain::constrain() {
+    auto iter = db().begin();
+    auto hdr = db().header<data_chain_header_t>();
+    assert(db().constrain(hdr->bytes + iter->position() + iter->size_of_record() + 1) >= 0);
+    return 0;
+}
+
 int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
     logged_task lt{ "read-data-chain", name() };
 
@@ -170,6 +179,8 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
     if (err < 0) {
         return err;
     }
+
+    assert(constrain() >= 0);
 
     while (true) {
         // If we're at the start of the buffer, seek past the
@@ -183,12 +194,9 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
 
             db().skip(1); // HACK TODO Skip terminator.
 
-            // Constrain is relative, by the way so this will preventing
-            // reading from more than hdr->bytes.
-            auto hdr = db().header<data_chain_header_t>();
-            assert(db().constrain(hdr->bytes) >= 0);
+            assert(constrain() >= 0);
 
-            phydebugf("read resuming sector-bytes=%d position=%d", hdr->bytes, db().position());
+            phydebugf("read resuming position=%d available=%d", db().position(), db().available());
         }
 
         // If we have data available.
@@ -199,6 +207,7 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
             if (err < 0) {
                 return err;
             }
+
             if (err >= 0) {
                 position_ += err;
                 db().skip(err); // TODO Remove

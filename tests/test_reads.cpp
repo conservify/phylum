@@ -227,7 +227,7 @@ TYPED_TEST(ReadFixture, ReadDataChain_SeveralBlocks) {
         file_appender opened{ memory.buffers(), memory.sectors(), memory.allocator(), &chain, chain.open() };
 
         for (auto i = 0u; i < 100; ++i) {
-            ASSERT_GT(opened.write(hello), 0);
+            ASSERT_EQ(opened.write(hello), (int32_t)strlen(hello));
             bytes_wrote += strlen(hello);
         }
         ASSERT_EQ(opened.close(), 0);
