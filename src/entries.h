@@ -39,11 +39,11 @@ enum entry_type : uint8_t {
     DataSector = 2,
     DirectorySector = 3,
     FileEntry = 4,
-    FsFileEntry = 9,
-    FsDirectoryEntry = 5,
-    FileData = 6,
-    TreeNode = 7,
-    FileAttribute = 8,
+    FsFileEntry = 5,
+    FsDirectoryEntry = 6,
+    FileData = 7,
+    TreeNode = 8,
+    FileAttribute = 9,
 };
 
 struct PHY_PACKED entry_t {
