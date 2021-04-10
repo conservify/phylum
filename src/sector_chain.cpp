@@ -26,31 +26,24 @@ int32_t sector_chain::create_if_necessary() {
 }
 
 int32_t sector_chain::flush() {
-    auto page_lock = db().reading(sector());
+    auto page_lock = db().writing(sector());
+
+    page_lock.dirty();
 
     return flush(page_lock);
 }
 
-int32_t sector_chain::flush(page_lock &/*page_lock*/) {
+int32_t sector_chain::flush(page_lock &page_lock) {
     logged_task lt{ "sc-flush" };
 
     assert_valid();
 
-    if (!dirty()) {
-        phydebugf("%s flush (NOOP)", name());
-        return 0;
-    }
-
     phydebugf("%s flush", name());
 
-    auto err = buffer_.read_to_end([&](auto buffer) {
-        return sectors_->write(sector_, buffer.ptr(), buffer.size());
-    });
+    auto err = page_lock.flush(sector_);
     if (err < 0) {
         return err;
     }
-
-    dirty(false);
 
     return 0;
 }
@@ -265,7 +258,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
             return 0;
         }) == 0);
 
-        dirty(true);
+        page_lock.dirty();
 
         auto err = flush(page_lock);
         if (err < 0) {
@@ -294,7 +287,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
         return 0;
     }) == 0);
 
-    dirty(true);
+    page_lock.dirty();
 
     return 0;
 }

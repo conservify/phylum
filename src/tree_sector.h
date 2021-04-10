@@ -70,7 +70,6 @@ private:
     buffer_type buffer_;
     dhara_sector_t sector_{ InvalidSector };
     dhara_sector_t root_{ InvalidSector };
-    bool dirty_{ false };
     const char *prefix_{ "tree-sector" };
     char name_[ScopeNameLength];
 
@@ -96,17 +95,6 @@ public:
 
     dhara_sector_t sector() const {
         return sector_;
-    }
-
-    void dirty(bool value) {
-        dirty_ = value;
-        if (value) {
-            phydebugf("%s dirty", name());
-        }
-    }
-
-    bool dirty() {
-        return dirty_;
     }
 
 protected:
@@ -185,7 +173,6 @@ private:
 
         phydebugf("%s value node=%d:%d depth=%d", name(), node_ptr.sector, node_ptr.position, depth);
 
-        dirty(true);
         page_lock.dirty();
 
         return 0;
@@ -210,7 +197,7 @@ private:
                 }
 
                 node->number_keys = threshold;
-                dirty(true); // Reorder?
+
                 page_lock.dirty();
 
                 if (index < threshold) {
@@ -248,7 +235,7 @@ private:
 
         auto left = sector();
 
-        phydebugf("%s entered (%d) node-ptr=%d:%d", name(), dirty(), node_ptr.sector, node_ptr.position);
+        phydebugf("%s entered dirty=%d node-ptr=%d:%d", name(), page_lock.is_dirty(), node_ptr.sector, node_ptr.position);
 
         insertion_t insertion;
         auto index = Keys::inner_position_for(key, *node);
@@ -274,18 +261,14 @@ private:
         }
 
         if (left != sector()) {
-            phydebugf("reloading previous=%d (from sector=%d) page-lock-sector=%d dirty=%d", left, sector(), page_lock.sector(), dirty());
+            phydebugf("reloading previous=%d (from sector=%d) page-lock-sector=%d dirty=%d", left, sector(), page_lock.sector(), page_lock.is_dirty());
 
-            if (dirty()) {
-                auto err = flush(page_lock);
-                if (err < 0) {
-                    return err;
-                }
+            auto err = flush(page_lock);
+            if (err < 0) {
+                return err;
             }
 
-            assert(!dirty());
-
-            auto err = page_lock.replace(left);
+            err = page_lock.replace(left);
             if (err < 0) {
                 return err;
             }
@@ -328,7 +311,6 @@ private:
 
             phydebugf("recording split, dirty");
 
-            dirty(true);
             page_lock.dirty();
         } else {
             phydebugf("no changes");
@@ -361,7 +343,7 @@ private:
                 new_sibling->d.children[new_sibling->number_keys] = node->d.children[node->number_keys];
 
                 node->number_keys = treshold - 1;
-                dirty(true);
+
                 page_lock.dirty();
 
                 // Set up the return variable
@@ -399,15 +381,9 @@ private:
     }
 
     int32_t flush(page_lock &page_lock) {
-        if (dirty()) {
-            auto err = page_lock.flush(sector_);
-            if (err < 0) {
-                return err;
-            }
-
-            dirty(false);
-        } else {
-            phydebugf("flush (noop)");
+        auto err = page_lock.flush(sector_);
+        if (err < 0) {
+            return err;
         }
 
         return 0;
@@ -429,7 +405,6 @@ private:
                 return err;
             }
 
-            dirty(true);
             page_lock.dirty();
 
             return 0;
@@ -450,6 +425,8 @@ private:
         if (err < 0) {
             return err;
         }
+
+        child_page_lock.dirty();
 
         err = child_page_lock.flush(allocated);
         if (err < 0) {
@@ -498,7 +475,7 @@ private:
         phydebugf("%s back-to-root %d -> %d", name(), sector_, root_);
         sector(root_);
 
-        assert(!dirty());
+        assert(!page_lock.is_dirty());
 
         auto err = page_lock.replace(sector_);
         if (err < 0) {
@@ -579,7 +556,7 @@ public:
 
         phydebugf("creating new node");
         db().template emplace<default_node_type>(node_type::Leaf);
-        dirty(true);
+
         page_lock.dirty();
 
         auto err = flush(page_lock);
@@ -659,8 +636,6 @@ public:
 
         phydebugf("finding %d", key);
 
-        assert(!dirty());
-
         auto page_lock = db().reading(root_);
 
         auto err = back_to_root(page_lock);
@@ -705,8 +680,6 @@ public:
         logged_task lt{ "tree-find-less" };
 
         phydebugf("finding %d", key);
-
-        assert(!dirty());
 
         auto page_lock = db().reading(root_);
 
@@ -769,8 +742,6 @@ public:
 
     int32_t log() {
         logged_task lt{ "tree-log" };
-
-        assert(!dirty());
 
         auto page_lock = db().reading(root_);
 

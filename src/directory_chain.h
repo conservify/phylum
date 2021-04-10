@@ -73,7 +73,7 @@ private:
 
         db().emplace<T, Args...>(std::forward<Args>(args)...);
 
-        dirty(true);
+        page_lock.dirty();
 
         return 0;
     }
@@ -92,7 +92,7 @@ private:
 
         db().append<T>(record, buffer, size);
 
-        dirty(true);
+        page_lock.dirty();
 
         return 0;
     }

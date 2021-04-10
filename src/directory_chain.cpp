@@ -44,9 +44,8 @@ int32_t directory_chain::format() {
         return 0;
     }) == 0);
 
-    appendable(true);
-    dirty(true);
     page_lock.dirty();
+    appendable(true);
 
     err = flush(page_lock);
     if (err < 0) {
@@ -75,9 +74,8 @@ int32_t directory_chain::prepare(page_lock &page_lock, size_t required) {
 
     assert(db().header<directory_chain_header_t>()->type == entry_type::DirectorySector);
 
-    appendable(true);
-    dirty(true);
     page_lock.dirty();
+    appendable(true);
 
     return 0;
 }
@@ -101,7 +99,6 @@ int32_t directory_chain::write_header(page_lock &page_lock) {
 
     db().emplace<directory_chain_header_t>();
 
-    dirty(true);
     page_lock.dirty();
 
     return 0;
@@ -113,6 +110,8 @@ int32_t directory_chain::touch(const char *name) {
     auto page_lock = db().writing(sector());
 
     assert(emplace<file_entry_t>(page_lock, name) >= 0);
+
+    page_lock.dirty();
 
     auto err = flush(page_lock);
     if (err < 0) {

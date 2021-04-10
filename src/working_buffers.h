@@ -54,6 +54,23 @@ public:
     using miss_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
     using flush_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
 
+    int32_t dirty_sector(dhara_sector_t sector) {
+        auto err = -1;
+
+        for (auto i = 0u; i < Size; ++i) {
+            auto &p = pages_[i];
+            if (p.buffer != nullptr) {
+                if (p.sector == sector) {
+                    phydebugf("wbuffers[%d] dirty sector=%d", i, sector);
+                    p.dirty = true;
+                    err = 0;
+                }
+            }
+        }
+
+        return err;
+    }
+
     int32_t flush_sector(dhara_sector_t sector, flush_function_t flush) {
         auto flushed = false;
 
@@ -174,7 +191,6 @@ public:
         }
         else {
             p.refs--;
-            p.dirty = true;
         }
 
         counter_++;

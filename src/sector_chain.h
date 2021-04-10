@@ -21,7 +21,6 @@ private:
     dhara_sector_t tail_{ InvalidSector };
     dhara_sector_t sector_{ InvalidSector };
     dhara_sector_t length_sectors_{ 0 };
-    bool dirty_{ false };
     bool appendable_{ false };
     const char *prefix_{ "sector-chain" };
     char name_[ChainNameLength];
@@ -84,14 +83,6 @@ protected:
 
     sector_map *sectors() {
         return sectors_;
-    }
-
-    void dirty(bool value) {
-        dirty_ = value;
-    }
-
-    bool dirty() {
-        return dirty_;
     }
 
     void appendable(bool value) {
@@ -157,8 +148,6 @@ protected:
         logged_task lt{ "sc-walk", name() };
 
         assert_valid();
-
-        assert(!dirty());
 
         auto page_lock = db().reading(head());
 

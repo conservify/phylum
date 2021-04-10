@@ -13,7 +13,7 @@ int32_t integer_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     return 0;
 }
 
-int32_t integer_chain::write_header(page_lock &/*page_lock*/) {
+int32_t integer_chain::write_header(page_lock &page_lock) {
     logged_task lt{ "ic-write-hdr", name() };
 
     assert_valid();
@@ -22,7 +22,7 @@ int32_t integer_chain::write_header(page_lock &/*page_lock*/) {
 
     db().terminate();
 
-    dirty(true);
+    page_lock.dirty();
     appendable(true);
 
     return 0;

@@ -9,10 +9,9 @@ page_lock::page_lock(paging_delimited_buffer *buffer, dhara_sector_t sector, boo
     // later. I'd much rather find an elegant way to remove this but
     // it's here because of how directory_chain works, in that we
     // create the page_lock before eventually calling prepare which
-    // handles initializing the sector.
+    // handles initializing the sector. Also makes handling this error
+    // more difficult.
     if (sector != InvalidSector) {
-        // TODO We need to handle this gracefully.
-        // phydebugf("page-lock: ctor");
         assert(buffer_->replace(sector, read_only_, overwrite) >= 0);
     }
 }
@@ -39,10 +38,6 @@ int32_t page_lock::replace(dhara_sector_t sector, bool overwrite) {
 
     sector_ = sector;
 
-    if (is_dirty()) {
-        dirty(false);
-    }
-
     return 0;
 }
 
@@ -60,6 +55,9 @@ int32_t page_lock::flush(dhara_sector_t sector) {
 
 int32_t page_lock::dirty(bool dirty) {
     assert(!read_only_);
+    if (dirty) {
+        assert(buffer_->buffers_->dirty_sector(sector_) >= 0);
+    }
     dirty_ = dirty;
     return 0;
 }
@@ -154,8 +152,6 @@ int32_t paging_delimited_buffer::flush(dhara_sector_t sector) {
 }
 
 int32_t paging_delimited_buffer::release() {
-    // phydebugf("release");
-
     assert(valid_);
     assert(sector_ != InvalidSector);
 

@@ -2,7 +2,7 @@
 
 namespace phylum {
 
-int32_t data_chain::write_header(page_lock &/*page_lock*/) {
+int32_t data_chain::write_header(page_lock &page_lock) {
     logged_task{ "dc-write-hdr", name() };
 
     assert_valid();
@@ -11,7 +11,8 @@ int32_t data_chain::write_header(page_lock &/*page_lock*/) {
 
     db().terminate();
 
-    dirty(true);
+    // dirty(true);
+    page_lock.dirty();
     appendable(true);
 
     return 0;
@@ -141,7 +142,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
             return err;
         }
 
-        dirty(true);
+        page_lock.dirty();
 
         // Grow and write header.
         if (grow) {
