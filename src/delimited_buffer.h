@@ -91,7 +91,9 @@ public:
         sector_offset_t start_position{ 0 };
         auto allocd = (uint8_t *)reserve(sizeof(T) + size, start_position);
         memcpy(allocd, &record, sizeof(T));
-        memcpy(allocd + sizeof(T), buffer, size);
+        if (buffer != nullptr) {
+            memcpy(allocd + sizeof(T), buffer, size);
+        }
         return start_position;
     }
 

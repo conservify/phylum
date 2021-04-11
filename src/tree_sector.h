@@ -37,6 +37,7 @@ public:
 template <typename KEY, typename VALUE, size_t Size>
 class tree_sector {
 public:
+    static constexpr size_t NodeSize = Size;
     using key_type = KEY;
     using value_type = VALUE;
     using default_node_type = tree_node_t<KEY, VALUE, Size>;
@@ -91,6 +92,10 @@ public:
 public:
     const char *name() const {
         return name_;
+    }
+
+    dhara_sector_t root() const {
+        return root_;
     }
 
     dhara_sector_t sector() const {
@@ -490,13 +495,18 @@ private:
     int32_t log(page_lock &page_lock, default_node_type *node) {
         logged_task it{ name() };
 
-        phyinfof("node %d:%d depth=%d nkeys=%d", sector(), db().position(), node->depth, node->number_keys);
-
         if (node->type == node_type::Inner) {
             for (auto i = 0u; i <= node->number_keys; ++i) {
                 auto child = node->d.children[i];
 
-                phyinfof("inner #%d key=%d -> %d:%d", i, node->keys[i], child.sector, child.position);
+                if (false) {
+                    phyinfof("inner %d #%d key=%d -> %d:%d", sector(), i, node->keys[i], child.sector, child.position);
+                }
+                else {
+                    if (sector() != child.sector) {
+                        phyinfof("sector %d -> %d", sector(), child.sector);
+                    }
+                }
 
                 auto left = sector();
 

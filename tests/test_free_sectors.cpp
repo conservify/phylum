@@ -130,12 +130,12 @@ TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_DataChains_ReuseConsumedNode) {
         test_data_chain dc1{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "dc" };
         ASSERT_EQ(dc1.create_if_necessary(), 0);
         ASSERT_EQ(dc1.grow_by(1), 0);
+        ASSERT_NE(dc1.head(), dc1.tail());
 
         test_data_chain dc2{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "dc" };
         ASSERT_EQ(dc2.create_if_necessary(), 0);
         ASSERT_EQ(dc2.grow_by(1), 0);
-
-        ASSERT_NE(dc1.head(), dc1.tail());
+        ASSERT_NE(dc2.head(), dc2.tail());
 
         free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
         ASSERT_EQ(fsc.create_if_necessary(), 0);
@@ -158,5 +158,121 @@ TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_DataChains_ReuseConsumedNode) {
         ASSERT_EQ(fsc.dequeue(&sector), 1);
         ASSERT_EQ(sector, dc2.head());
 
+    });
+}
+
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_SingleSector) {
+    using tree_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        tree_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), memory.allocator().allocate(), "dc" };
+        ASSERT_EQ(tree.create(), 0);
+
+        for (auto i = 1u; i < 1; ++i) {
+            ASSERT_EQ(tree.add(i, i), 0);
+        }
+
+        free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
+        ASSERT_EQ(fsc.create_if_necessary(), 0);
+
+        dhara_sector_t sector = 0;
+        ASSERT_EQ(fsc.dequeue(&sector), 0);
+
+        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+
+        ASSERT_EQ(fsc.dequeue(&sector), 1);
+        ASSERT_EQ(sector, tree.root());
+
+        ASSERT_EQ(fsc.dequeue(&sector), 0);
+    });
+}
+
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_MultipleSectors) {
+    using tree_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    auto &allocator = memory.allocator();
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        tree_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), memory.allocator().allocate(), "dc" };
+        ASSERT_EQ(tree.create(), 0);
+
+        {
+            suppress_logs sl;
+            auto nsectors = allocator.allocated() + 2;
+            for (auto i = 0u; allocator.allocated() < nsectors; ++i) {
+                ASSERT_EQ(tree.add(i, i), 0);
+            }
+        }
+
+        EXPECT_EQ(tree.log(), 0);
+
+        free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
+        ASSERT_EQ(fsc.create_if_necessary(), 0);
+
+        dhara_sector_t sector = 0;
+        ASSERT_EQ(fsc.dequeue(&sector), 0);
+
+        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+
+        ASSERT_EQ(fsc.dequeue(&sector), 1);
+        phydebugf("dequeued: %d", sector);
+
+        ASSERT_EQ(fsc.dequeue(&sector), 1);
+        phydebugf("dequeued: %d", sector);
+
+        ASSERT_EQ(fsc.dequeue(&sector), 1);
+        phydebugf("dequeued: %d", sector);
+
+        ASSERT_EQ(fsc.dequeue(&sector), 0);
+        phydebugf("dequeued: %d", sector);
+    });
+}
+
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_Large) {
+    using tree_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    auto &allocator = memory.allocator();
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        tree_type tree{ memory.buffers(), memory.sectors(), memory.allocator(), memory.allocator().allocate(), "dc" };
+        ASSERT_EQ(tree.create(), 0);
+
+        free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
+        ASSERT_EQ(fsc.create_if_necessary(), 0);
+
+        dhara_sector_t sector = 0;
+        ASSERT_EQ(fsc.dequeue(&sector), 0);
+
+        phydebugf("allocated: %d", allocator.allocated());
+
+        {
+            suppress_logs sl;
+            auto nsectors = allocator.allocated() + 50;
+            for (auto i = 0u; allocator.allocated() < nsectors; ++i) {
+                ASSERT_EQ(tree.add(i, i), 0);
+            }
+        }
+
+        tree.log();
+
+        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+
+        std::map<dhara_sector_t, bool> returned;
+
+        auto total_dequeued = 0u;
+        while (fsc.dequeue(&sector) == 1) {
+            phyinfof("dequeued: %d", sector);
+            ASSERT_FALSE(returned[sector]);
+            returned[sector] = true;
+            total_dequeued++;
+        }
+
+        ASSERT_EQ(total_dequeued, 51u);
     });
 }

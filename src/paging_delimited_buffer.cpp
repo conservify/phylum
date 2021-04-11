@@ -66,19 +66,19 @@ paging_delimited_buffer::paging_delimited_buffer(working_buffers &buffers, secto
 }
 
 page_lock paging_delimited_buffer::reading(dhara_sector_t sector) {
-    phydebugf("page-lock: reading %d", sector);
+    phydebugf("page-lock: opening (rd) %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, true, false };
 }
 
 page_lock paging_delimited_buffer::writing(dhara_sector_t sector) {
-    phydebugf("page-lock: writing %d", sector);
+    phydebugf("page-lock: opening (wr) %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, false, false };
 }
 
 page_lock paging_delimited_buffer::overwrite(dhara_sector_t sector) {
-    phydebugf("page-lock: overwrite %d", sector);
+    phydebugf("page-lock: overwriting %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, false, true };
 }

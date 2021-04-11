@@ -220,7 +220,7 @@ int32_t sector_chain::log() {
         }
         case entry_type::TreeNode: {
             auto node = record.as<tree_node_header_t>();
-            phyinfof("node (%zu) id=0x%x", record.size_of_record(), node->id);
+            phyinfof("node (%zu) depth=%d nkeys=0x%x", record.size_of_record(), node->depth, node->number_keys);
             break;
         }
         case entry_type::FreeSectors: {
