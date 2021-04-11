@@ -1,5 +1,6 @@
 #pragma once
 
+#include "phylum.h"
 #include "delimited_buffer.h"
 #include "sector_allocator.h"
 #include "working_buffers.h"
@@ -71,6 +72,8 @@ public:
     }
 
     int32_t flush();
+
+    int32_t dequeue_sector(dhara_sector_t *sector);
 
 protected:
     int32_t flush(page_lock &page_lock);
@@ -144,20 +147,16 @@ protected:
     int32_t forward(page_lock &page_lock);
 
     template <typename T>
-    int32_t walk(T fn) {
+    int32_t walk(page_lock &page_lock, T fn) {
         logged_task lt{ "sc-walk", name() };
 
         assert_valid();
-
-        auto page_lock = db().reading(head());
-
-        assert(back_to_head(page_lock) >= 0);
 
         while (true) {
             for (auto &record_ptr : buffer_) {
                 auto entry = record_ptr.as<entry_t>();
                 assert(entry != nullptr);
-                auto err = fn(entry, record_ptr);
+                auto err = fn(page_lock, entry, record_ptr);
                 if (err < 0) {
                     return err;
                 }
@@ -176,6 +175,18 @@ protected:
         }
 
         return 0;
+    }
+    template <typename T>
+    int32_t walk(T fn) {
+        logged_task lt{ "sc-walk", name() };
+
+        assert_valid();
+
+        auto page_lock = db().reading(head());
+
+        assert(back_to_head(page_lock) >= 0);
+
+        return walk(page_lock, fn);
     }
 
     int32_t load(page_lock &page_lock);

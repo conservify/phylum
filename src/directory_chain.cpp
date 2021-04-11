@@ -55,45 +55,6 @@ int32_t directory_chain::format() {
     return 0;
 }
 
-int32_t directory_chain::prepare(page_lock &page_lock, size_t required) {
-    logged_task lt{ "prepare" };
-
-    if (!appendable()) {
-        auto err = seek_end_of_chain(page_lock);
-        if (err < 0) {
-            phyerrorf("seek-end failed");
-            return err;
-        }
-    }
-
-    auto err = grow_if_necessary(page_lock, required);
-    if (err < 0) {
-        phyerrorf("grow failed");
-        return err;
-    }
-
-    assert(db().header<directory_chain_header_t>()->type == entry_type::DirectorySector);
-
-    page_lock.dirty();
-    appendable(true);
-
-    return 0;
-}
-
-int32_t directory_chain::grow_if_necessary(page_lock &page_lock, size_t required) {
-    auto delimiter_overhead = varint_encoding_length(required);
-    auto total_required = delimiter_overhead + required;
-    if (db().room_for(total_required)) {
-        return 0;
-    }
-
-    return grow_tail(page_lock);
-}
-
-int32_t directory_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
-    return db().seek_end();
-}
-
 int32_t directory_chain::write_header(page_lock &page_lock) {
     logged_task lt{ "dc-write-hdr", this->name() };
 
@@ -209,7 +170,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
         bzero(attr.ptr, attr.size);
     }
 
-    auto err = walk([&](auto *entry, record_ptr &record) {
+    auto err = walk([&](auto &/*page_lock*/, auto *entry, record_ptr &record) {
         // HACK Buffer is unpaged outside of this lambda.
         file_.directory_capacity = db().size() / 2;
 
@@ -277,7 +238,7 @@ found_file directory_chain::open() {
 }
 
 int32_t directory_chain::seek_file_entry(file_id_t id) {
-    return walk([&](entry_t const *entry, record_ptr &record) {
+    return walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (fe->id == id) {
@@ -292,7 +253,7 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
 int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
     auto copied = 0u;
 
-    auto err = walk([&](entry_t const *entry, record_ptr &record) {
+    auto err = walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileData) {
             auto fd = record.as<file_data_t>();
             if (fd->id == id) {

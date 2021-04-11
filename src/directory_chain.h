@@ -1,22 +1,21 @@
 #pragma once
 
-#include "phylum.h"
-#include "sector_chain.h"
+#include "record_chain.h"
 #include "directory.h"
 
 namespace phylum {
 
-class directory_chain : public sector_chain, public directory {
+class directory_chain : public record_chain, public directory {
 private:
     found_file file_;
 
 public:
     directory_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t head)
-        : sector_chain(buffers, sectors, allocator, head_tail_t{ head, InvalidSector }, "dir-chain") {
+        : record_chain(buffers, sectors, allocator, head_tail_t{ head, InvalidSector }, "dir-chain") {
     }
 
     directory_chain(sector_chain &other, dhara_sector_t head)
-        : sector_chain(other, { head, InvalidSector }, "dir-chain") {
+        : record_chain(other, { head, InvalidSector }, "dir-chain") {
     }
 
     virtual ~directory_chain() {
@@ -51,53 +50,9 @@ protected:
 private:
     int32_t write_header(page_lock &page_lock) override;
 
-    int32_t seek_end_of_buffer(page_lock &page_lock) override;
-
     int32_t seek_file_entry(file_id_t id);
 
     int32_t file_attribute(file_id_t id, open_file_attribute attribute);
-
-    int32_t prepare(page_lock &page_lock, size_t required);
-
-    int32_t grow_if_necessary(page_lock &page_lock, size_t required);
-
-    template <typename T, class... Args>
-    int32_t emplace(page_lock &page_lock, Args &&... args) {
-        // NOTE Buffer has 0 size until paged in.
-        // assert(sizeof(T) <= db().size());
-
-        auto err = prepare(page_lock, sizeof(T));
-        if (err < 0) {
-            return err;
-        }
-
-        logged_task lt{ name() };
-
-        db().emplace<T, Args...>(std::forward<Args>(args)...);
-
-        page_lock.dirty();
-
-        return 0;
-    }
-
-    template <typename T>
-    int32_t append(page_lock &page_lock, T &record, uint8_t const *buffer, size_t size) {
-        // NOTE Buffer has 0 size until paged in.
-        // assert(sizeof(T) <= db().size());
-
-        auto err = prepare(page_lock, sizeof(T) + size);
-        if (err < 0) {
-            return err;
-        }
-
-        logged_task lt{ name() };
-
-        db().append<T>(record, buffer, size);
-
-        page_lock.dirty();
-
-        return 0;
-    }
 
 };
 

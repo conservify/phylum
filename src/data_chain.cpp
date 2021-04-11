@@ -11,7 +11,6 @@ int32_t data_chain::write_header(page_lock &page_lock) {
 
     db().terminate();
 
-    // dirty(true);
     page_lock.dirty();
     appendable(true);
 

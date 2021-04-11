@@ -7,13 +7,11 @@ namespace phylum {
 int32_t sector_chain::create_if_necessary() {
     logged_task lt{ "sc-create" };
 
-    auto page_lock = db().writing(sector());
-
-    if (head_ != InvalidSector || tail_ != InvalidSector) {
-        return 0;
-    }
+    assert(head_ == InvalidSector && tail_ == InvalidSector);
 
     phydebugf("creating sector=%d", sector());
+
+    auto page_lock = db().writing(sector());
 
     auto err = grow_tail(page_lock);
     if (err < 0) {
@@ -159,7 +157,7 @@ int32_t sector_chain::log() {
 
     assert_valid();
 
-    return walk([&](auto *entry, record_ptr &record) {
+    return walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
         logged_task lt{ this->name() };
 
         switch (entry->type) {
@@ -179,7 +177,12 @@ int32_t sector_chain::log() {
         }
         case entry_type::DataSector: {
             auto sh = record.as<data_chain_header_t>();
-            phyinfof("data-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record(), sh->pp, sh->np, sh->bytes);
+            phyinfof("data-chain-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record(), sh->pp, sh->np, sh->bytes);
+            break;
+        }
+        case entry_type::FreeChainSector: {
+            auto sh = record.as<free_chain_header_t>();
+            phyinfof("free-chain-sector (%zu) p=%d n=%d", record.size_of_record(), sh->pp, sh->np);
             break;
         }
         case entry_type::FileEntry: {
@@ -302,6 +305,25 @@ void sector_chain::name(const char *f, ...) {
     va_start(args, f);
     phy_vsnprintf(name_, sizeof(name_), f, args);
     va_end(args);
+}
+
+int32_t sector_chain::dequeue_sector(dhara_sector_t *sector) {
+    assert(sector != nullptr);
+    *sector = InvalidSector;
+
+    if (head_ == InvalidSector) {
+        return -1;
+    }
+
+    auto page_lock = db().reading(head());
+
+    auto hdr = db().header<sector_chain_header_t>();
+    *sector = head_;
+    head_ = hdr->np;
+
+    phydebugf("dequeue sector=%d head=%d", *sector, head_);
+
+    return 1;
 }
 
 } // namespace phylum

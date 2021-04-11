@@ -31,8 +31,6 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    // phydebugf("%s finding inline data begin", directory_->name());
-
     err = directory_->read(file_.id, [&](auto data_buffer) {
         return data_buffer.read_to_end([&](auto rb) {
             return data_chain_.write(rb.ptr(), rb.size());
@@ -52,8 +50,6 @@ int32_t file_appender::make_data_chain() {
 
         buffer_.clear();
     }
-
-    // phydebugf("%s finding inline data end", directory_->name());
 
     return 0;
 }

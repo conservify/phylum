@@ -20,7 +20,8 @@ struct data_chain_cursor {
     data_chain_cursor(dhara_sector_t sector) : sector(sector), position(0), position_at_start_of_sector(0) {
     }
 
-    data_chain_cursor(dhara_sector_t sector, file_size_t position, file_size_t position_at_start_of_sector) : sector(sector), position(position), position_at_start_of_sector(position_at_start_of_sector) {
+    data_chain_cursor(dhara_sector_t sector, file_size_t position, file_size_t position_at_start_of_sector)
+        : sector(sector), position(position), position_at_start_of_sector(position_at_start_of_sector) {
     }
 };
 
