@@ -512,7 +512,8 @@ private:
                 }
 
                 if (left != sector()) {
-                    phyinfof("reloading");
+                    phydebugf("reloading %d", left);
+
                     sector(left);
 
                     auto err = page_lock.replace(sector());
@@ -755,6 +756,12 @@ public:
         assert(node != nullptr);
 
         return log(page_lock, node);
+    }
+
+    int32_t dequeue_sector(dhara_sector_t *sector) {
+        assert(sector != nullptr);
+        *sector = InvalidSector;
+        return 0;
     }
 
 };

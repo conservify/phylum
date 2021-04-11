@@ -38,13 +38,14 @@ enum entry_type : uint8_t {
     SuperBlock = 1,
     DataSector = 2,
     DirectorySector = 3,
-    FileEntry = 4,
-    FsFileEntry = 5,
-    FsDirectoryEntry = 6,
-    FileData = 7,
-    TreeNode = 8,
-    FileAttribute = 9,
-    FreeSectors = 10,
+    FreeChainSector = 4,
+    FileEntry = 5,
+    FsFileEntry = 6,
+    FsDirectoryEntry = 7,
+    FileData = 8,
+    TreeNode = 9,
+    FileAttribute = 10,
+    FreeSectors = 11,
 };
 
 struct PHY_PACKED entry_t {
@@ -78,6 +79,14 @@ struct PHY_PACKED directory_chain_header_t : sector_chain_header_t {
     }
 
     directory_chain_header_t(dhara_sector_t pp, dhara_sector_t np) : sector_chain_header_t(entry_type::DirectorySector, pp, np) {
+    }
+};
+
+struct PHY_PACKED free_chain_header_t : sector_chain_header_t {
+    free_chain_header_t() : sector_chain_header_t(entry_type::FreeChainSector) {
+    }
+
+    free_chain_header_t(dhara_sector_t pp, dhara_sector_t np) : sector_chain_header_t(entry_type::FreeChainSector, pp, np) {
     }
 };
 

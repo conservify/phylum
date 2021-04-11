@@ -116,6 +116,8 @@ TYPED_TEST(TreeFixture, TreeWith1024Node1Reachable) {
 
         ASSERT_EQ(tree.create(), 0);
 
+        suppress_logs sl;
+
         for (auto i = 1u; i < 1024; ++i) {
             ASSERT_EQ(tree.add(i, i), 0);
 
@@ -159,17 +161,23 @@ TYPED_TEST(TreeFixture, TreeWith1024) {
 
         ASSERT_EQ(tree.create(), 0);
 
-        for (auto i = 1u; i < 1024; ++i) {
-            uint32_t found = 0u;
-            ASSERT_EQ(tree.add(i, i), 0);
-            ASSERT_EQ(tree.find(i, &found), 1);
-            ASSERT_EQ(found, i);
+        {
+            suppress_logs sl;
+
+            for (auto i = 1u; i < 1024; ++i) {
+                uint32_t found = 0u;
+                ASSERT_EQ(tree.add(i, i), 0);
+                ASSERT_EQ(tree.find(i, &found), 1);
+                ASSERT_EQ(found, i);
+            }
+
+            for (auto i = 1u; i < 1024; ++i) {
+                uint32_t found = 0u;
+                EXPECT_EQ(tree.find(i, &found), 1);
+                ASSERT_EQ(found, i);
+            }
         }
 
-        for (auto i = 1u; i < 1024; ++i) {
-            uint32_t found = 0u;
-            EXPECT_EQ(tree.find(i, &found), 1);
-            ASSERT_EQ(found, i);
-        }
+        EXPECT_EQ(tree.log(), 0);
     });
 }
