@@ -31,6 +31,22 @@ int32_t directory_tree::touch(const char *name) {
     return 0;
 }
 
+int32_t directory_tree::unlink(const char *name) {
+    auto id = make_file_id(name);
+
+    node_ = {};
+    node_.u.file = dirtree_file_t(name, (uint16_t)FsDirTreeFlags::Deleted);
+
+    file_ = {};
+
+    auto err = tree_.add(id, node_);
+    if (err < 0) {
+        return err;
+    }
+
+    return 0;
+}
+
 int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     auto id = make_file_id(name);
 
@@ -51,6 +67,12 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     }
 
     if (err == 0) {
+        file_ = found_file{};
+        return 0;
+    }
+
+    auto mask = (uint16_t)FsDirTreeFlags::Deleted;
+    if ((node_.u.e.flags & mask) == mask) {
         file_ = found_file{};
         return 0;
     }

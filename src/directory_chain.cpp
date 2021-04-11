@@ -111,7 +111,21 @@ int32_t directory_chain::touch(const char *name) {
 
     assert(emplace<file_entry_t>(page_lock, name) >= 0);
 
-    page_lock.dirty();
+    auto err = flush(page_lock);
+    if (err < 0) {
+        return err;
+    }
+
+    return 0;
+}
+
+int32_t directory_chain::unlink(const char *name) {
+    logged_task lt{ "dir-unlink" };
+
+    auto page_lock = db().writing(sector());
+
+    auto id = make_file_id(name);
+    assert(emplace<file_data_t>(page_lock, id, (uint32_t)0) >= 0);
 
     auto err = flush(page_lock);
     if (err < 0) {
@@ -212,8 +226,13 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
                     file_.directory_size = 0;
                     file_.chain = fd->chain;
                 } else {
-                    file_.directory_size += fd->size;
-                    file_.directory_capacity -= fd->size;
+                    if (fd->size == 0) {
+                        file_ = found_file{ };
+                    }
+                    else {
+                        file_.directory_size += fd->size;
+                        file_.directory_capacity -= fd->size;
+                    }
                 }
             }
         }

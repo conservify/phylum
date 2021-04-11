@@ -220,6 +220,11 @@ int32_t sector_chain::log() {
             phyinfof("node (%zu) id=0x%x", record.size_of_record(), node->id);
             break;
         }
+        case entry_type::FreeSectors: {
+            auto node = record.as<free_sectors_t>();
+            phyinfof("free-sectors (%zu) head=%d", record.size_of_record(), node->head);
+            break;
+        }
         }
         return 0;
     });

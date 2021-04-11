@@ -30,6 +30,8 @@ public:
 
     virtual int32_t touch(const char *name) = 0;
 
+    virtual int32_t unlink(const char *name) = 0;
+
     virtual int32_t find(const char *name, open_file_config file_cfg) = 0;
 
     virtual found_file open() = 0;

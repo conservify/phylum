@@ -33,6 +33,8 @@ public:
 
     int32_t touch(const char *name) override;
 
+    int32_t unlink(const char *name) override;
+
     int32_t find(const char *name, open_file_config file_cfg) override;
 
     found_file open() override;

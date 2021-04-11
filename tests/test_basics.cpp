@@ -77,6 +77,22 @@ TYPED_TEST(BasicsFixture, FindAndTouch) {
     });
 }
 
+TYPED_TEST(BasicsFixture, FindAndTouchAndUnlink) {
+    using dir_type = typename TypeParam::second_type;
+    typename TypeParam::first_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
+        ASSERT_EQ(dir.touch("test.logs"), 0);
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 1);
+        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
+        ASSERT_EQ(dir.unlink("test.logs"), 0);
+        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
+    });
+}
+
 TYPED_TEST(BasicsFixture, TouchPersists) {
     using dir_type = typename TypeParam::second_type;
     typename TypeParam::first_type layout;

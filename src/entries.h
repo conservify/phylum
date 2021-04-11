@@ -44,12 +44,21 @@ enum entry_type : uint8_t {
     FileData = 7,
     TreeNode = 8,
     FileAttribute = 9,
+    FreeSectors = 10,
 };
 
 struct PHY_PACKED entry_t {
     entry_type type{ entry_type::None };
 
     entry_t(entry_type type) : type(type) {
+    }
+};
+
+struct PHY_PACKED super_block_t : entry_t {
+    uint32_t version{ 0 };
+    uint32_t reserved{ (uint32_t)-1 };
+
+    super_block_t(uint32_t version) : entry_t(entry_type::SuperBlock), version(version) {
     }
 };
 
@@ -85,17 +94,14 @@ struct PHY_PACKED data_chain_header_t : sector_chain_header_t {
     }
 };
 
-struct PHY_PACKED super_block_t : entry_t {
-    uint32_t version{ 0 };
-    uint32_t reserved{ (uint32_t)-1 };
-
-    super_block_t(uint32_t version) : entry_t(entry_type::SuperBlock), version(version) {
-    }
-};
-
 inline uint32_t make_file_id(const char *path) {
     return crc32_checksum(path);
 }
+
+enum class FsDirTreeFlags : uint16_t {
+    None = 0,
+    Deleted = 1 << 0,
+};
 
 struct PHY_PACKED dirtree_entry_t : entry_t {
     char name[MaximumNameLength];
@@ -176,6 +182,18 @@ struct PHY_PACKED file_data_t : entry_t {
 
     file_data_t(file_id_t id, head_tail_t chain)
         : entry_t(entry_type::FileData), id(id), chain(chain) {
+    }
+};
+
+struct PHY_PACKED free_sectors_t : entry_t {
+    dhara_sector_t head{ InvalidSector };
+
+    free_sectors_t()
+        : entry_t(entry_type::FreeSectors) {
+    }
+
+    free_sectors_t(dhara_sector_t head)
+        : entry_t(entry_type::FreeSectors), head(head) {
     }
 };
 
