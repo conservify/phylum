@@ -1,7 +1,5 @@
 #include <directory_chain.h>
 #include <directory_tree.h>
-#include <free_sectors_chain.h>
-#include <data_chain.h>
 
 #include "phylum_tests.h"
 #include "geometry.h"
@@ -20,7 +18,7 @@ TEST(General, EntrySizes) {
     EXPECT_EQ(sizeof(dirtree_dir_t), 75u);
     EXPECT_EQ(sizeof(dirtree_file_t), 91u);
     EXPECT_EQ(sizeof(entry_t), 1u);
-    EXPECT_EQ(sizeof(tree_node_header_t), 15u);
+    EXPECT_EQ(sizeof(tree_node_header_t), 16u);
 }
 
 template <typename T> class BasicsFixture : public PhylumFixture {};
@@ -79,22 +77,6 @@ TYPED_TEST(BasicsFixture, FindAndTouch) {
     });
 }
 
-TYPED_TEST(BasicsFixture, FindAndTouchAndUnlink) {
-    using dir_type = typename TypeParam::second_type;
-    typename TypeParam::first_type layout;
-    FlashMemory memory{ layout.sector_size };
-
-    memory.mounted<dir_type>([&](auto &dir) {
-        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
-        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
-        ASSERT_EQ(dir.touch("test.logs"), 0);
-        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 1);
-        ASSERT_EQ(dir.find("other.logs", open_file_config{}), 0);
-        ASSERT_EQ(dir.unlink("test.logs"), 0);
-        ASSERT_EQ(dir.find("test.logs", open_file_config{}), 0);
-    });
-}
-
 TYPED_TEST(BasicsFixture, TouchPersists) {
     using dir_type = typename TypeParam::second_type;
     typename TypeParam::first_type layout;
@@ -139,65 +121,5 @@ TYPED_TEST(BasicsFixture, TouchAndFindMultiple) {
             ASSERT_EQ(dir.find(name, open_file_config{}), 1);
         }
         ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
-    });
-}
-
-TYPED_TEST(BasicsFixture, TouchAndFindAndUnlinkMultiple) {
-    using dir_type = typename TypeParam::second_type;
-    typename TypeParam::first_type layout;
-    FlashMemory memory{ layout.sector_size };
-
-    const char *names[] = {
-        "a.txt",
-        "b.txt",
-        "c.txt",
-        "d.txt",
-        "e.txt",
-        "f.txt",
-        "g.txt"
-    };
-    memory.mounted<dir_type>([&](auto &dir) {
-        for (auto name : names) {
-            ASSERT_EQ(dir.touch(name), 0);
-        }
-    });
-
-    memory.mounted<dir_type>([&](auto &dir) {
-        ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
-        for (auto name : names) {
-            ASSERT_EQ(dir.find(name, open_file_config{}), 1);
-        }
-        ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
-    });
-
-    memory.mounted<dir_type>([&](auto &dir) {
-        for (auto name : names) {
-            ASSERT_EQ(dir.unlink(name), 0);
-        }
-    });
-
-    memory.mounted<dir_type>([&](auto &dir) {
-        for (auto name : names) {
-            ASSERT_EQ(dir.find(name, open_file_config{}), 0);
-        }
-    });
-}
-
-TYPED_TEST(BasicsFixture, FreeSectorsChain_Empty) {
-    using dir_type = typename TypeParam::second_type;
-    typename TypeParam::first_type layout;
-    FlashMemory memory{ layout.sector_size };
-
-    memory.mounted<dir_type>([&](auto &dir) {
-        data_chain dc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "dc" };
-        ASSERT_EQ(dc.create_if_necessary(), 0);
-
-        free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
-        ASSERT_EQ(fsc.create_if_necessary(), 0);
-
-        dhara_sector_t sector = 0;
-        ASSERT_EQ(fsc.dequeue(&sector), 0);
-
-        ASSERT_EQ(fsc.add_chain(dc.head()), 0);
     });
 }

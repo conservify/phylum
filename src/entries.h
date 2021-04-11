@@ -237,17 +237,16 @@ enum node_type : uint8_t {
 
 struct PHY_PACKED tree_node_header_t : entry_t {
 public:
-    file_id_t id{ 0 };
     depth_type depth{ 0 };
     index_type number_keys{ 0 };
     node_type type{ node_type::Leaf };
-    node_ptr_t parent;
+    uint8_t reserved[11];
 
 public:
-    tree_node_header_t() : entry_t(entry_type::TreeNode), parent() {
+    tree_node_header_t() : entry_t(entry_type::TreeNode) {
     }
 
-    tree_node_header_t(node_type type) : entry_t(entry_type::TreeNode), type(type), parent() {
+    tree_node_header_t(node_type type) : entry_t(entry_type::TreeNode), type(type) {
     }
 };
 
@@ -266,8 +265,8 @@ public:
     };
 
 public:
-    KEY keys[Size];
     data_t d;
+    KEY keys[Size];
 
 public:
     tree_node_t() : tree_node_header_t() {
