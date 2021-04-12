@@ -11,10 +11,10 @@ template<typename T>
 class LargeFileFixture : public PhylumFixture {};
 
 typedef ::testing::Types<
-    std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 64>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 288>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 407>>>
+    std::pair<layout_256, tree_sector<uint32_t, uint32_t, 5>>,
+    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 63>>,
+    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 287>>,
+    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 405>>>
     Implementations;
 
 TYPED_TEST_SUITE(LargeFileFixture, Implementations);

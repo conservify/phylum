@@ -23,9 +23,9 @@ template<typename T>
 class TreeFixture : public ::testing::Test {
 };
 
-typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, uint32_t, 6>>,
-                         std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 64>>,
-                         std::pair<layout_4096, tree_sector<uint64_t, uint32_t, 288>>>
+typedef ::testing::Types<std::pair<layout_256, tree_sector<uint32_t, uint32_t, 5>>,
+                         std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 63>>,
+                         std::pair<layout_4096, tree_sector<uint64_t, uint32_t, 287>>>
     Implementations;
 
 static_assert(sizeof(tree_node_t<uint32_t, uint32_t, 6>) <= 4096, "sizeof(Node) <= 256");

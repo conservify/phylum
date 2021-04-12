@@ -126,9 +126,12 @@ private:
     static persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            auto node = db.as_mutable<default_node_type>(*iter);
-            if (selected.node == nullptr || selected.node->depth < node->depth) {
-                selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position() } };
+            phydebugf("fsr:iter: %d", iter->position());
+            if (iter != db.begin()) {
+                auto node = db.as_mutable<default_node_type>(*iter);
+                if (selected.node == nullptr || selected.node->depth < node->depth) {
+                    selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position() } };
+                }
             }
         }
         return selected;
@@ -137,8 +140,8 @@ private:
     static persisted_node_t find_node_in_sector(delimited_buffer &db, node_ptr_t ptr) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            auto node = db.as_mutable<default_node_type>(*iter);
             if (iter->position() == ptr.position) {
+                auto node = db.as_mutable<default_node_type>(*iter);
                 phydebugf("find-node-in-sector: %d:%d (%d) !", ptr.sector, ptr.position, iter->position());
                 return persisted_node_t{ node, ptr };
             } else {
@@ -422,7 +425,12 @@ private:
 
         buffer_type buffer{ *buffers_, *sectors_ };
         auto child_page_lock = buffer.overwrite(allocated);
+
+        buffer.template emplace<sector_chain_header_t>(entry_type::TreeNode, InvalidSector, sector_);
+
         auto placed = buffer.template reserve<default_node_type>();
+
+        phydebugf("creating new node position=%d node-size=%d size=%d", db().position(), sizeof(default_node_type), db().size());
 
         ptr = node_ptr_t{ allocated, placed.position };
 
@@ -541,13 +549,13 @@ public:
     int32_t exists() {
         logged_task lt{ "tree-exists" };
 
-        phydebugf("exists!");
-
         dhara_page_t page = 0;
         auto err = sectors_->find(root_, &page);
         if (err < 0) {
             return 0;
         }
+
+        phydebugf("exists!");
 
         return 1;
     }
@@ -565,7 +573,10 @@ public:
 
         assert(db().empty());
 
-        phydebugf("creating new node");
+        db().template emplace<sector_chain_header_t>(entry_type::TreeNode);
+
+        phydebugf("creating new tree position=%d node-size=%d size=%d", db().position(), sizeof(default_node_type), db().size());
+
         db().template emplace<default_node_type>(node_type::Leaf);
 
         page_lock.dirty();
