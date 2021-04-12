@@ -212,18 +212,13 @@ struct PHY_PACKED file_data_t : entry_t {
 
 struct PHY_PACKED free_sectors_t : entry_t {
     dhara_sector_t head{ InvalidSector };
-    size_t tree_size{ 0 };
 
     free_sectors_t()
         : entry_t(entry_type::FreeSectors) {
     }
 
     free_sectors_t(dhara_sector_t head)
-        : entry_t(entry_type::FreeSectors), head(head), tree_size(0) {
-    }
-
-    free_sectors_t(dhara_sector_t head, size_t tree_size)
-        : entry_t(entry_type::FreeSectors), head(head), tree_size(tree_size) {
+        : entry_t(entry_type::FreeSectors), head(head) {
     }
 };
 

@@ -14,7 +14,7 @@ public:
 
 public:
     int32_t add_chain(dhara_sector_t head);
-    int32_t add_tree(tree_ptr_t tree, size_t stride);
+    int32_t add_tree(tree_ptr_t tree);
     int32_t dequeue(dhara_sector_t *sector);
 
 private:

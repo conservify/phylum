@@ -161,7 +161,7 @@ TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_DataChains_ReuseConsumedNode) {
     });
 }
 
-TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_SingleSector) {
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_SingleSector) {
     using tree_type = typename TypeParam::second_type;
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
@@ -180,7 +180,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_SingleSector) {
         dhara_sector_t sector = 0;
         ASSERT_EQ(fsc.dequeue(&sector), 0);
 
-        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr()), 0);
 
         ASSERT_EQ(fsc.dequeue(&sector), 1);
 
@@ -188,7 +188,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_SingleSector) {
     });
 }
 
-TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_MultipleSectors) {
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_MultipleSectors) {
     using tree_type = typename TypeParam::second_type;
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
@@ -215,7 +215,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_MultipleSectors) 
         dhara_sector_t sector = 0;
         ASSERT_EQ(fsc.dequeue(&sector), 0);
 
-        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr()), 0);
 
         ASSERT_EQ(fsc.dequeue(&sector), 1);
         phydebugf("dequeued: %d", sector);
@@ -231,7 +231,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_MultipleSectors) 
     });
 }
 
-TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_Large) {
+TYPED_TEST(FreeSectorsFixture, FreeSectorsChain_Trees_Large) {
     using tree_type = typename TypeParam::second_type;
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
@@ -260,7 +260,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_Large) {
 
         tree.log();
 
-        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr()), 0);
 
         std::map<dhara_sector_t, bool> returned;
 
