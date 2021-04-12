@@ -175,6 +175,11 @@ int32_t sector_chain::log() {
             phyinfof("dir-sector (%zu) p=%d n=%d", record.size_of_record(), sh->pp, sh->np);
             break;
         }
+        case entry_type::TreeSector: {
+            auto sh = record.as<sector_chain_header_t>();
+            phyinfof("tree-sector (%zu) p=%d n=%d", record.size_of_record(), sh->pp, sh->np);
+            break;
+        }
         case entry_type::DataSector: {
             auto sh = record.as<data_chain_header_t>();
             phyinfof("data-chain-sector (%zu) p=%d n=%d bytes=%d", record.size_of_record(), sh->pp, sh->np, sh->bytes);

@@ -71,18 +71,24 @@ private:
     buffer_type buffer_;
     dhara_sector_t sector_{ InvalidSector };
     dhara_sector_t root_{ InvalidSector };
+    dhara_sector_t tail_{ InvalidSector };
     const char *prefix_{ "tree-sector" };
     char name_[ScopeNameLength];
 
 public:
     tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(root), prefix_(prefix) {
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(root), tail_(root), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
-    tree_sector(tree_sector &other, dhara_sector_t root, const char *prefix)
+    tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, tree_ptr_t tree, const char *prefix)
+        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(tree.root), tail_(tree.tail), prefix_(prefix) {
+        name("%s[%d]", prefix_, root_);
+    }
+
+    tree_sector(tree_sector &other, tree_ptr_t tree, const char *prefix)
         : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
-          buffer_(*other.buffers_, *other.sectors_), root_(root), prefix_(prefix) {
+          buffer_(*other.buffers_, *other.sectors_), root_(tree.root), tail_(tree.tail), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 
@@ -94,15 +100,15 @@ public:
         return name_;
     }
 
-    dhara_sector_t root() const {
-        return root_;
+    tree_ptr_t to_tree_ptr() const {
+        return tree_ptr_t{ root_, tail_ };
     }
 
+protected:
     dhara_sector_t sector() const {
         return sector_;
     }
 
-protected:
     size_t sector_size() const {
         return buffer_.size();
     }
@@ -127,7 +133,7 @@ private:
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
             phydebugf("fsr:iter: %d", iter->position());
-            if (iter != db.begin()) {
+            if (iter->as<entry_t>()->type == entry_type::TreeNode) {
                 auto node = db.as_mutable<default_node_type>(*iter);
                 if (selected.node == nullptr || selected.node->depth < node->depth) {
                     selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position() } };
@@ -426,11 +432,13 @@ private:
         buffer_type buffer{ *buffers_, *sectors_ };
         auto child_page_lock = buffer.overwrite(allocated);
 
-        buffer.template emplace<sector_chain_header_t>(entry_type::TreeNode, InvalidSector, sector_);
+        buffer.template emplace<sector_chain_header_t>(entry_type::TreeSector, InvalidSector, tail_);
+
+        tail_ = allocated;
 
         auto placed = buffer.template reserve<default_node_type>();
 
-        phydebugf("creating new node position=%d node-size=%d size=%d", db().position(), sizeof(default_node_type), db().size());
+        phydebugf("creating new node position=%d node-size=%d sector-size=%d", db().position(), sizeof(default_node_type), db().size());
 
         ptr = node_ptr_t{ allocated, placed.position };
 
@@ -573,9 +581,9 @@ public:
 
         assert(db().empty());
 
-        db().template emplace<sector_chain_header_t>(entry_type::TreeNode);
+        db().template emplace<sector_chain_header_t>(entry_type::TreeSector);
 
-        phydebugf("creating new tree position=%d node-size=%d size=%d", db().position(), sizeof(default_node_type), db().size());
+        phydebugf("creating new tree position=%d node-size=%d sector-size=%d", db().position(), sizeof(default_node_type), db().size());
 
         db().template emplace<default_node_type>(node_type::Leaf);
 

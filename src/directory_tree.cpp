@@ -89,7 +89,7 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
 
     // If we're being asked to load attributes.
     if (file_cfg.nattrs > 0) {
-        if (node_.u.file.attributes != InvalidSector) {
+        if (node_.u.file.attributes.valid()) {
             attr_tree_type tree{ *buffers_, *sectors_, *allocator_, node_.u.file.attributes, "attrs" };
             for (auto i = 0u; i < file_cfg.nattrs; ++i) {
                 auto &attr = file_cfg.attributes[i];
@@ -163,8 +163,9 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
     // TODO Store attributes in inline data when we can.
     auto sector = node_.u.file.attributes;
     auto create = false;
-    if (node_.u.file.attributes == InvalidSector) {
-        sector = allocator_->allocate();
+    if (!node_.u.file.attributes.valid()) {
+        auto allocated = allocator_->allocate();
+        sector = tree_ptr_t{ allocated, allocated };
         create = true;
     }
 
@@ -185,7 +186,7 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
         }
     }
 
-    if (node_.u.file.attributes != sector) {
+    if (node_.u.file.attributes.root != sector.root || node_.u.file.attributes.tail != sector.tail ) {
         node_.u.file.attributes = sector;
 
         auto err = flush();

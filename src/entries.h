@@ -33,19 +33,35 @@ struct PHY_PACKED head_tail_t {
     }
 };
 
+struct PHY_PACKED tree_ptr_t {
+    dhara_sector_t root{ InvalidSector };
+    dhara_sector_t tail{ InvalidSector };
+
+    tree_ptr_t() {
+    }
+
+    tree_ptr_t(dhara_sector_t root, dhara_sector_t tail) : root(root), tail(tail) {
+    }
+
+    bool valid() const {
+        return root != InvalidSector;
+    }
+};
+
 enum entry_type : uint8_t {
     None = 0,
     SuperBlock = 1,
     DataSector = 2,
     DirectorySector = 3,
     FreeChainSector = 4,
-    FileEntry = 5,
-    FsFileEntry = 6,
-    FsDirectoryEntry = 7,
-    FileData = 8,
-    TreeNode = 9,
-    FileAttribute = 10,
-    FreeSectors = 11,
+    TreeSector = 5,
+    FileEntry = 6,
+    FsFileEntry = 7,
+    FsDirectoryEntry = 8,
+    FileData = 9,
+    TreeNode = 10,
+    FileAttribute = 11,
+    FreeSectors = 12,
 };
 
 struct PHY_PACKED entry_t {
@@ -134,9 +150,9 @@ struct PHY_PACKED dirtree_dir_t : dirtree_entry_t {
 struct PHY_PACKED dirtree_file_t : dirtree_entry_t {
     file_size_t directory_size{ 0 };
     head_tail_t chain;
-    dhara_sector_t attributes{ InvalidSector };
-    dhara_sector_t position_index{ InvalidSector };
-    dhara_sector_t record_index{ InvalidSector };
+    tree_ptr_t attributes{ };
+    tree_ptr_t position_index{ };
+    tree_ptr_t record_index{ };
 
     dirtree_file_t(const char *name, uint16_t flags = 0)
         : dirtree_entry_t(entry_type::FsFileEntry, name, flags) {

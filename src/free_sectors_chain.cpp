@@ -73,8 +73,8 @@ int32_t free_sectors_chain::add_chain(dhara_sector_t head) {
     return add_free_sectors(free_sectors_t{ head });
 }
 
-int32_t free_sectors_chain::add_tree(dhara_sector_t tree, size_t tree_size) {
-    return add_free_sectors(free_sectors_t{ tree, tree_size });
+int32_t free_sectors_chain::add_tree(tree_ptr_t tree, size_t tree_size) {
+    return add_free_sectors(free_sectors_t{ tree.tail, tree_size });
 }
 
 class free_sectors_tree {

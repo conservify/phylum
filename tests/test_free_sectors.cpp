@@ -180,10 +180,9 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_SingleSector) {
         dhara_sector_t sector = 0;
         ASSERT_EQ(fsc.dequeue(&sector), 0);
 
-        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
 
         ASSERT_EQ(fsc.dequeue(&sector), 1);
-        ASSERT_EQ(sector, tree.root());
 
         ASSERT_EQ(fsc.dequeue(&sector), 0);
     });
@@ -216,7 +215,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_MultipleSectors) 
         dhara_sector_t sector = 0;
         ASSERT_EQ(fsc.dequeue(&sector), 0);
 
-        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
 
         ASSERT_EQ(fsc.dequeue(&sector), 1);
         phydebugf("dequeued: %d", sector);
@@ -261,7 +260,7 @@ TYPED_TEST(FreeSectorsFixture, DISABLED_FreeSectorsChain_Trees_Large) {
 
         tree.log();
 
-        ASSERT_EQ(fsc.add_tree(tree.root(), tree_type::NodeSize), 0);
+        ASSERT_EQ(fsc.add_tree(tree.to_tree_ptr(), tree_type::NodeSize), 0);
 
         std::map<dhara_sector_t, bool> returned;
 
