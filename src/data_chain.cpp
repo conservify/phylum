@@ -1,3 +1,4 @@
+#include "phylum.h"
 #include "data_chain.h"
 
 namespace phylum {
@@ -32,7 +33,7 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
     logged_task{ "dc-write", name() };
 
     auto copied = 0u;
-    return write_chain([&](auto buffer, auto &grow) {
+    return write_chain([&](simple_buffer buffer, bool &grow) {
         auto remaining = size - copied;
         auto copying = std::min<int32_t>(buffer.available(), remaining);
         if (copying > 0) {
@@ -53,7 +54,7 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
     assert_valid();
 
     simple_buffer reading{ data, size };
-    return read_chain([&](auto view) {
+    return read_chain([&](read_buffer view) {
         return reading.fill_from(view);
     });
 }
@@ -126,7 +127,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
             }
 
             // Do this before we grow so the details are saved.
-            assert(db().write_header<data_chain_header_t>([&](auto header) {
+            assert(db().write_header<data_chain_header_t>([&](data_chain_header_t *header) {
                 assert(header->bytes + err <= (int32_t)sector_size());
                 header->bytes += err;
                 return 0;

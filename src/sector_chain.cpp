@@ -157,7 +157,7 @@ int32_t sector_chain::log() {
 
     assert_valid();
 
-    return walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
+    return walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) {
         logged_task lt{ this->name() };
 
         switch (entry->type) {
@@ -266,7 +266,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
     if (sector_ != InvalidSector) {
         assert(db().begin() != db().end());
 
-        assert(db().write_header<sector_chain_header_t>([&](auto header) {
+        assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
             header->np = allocated;
             return 0;
         }) == 0);
@@ -295,7 +295,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
         return err;
     }
 
-    assert(db().write_header<sector_chain_header_t>([&](auto header) {
+    assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
         header->pp = previous_sector;
         return 0;
     }) == 0);

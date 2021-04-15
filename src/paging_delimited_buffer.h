@@ -54,8 +54,6 @@ public:
 
     page_lock overwrite(dhara_sector_t sector);
 
-    friend class page_lock;
-
 protected:
     void ensure_valid() const override;
 

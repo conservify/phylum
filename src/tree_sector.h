@@ -201,7 +201,7 @@ private:
             phydebugf("node full, splitting");
 
             node_ptr_t sibling_ptr;
-            return allocate_node(page_lock, sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) {
+            return allocate_node(page_lock, sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -344,7 +344,7 @@ private:
         // but it is simpler and does not break the definition.
         if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
-            auto err = allocate_node(page_lock, ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) {
+            auto err = allocate_node(page_lock, ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 auto treshold = (Size + 1) / 2;
 
                 new_sibling->type = node_type::Inner;

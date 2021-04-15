@@ -9,6 +9,10 @@
 #include <cstring>
 #include <cstdio>
 
+#if defined(PHYLUM_LOCAL_EXCHANGE)
+#include <exchange.h>
+#endif
+
 namespace phylum {
 
 static inline int32_t phy_vsnprintf(char *buffer, size_t size, const char *f, va_list args) {

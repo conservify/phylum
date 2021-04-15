@@ -32,7 +32,7 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
     logged_task lt{ "ic-write", name() };
 
     auto index = 0u;
-    return write_chain([&](auto buffer, auto &grow) {
+    return write_chain([&](write_buffer buffer, bool &grow) {
         int32_t written = 0;
         while (index < length) {
             int32_t needed = varint_encoding_length(values[index]);
@@ -55,7 +55,7 @@ int32_t integer_chain::read(uint32_t *values, size_t length) {
     logged_task lt{ "ic-read", name() };
 
     int32_t index = 0;
-    return read_chain([&](auto buffer) {
+    return read_chain([&](read_buffer buffer) {
         while (index < (int32_t)length && buffer.position() < buffer.size()) {
             int32_t err = 0;
             auto value = varint_decode(buffer.cursor(), buffer.available(), &err);

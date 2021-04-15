@@ -97,7 +97,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
         return 0;
     }
 
-    auto miss_fn = [=](auto page_sector, uint8_t *buffer, size_t size) {
+    auto miss_fn = [=](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
         phydebugf("wbuffers: miss %d", page_sector);
         assert(size > 0);
         if (overwrite) {
@@ -107,7 +107,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
         return sectors_->read(page_sector, buffer, size);
     };
 
-    auto flush_fn = [=](auto page_sector, uint8_t const *buffer, size_t size) {
+    auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
         phydebugf("wbuffers: flush %d", page_sector);
         assert(size > 0);
         return sectors_->write(page_sector, buffer, size);
@@ -137,7 +137,7 @@ int32_t paging_delimited_buffer::flush(dhara_sector_t sector) {
     assert(sector_ != InvalidSector);
     assert(sector_ == sector);
 
-    auto flush_fn = [=](auto page_sector, uint8_t const *buffer, size_t size) {
+    auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
         phydebugf("wbuffers: flush %d", page_sector);
         assert(size > 0);
         return sectors_->write(page_sector, buffer, size);

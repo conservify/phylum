@@ -39,7 +39,7 @@ int32_t directory_chain::format() {
         return err;
     }
 
-    assert(db().write_header<directory_chain_header_t>([&](auto header) {
+    assert(db().write_header<directory_chain_header_t>([&](directory_chain_header_t *header) {
         header->pp = InvalidSector;
         return 0;
     }) == 0);
@@ -170,7 +170,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
         bzero(attr.ptr, attr.size);
     }
 
-    auto err = walk([&](auto &/*page_lock*/, auto *entry, record_ptr &record) {
+    auto err = walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) -> int32_t {
         // HACK Buffer is unpaged outside of this lambda.
         file_.directory_capacity = db().size() / 2;
 
@@ -202,7 +202,7 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
             if (fa->id == file_.id) {
                 for (auto i = 0u; i < file_cfg.nattrs; ++i) {
                     if (fa->type == file_cfg.attributes[i].type) {
-                        auto err = record.read_data<file_attribute_t>([&](auto data_buffer) {
+                        auto err = record.read_data<file_attribute_t>([&](read_buffer data_buffer) {
                             assert(data_buffer.available() == file_cfg.attributes[i].size);
                             memcpy(file_cfg.attributes[i].ptr, data_buffer.cursor(), data_buffer.available());
                             return data_buffer.available();
@@ -238,7 +238,7 @@ found_file directory_chain::open() {
 }
 
 int32_t directory_chain::seek_file_entry(file_id_t id) {
-    return walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
+    return walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (fe->id == id) {
@@ -253,13 +253,13 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
 int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
     auto copied = 0u;
 
-    auto err = walk([&](auto &/*page_lock*/, auto const *entry, record_ptr &record) {
+    auto err = walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) {
         if (entry->type == entry_type::FileData) {
             auto fd = record.as<file_data_t>();
             if (fd->id == id) {
                 phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);
 
-                auto err = record.read_data<file_data_t>([&](auto data_buffer) {
+                auto err = record.read_data<file_data_t>([&](read_buffer data_buffer) {
                     return data_fn(std::move(data_buffer));
                 });
                 if (err < 0) {
