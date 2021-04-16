@@ -70,12 +70,15 @@ TEST_F(LayoutFixture_256, WriteInlineMultipleFlushEach) {
         ASSERT_EQ(opened.flush(), 0);
 
         sector_geometry sg{ memory.buffers(), memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ }));
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
+        EXPECT_TRUE(sg.sector(0).end(4));
+
+        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
+        EXPECT_TRUE(sg.sector(1).end(2));
     });
 }
 
@@ -98,18 +101,19 @@ TEST_F(LayoutFixture_256, WriteThreeInlineWritesAndTriggerDataChain) {
         ASSERT_EQ(opened.flush(), 0);
 
         sector_geometry sg{ memory.buffers(), memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
+        EXPECT_TRUE(sg.sector(0).end(4));
 
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (memory.sector_size() / 2 + 8)) }));
-        EXPECT_TRUE(sg.sector(1).end(1));
+        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 2, 2 } }));
+        EXPECT_TRUE(sg.sector(1).end(3));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
+        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 3) + (memory.sector_size() / 2 + 8)) }));
+        EXPECT_TRUE(sg.sector(2).end(1));
     });
 }
 
@@ -134,18 +138,19 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChain) {
         ASSERT_EQ(opened.flush(), 0);
 
         sector_geometry sg{ memory.buffers(), memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
+        EXPECT_TRUE(sg.sector(0).end(4));
 
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (memory.sector_size() / 2 + 8)) }));
-        EXPECT_TRUE(sg.sector(1).end(1));
+        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 2, 2 } }));
+        EXPECT_TRUE(sg.sector(1).end(3));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
+        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)((strlen(hello) * 4) + (memory.sector_size() / 2 + 8)) }));
+        EXPECT_TRUE(sg.sector(2).end(1));
     });
 }
 
@@ -170,20 +175,21 @@ TEST_F(LayoutFixture_256, WriteAppendsToDataChainGrowingToNewBlock) {
         ASSERT_EQ(opened.flush(), 0);
 
         sector_geometry sg{ memory.buffers(), memory.sectors() };
-        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 2 }));
+        EXPECT_TRUE(sg.sector(0).header<directory_chain_header_t>({ InvalidSector, 1 }));
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
+        EXPECT_TRUE(sg.sector(0).end(4));
 
-        EXPECT_TRUE(sg.sector(1).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 3 }));
-        EXPECT_TRUE(sg.sector(1).end(1));
+        EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(2, { make_file_id("data.txt"), head_tail_t{ 2, 2 } }));
+        EXPECT_TRUE(sg.sector(1).end(3));
 
-        EXPECT_TRUE(sg.sector(2).nth<file_data_t>(1, { make_file_id("data.txt"), head_tail_t{ 1, 1 } }));
-        EXPECT_TRUE(sg.sector(2).end(2));
+        EXPECT_TRUE(sg.sector(2).header<data_chain_header_t>({ (uint16_t)242, InvalidSector, 3 }));
+        EXPECT_TRUE(sg.sector(2).end(1));
 
-        EXPECT_TRUE(sg.sector(3).header<data_chain_header_t>({ (uint16_t)228, 1, InvalidSector }));
+        EXPECT_TRUE(sg.sector(3).header<data_chain_header_t>({ (uint16_t)228, 2, InvalidSector }));
         EXPECT_TRUE(sg.sector(3).end(1));
     });
 }
@@ -210,12 +216,12 @@ TEST_F(LayoutFixture_256, WriteAndIncrementAttribute) {
         EXPECT_TRUE(sg.sector(0).nth<file_entry_t>(1, { "data.txt" }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(2, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
         EXPECT_TRUE(sg.sector(0).nth<file_data_t>(3, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).nth<file_data_t>(4, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
-        EXPECT_TRUE(sg.sector(0).end(5));
+        EXPECT_TRUE(sg.sector(0).end(4));
 
         EXPECT_TRUE(sg.sector(1).header<directory_chain_header_t>({ 0, InvalidSector }));
-        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(1, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 3));
-        EXPECT_TRUE(sg.sector(1).end(2));
+        EXPECT_TRUE(sg.sector(1).nth<file_data_t>(1, { make_file_id("data.txt"), (file_size_t)strlen(hello) }));
+        EXPECT_TRUE(sg.sector(1).nth<file_attribute_t>(2, { make_file_id("data.txt"), ATTRIBUTE_ONE, sizeof(uint32_t) }, 3));
+        EXPECT_TRUE(sg.sector(1).end(3));
     });
 }
 

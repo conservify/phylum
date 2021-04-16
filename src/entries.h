@@ -201,9 +201,9 @@ struct PHY_PACKED file_data_t : entry_t {
     file_id_t id{ 0 };
     file_size_t size{ 0 };
     head_tail_t chain;
-    dhara_sector_t attributes{ InvalidSector };
-    dhara_sector_t position_index{ InvalidSector };
-    dhara_sector_t record_index{ InvalidSector };
+    tree_ptr_t attributes{ };
+    tree_ptr_t position_index{ };
+    tree_ptr_t record_index{ };
 
     file_data_t(file_id_t id, file_size_t size) : entry_t(entry_type::FileData), id(id), size(size) {
     }

@@ -13,7 +13,7 @@ TEST(General, EntrySizes) {
     EXPECT_EQ(sizeof(super_block_t), 9u);
     EXPECT_EQ(sizeof(directory_chain_header_t), 9u);
     EXPECT_EQ(sizeof(data_chain_header_t), 11u);
-    EXPECT_EQ(sizeof(file_data_t), 29u);
+    EXPECT_EQ(sizeof(file_data_t), 41u);
     EXPECT_EQ(sizeof(file_attribute_t), 7u);
     EXPECT_EQ(sizeof(file_entry_t), 71u);
     EXPECT_EQ(sizeof(dirtree_entry_t), 67u);

@@ -36,6 +36,7 @@ public:
 
     virtual found_file open() = 0;
 
+public:
     virtual int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) = 0;
 
     virtual int32_t file_chain(file_id_t id, head_tail_t chain) = 0;
