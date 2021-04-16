@@ -40,7 +40,10 @@ struct PHY_PACKED tree_ptr_t {
     tree_ptr_t() {
     }
 
-    tree_ptr_t(dhara_sector_t root, dhara_sector_t tail) : root(root), tail(tail) {
+    explicit tree_ptr_t(dhara_sector_t first) : root(first), tail(first) {
+    }
+
+    explicit tree_ptr_t(dhara_sector_t root, dhara_sector_t tail) : root(root), tail(tail) {
     }
 
     bool valid() const {

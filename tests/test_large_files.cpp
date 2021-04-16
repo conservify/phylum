@@ -1,4 +1,5 @@
 #include <directory_chain.h>
+#include <directory_tree.h>
 #include <file_appender.h>
 #include <tree_sector.h>
 
@@ -10,24 +11,35 @@ using namespace phylum;
 template<typename T>
 class LargeFileFixture : public PhylumFixture {};
 
+template<typename TLayout, typename TDirectory, typename TTree>
+struct test_types {
+    using layout_type = TLayout;
+    using directory_type = TDirectory;
+    using tree_type = TTree;
+};
+
 typedef ::testing::Types<
-    std::pair<layout_256, tree_sector<uint32_t, uint32_t, 5>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 63>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 287>>,
-    std::pair<layout_4096, tree_sector<uint32_t, uint32_t, 405>>>
+    test_types<layout_256, directory_chain, tree_sector<uint32_t, uint32_t, 5>>,
+    test_types<layout_4096, directory_chain, tree_sector<uint32_t, uint32_t, 63>>,
+    test_types<layout_4096, directory_chain, tree_sector<uint32_t, uint32_t, 287>>,
+    test_types<layout_4096, directory_chain, tree_sector<uint32_t, uint32_t, 405>>,
+    test_types<layout_4096, directory_tree, tree_sector<uint32_t, uint32_t, 405>>>
     Implementations;
 
 TYPED_TEST_SUITE(LargeFileFixture, Implementations);
 
 TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
-    typename TypeParam::first_type layout;
+    using layout_type = typename TypeParam::layout_type;
+    using directory_type = typename TypeParam::directory_type;
+
+    layout_type layout;
     FlashMemory memory{ layout.sector_size };
 
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.touch("data.txt"), 0);
+    memory.mounted<directory_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("data.txt"), 0);
 
-        ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        ASSERT_EQ(dir.find("data.txt", open_file_config{ }), 1);
+        file_appender opened{ memory.pc(), &dir, dir.open() };
 
         phydebugf("suppressing 1MB of writes from debug");
         suppress_logs sl;
@@ -41,27 +53,27 @@ TYPED_TEST(LargeFileFixture, WriteOneMegabyte) {
 
         ASSERT_EQ(opened.flush(), 0);
     });
-
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.log(), 0);
-    });
 }
 
-TYPED_TEST(LargeFileFixture, WriteOneMegabyteIndexed) {
-    typename TypeParam::first_type layout;
+TYPED_TEST(LargeFileFixture, WriteLargeFileIndexed_ContinuousWrites) {
+    using layout_type = typename TypeParam::layout_type;
+    using directory_type = typename TypeParam::directory_type;
+    using tree_type = typename TypeParam::tree_type;
+
+    layout_type layout;
     FlashMemory memory{ layout.sector_size };
 
-    memory.mounted<directory_chain>([&](auto &chain) {
-        ASSERT_EQ(chain.touch("data.txt"), 0);
+    memory.mounted<directory_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("data.txt"), 0);
 
-        ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        ASSERT_EQ(dir.find("data.txt", open_file_config{ }), 1);
+        file_appender opened{ memory.pc(), &dir, dir.open() };
 
         auto position_index_sector = memory.allocator().allocate();
-        typename TypeParam::second_type position_index{ memory.buffers(), memory.sectors(), memory.allocator(), position_index_sector, "posidx" };
+        tree_type position_index{ memory.pc(), tree_ptr_t{ position_index_sector }, "posidx" };
 
         auto record_index_sector = memory.allocator().allocate();
-        typename TypeParam::second_type record_index{ memory.buffers(), memory.sectors(), memory.allocator(), record_index_sector, "recidx" };
+        tree_type record_index{ memory.pc(), tree_ptr_t{ record_index_sector }, "recidx" };
 
         ASSERT_EQ(position_index.create(), 0);
         ASSERT_EQ(record_index.create(), 0);

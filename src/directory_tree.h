@@ -44,12 +44,8 @@ private:
     dir_node_type node_;
 
 public:
-    directory_tree(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t sector)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), tree_(buffers, sectors, allocator, tree_ptr_t{ sector, sector }, "dir-chain") {
-    }
-
-    directory_tree(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, tree_ptr_t tree)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), tree_(buffers, sectors, allocator, tree, "dir-chain") {
+    directory_tree(phyctx pc, dhara_sector_t sector)
+        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), tree_(pc, tree_ptr_t{ sector, sector }, "dir-tree") {
     }
 
     virtual ~directory_tree() {

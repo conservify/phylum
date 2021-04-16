@@ -23,7 +23,7 @@ TYPED_TEST(WriteFixture, WriteInlineOnce) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -39,7 +39,7 @@ TYPED_TEST(WriteFixture, WriteInlineBuffersMultipleSmall) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -57,7 +57,7 @@ TYPED_TEST(WriteFixture, WriteInlineMultipleFlushEach) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -77,7 +77,7 @@ TYPED_TEST(WriteFixture, WriteThreeInlineWritesAndTriggerDataChain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -99,7 +99,7 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChain) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -123,7 +123,7 @@ TYPED_TEST(WriteFixture, WriteAppendsToDataChainGrowingToNewBlock) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -147,7 +147,7 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -168,7 +168,7 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -188,7 +188,7 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         auto hello = "Hello, world! How are you!";
 
@@ -217,7 +217,7 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SingleBlock) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         for (auto i = 0u; i < 5; ++i) {
             ASSERT_GT(opened.write(hello), 0);
@@ -237,7 +237,7 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocks) {
         ASSERT_EQ(chain.touch("data.txt"), 0);
 
         ASSERT_EQ(chain.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ chain, &chain, chain.open() };
+        file_appender opened{ memory.pc(), &chain, chain.open() };
 
         for (auto i = 0u; i < 10; ++i) {
             ASSERT_GT(opened.write(hello), 0);

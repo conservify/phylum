@@ -14,9 +14,7 @@ private:
     data_chain data_chain_;
 
 public:
-    file_appender(sector_chain &other, directory *directory, found_file file);
-
-    file_appender(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file);
+    file_appender(phyctx pc, directory *directory, found_file file);
 
     virtual ~file_appender();
 

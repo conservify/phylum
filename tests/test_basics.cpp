@@ -41,7 +41,7 @@ TYPED_TEST(BasicsFixture, MountFormatMount) {
 
     memory.begin(true);
 
-    dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+    dir_type dir{ memory.pc(), 0 };
     ASSERT_EQ(dir.mount(), -1);
     ASSERT_EQ(dir.format(), 0);
     ASSERT_EQ(dir.mount(), 0);
@@ -55,12 +55,12 @@ TYPED_TEST(BasicsFixture, FormatPersists) {
     memory.begin(true);
 
     memory.sync([&]() {
-        dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+        dir_type dir{ memory.pc(), 0 };
         ASSERT_EQ(dir.format(), 0);
     });
 
     memory.sync([&]() {
-        dir_type dir{ memory.buffers(), memory.sectors(), memory.allocator(), 0 };
+        dir_type dir{ memory.pc(), 0 };
         ASSERT_EQ(dir.mount(), 0);
     });
 }
@@ -189,10 +189,10 @@ TYPED_TEST(BasicsFixture, FreeSectorsChain_Empty) {
     FlashMemory memory{ layout.sector_size };
 
     memory.mounted<dir_type>([&](auto &dir) {
-        data_chain dc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "dc" };
+        data_chain dc{ memory.pc(), head_tail_t{ }, "dc" };
         ASSERT_EQ(dc.create_if_necessary(), 0);
 
-        free_sectors_chain fsc{ memory.buffers(), memory.sectors(), memory.allocator(), head_tail_t{ }, "fsc" };
+        free_sectors_chain fsc{ memory.pc(), head_tail_t{ } };
         ASSERT_EQ(fsc.create_if_necessary(), 0);
 
         dhara_sector_t sector = 0;

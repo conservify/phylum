@@ -6,12 +6,8 @@ namespace phylum {
 
 class record_chain : public sector_chain {
 public:
-    record_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, head_tail_t chain, const char *prefix)
-        : sector_chain(buffers, sectors, allocator, chain, prefix) {
-    }
-
-    record_chain(sector_chain &other, head_tail_t chain, const char *prefix)
-        : sector_chain(other, chain, prefix) {
+    record_chain(phyctx pc, head_tail_t chain, const char *prefix)
+        : sector_chain(pc, chain, prefix) {
     }
 
 public:

@@ -10,12 +10,8 @@ private:
     found_file file_;
 
 public:
-    directory_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t head)
-        : record_chain(buffers, sectors, allocator, head_tail_t{ head, InvalidSector }, "dir-chain") {
-    }
-
-    directory_chain(sector_chain &other, dhara_sector_t head)
-        : record_chain(other, { head, InvalidSector }, "dir-chain") {
+    directory_chain(phyctx pc, dhara_sector_t head)
+        : record_chain(pc, head_tail_t{ head, InvalidSector }, "dir-chain") {
     }
 
     virtual ~directory_chain() {

@@ -5,6 +5,7 @@
 #include "sector_allocator.h"
 #include "working_buffers.h"
 #include "paging_delimited_buffer.h"
+#include "phyctx.h"
 
 namespace phylum {
 
@@ -27,15 +28,9 @@ private:
     char name_[ChainNameLength];
 
 public:
-    sector_chain(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, head_tail_t chain, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), head_(chain.head),
+    sector_chain(phyctx pc, head_tail_t chain, const char *prefix)
+        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), buffer_(pc.buffers_, pc.sectors_), head_(chain.head),
           tail_(chain.tail), prefix_(prefix) {
-        name("%s[unk]", prefix_);
-    }
-
-    sector_chain(sector_chain &other, head_tail_t chain, const char *prefix)
-        : buffers_(other.buffers_), sectors_(other.sectors_), allocator_(other.allocator_),
-          buffer_(*other.buffers_, *other.sectors_), head_(chain.head), tail_(chain.tail), prefix_(prefix) {
         name("%s[unk]", prefix_);
     }
 
@@ -79,6 +74,10 @@ protected:
     int32_t flush(page_lock &page_lock);
 
     void name(const char *f, ...);
+
+    phyctx pc() {
+        return phyctx{ *buffers_, *sectors_, *allocator_ };
+    }
 
     dhara_sector_t sector() const {
         return sector_;

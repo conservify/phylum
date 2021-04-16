@@ -2,14 +2,9 @@
 
 namespace phylum {
 
-file_reader::file_reader(sector_chain &other, directory *directory, found_file file)
-    : directory_(directory), file_(file), buffer_(std::move(other.buffers().allocate(other.buffers().buffer_size()))),
-      data_chain_(other, file.chain, "file-rdr") {
-}
-
-file_reader::file_reader(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file)
-    : directory_(directory), file_(file), buffer_(std::move(buffers.allocate(sectors.sector_size()))),
-      data_chain_(buffers, sectors, allocator, file.chain, "file-rdr") {
+file_reader::file_reader(phyctx pc, directory *directory, found_file file)
+    : directory_(directory), file_(file), buffer_(std::move(pc.buffers_.allocate(pc.sectors_.sector_size()))),
+      data_chain_(pc, file.chain, "file-rdr") {
 }
 
 file_reader::~file_reader() {

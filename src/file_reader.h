@@ -15,9 +15,7 @@ private:
     file_size_t position_{ 0 };
 
 public:
-    file_reader(sector_chain &other, directory *directory, found_file file);
-
-    file_reader(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, directory *directory, found_file file);
+    file_reader(phyctx pc, directory *directory, found_file file);
 
     virtual ~file_reader();
 

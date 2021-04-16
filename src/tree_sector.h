@@ -5,6 +5,7 @@
 #include "delimited_buffer.h"
 #include "working_buffers.h"
 #include "paging_delimited_buffer.h"
+#include "phyctx.h"
 
 namespace phylum {
 
@@ -76,13 +77,8 @@ private:
     char name_[ScopeNameLength];
 
 public:
-    tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, dhara_sector_t root, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(root), tail_(root), prefix_(prefix) {
-        name("%s[%d]", prefix_, root_);
-    }
-
-    tree_sector(working_buffers &buffers, sector_map &sectors, sector_allocator &allocator, tree_ptr_t tree, const char *prefix)
-        : buffers_(&buffers), sectors_(&sectors), allocator_(&allocator), buffer_(buffers, sectors), root_(tree.root), tail_(tree.tail), prefix_(prefix) {
+    tree_sector(phyctx pc, tree_ptr_t tree, const char *prefix = "tree")
+        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), buffer_(pc.buffers_, pc.sectors_), root_(tree.root), tail_(tree.tail), prefix_(prefix) {
         name("%s[%d]", prefix_, root_);
     }
 

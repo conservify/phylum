@@ -71,6 +71,10 @@ public:
         ASSERT_EQ(sectors_.sync(), 0);
     }
 
+    phyctx pc() {
+        return phyctx{ buffers(), sectors(), allocator() };
+    }
+
     template<typename DirectoryType>
     void mounted(std::function<void(DirectoryType &dir)> fn) {
         if (formatted_) {
@@ -82,7 +86,7 @@ public:
             initialized_ = true;
         }
 
-        DirectoryType dir{ buffers_, sectors_, allocator_, 0 };
+        DirectoryType dir{ pc(), 0 };
         if (formatted_) {
             ASSERT_EQ(dir.mount(), 0);
         }
