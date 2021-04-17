@@ -116,13 +116,17 @@ public:
             if (p.sector == sector) {
                 // Otherwise, this sector is open for writing as we
                 // speak. Which should never happen.
-                if (!read_only) {
+                if (read_only) {
                     assert(p.refs >= 0);
+                    p.refs++;
+                }
+                else {
+                    assert(p.refs <= 0);
+                    p.refs--;
                 }
 
                 counter_++;
 
-                p.refs++;
                 p.used = counter_;
 
                 phydebugf("wbuffers[%d]: reusing refs=%d", i, p.refs);
@@ -268,6 +272,8 @@ public:
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
             if (p.buffer == ptr) {
+                phydebugf("wbuffers[%d]: free refs-before=%d sector=%d", i, p.refs, p.sector);
+
                 assert(p.refs != 0);
 
                 if (p.refs > 0) {
@@ -277,7 +283,6 @@ public:
                     p.refs++;
                 }
 
-                phydebugf("wbuffers[%d]: free refs=%d sector=%d", i, p.refs, p.sector);
                 if (false) {
                     phydebug_dump_memory("free[%d, sector=%d] ", p.buffer, buffer_size_, i, p.sector);
                 }
