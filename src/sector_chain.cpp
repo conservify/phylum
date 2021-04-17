@@ -282,7 +282,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
     tail(allocated);
     sector(allocated);
 
-    auto err = page_lock.replace(allocated);
+    auto err = page_lock.replace(allocated, true);
     if (err < 0) {
         return err;
     }

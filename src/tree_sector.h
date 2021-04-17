@@ -573,7 +573,7 @@ public:
 
         sector(root_);
 
-        auto page_lock = db().writing(sector());
+        auto page_lock = db().overwrite(sector());
 
         assert(db().empty());
 

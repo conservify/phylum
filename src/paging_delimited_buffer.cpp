@@ -90,7 +90,7 @@ void paging_delimited_buffer::ensure_valid() const {
 int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, bool overwrite) {
     assert(sector != InvalidSector);
 
-    phydebugf("page-lock: replacing previous=%d sector=%d read-only=%d", sector_, sector, read_only);
+    phydebugf("page-lock: replacing previous=%d sector=%d read-only=%d overwrite=%s", sector_, sector, read_only, overwrite ? "yes" : "no");
 
     if (sector == sector_) {
         phydebugf("page-lock: replace (noop)");
@@ -98,12 +98,13 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
     }
 
     auto miss_fn = [=](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
-        phydebugf("wbuffers: miss %d", page_sector);
         assert(size > 0);
         if (overwrite) {
+            phydebugf("wbuffers: erase %d", page_sector);
             memset(buffer, 0xff, size);
             return 0;
         }
+        phydebugf("wbuffers: miss %d", page_sector);
         return sectors_->read(page_sector, buffer, size);
     };
 
@@ -132,8 +133,6 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
 }
 
 int32_t paging_delimited_buffer::flush(dhara_sector_t sector) {
-    phydebugf("flush have=%d expected=%d", sector_, sector);
-
     assert(sector_ != InvalidSector);
     assert(sector_ == sector);
 
