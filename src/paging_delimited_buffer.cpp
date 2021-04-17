@@ -16,14 +16,21 @@ page_lock::page_lock(paging_delimited_buffer *buffer, dhara_sector_t sector, boo
     }
 }
 
+page_lock::page_lock(page_lock &&other)
+    : buffer_(other.buffer_), sector_(std::exchange(other.sector_, InvalidSector)), read_only_(other.read_only_),
+      dirty_(other.dirty_) {
+}
+
 page_lock::~page_lock() {
     if (sector_ != InvalidSector) {
-        assert(buffer_->release() == 0);
+        assert(buffer_->release(sector_) == 0);
+        sector_ = InvalidSector;
     }
 }
 
 int32_t page_lock::replace(dhara_sector_t sector, bool overwrite) {
     assert(sector != InvalidSector);
+
     if (sector_ == sector) {
         phydebugf("page-lock: noop replace sector=%d", sector);
         return 0;
@@ -102,16 +109,15 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
     auto miss_fn = [=](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
         assert(size > 0);
         if (overwrite) {
-            phydebugf("wbuffers: erase %d", page_sector);
+            phydebugf("page-lock: erase %d", page_sector);
             memset(buffer, 0xff, size);
             return 0;
         }
-        phydebugf("wbuffers: miss %d", page_sector);
+        phydebugf("page-lock: miss %d", page_sector);
         return sectors_->read(page_sector, buffer, size);
     };
 
     auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
-        phydebugf("wbuffers: flush %d", page_sector);
         assert(size > 0);
         return sectors_->write(page_sector, buffer, size);
     };
@@ -139,7 +145,6 @@ int32_t paging_delimited_buffer::flush(dhara_sector_t sector) {
     assert(sector_ == sector);
 
     auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
-        phydebugf("wbuffers: flush %d", page_sector);
         assert(size > 0);
         return sectors_->write(page_sector, buffer, size);
     };
@@ -152,9 +157,10 @@ int32_t paging_delimited_buffer::flush(dhara_sector_t sector) {
     return 0;
 }
 
-int32_t paging_delimited_buffer::release() {
+int32_t paging_delimited_buffer::release(dhara_sector_t sector) {
     assert(valid_);
     assert(sector_ != InvalidSector);
+    assert(sector_ == sector);
 
     valid_ = false;
     sector_ = InvalidSector;
