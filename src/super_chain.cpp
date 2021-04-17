@@ -33,7 +33,7 @@ int32_t super_chain::update(tree_ptr_t directory_tree) {
     auto modified = false;
 
     assert(db().write_header<super_block_t>([&](super_block_t *header) {
-        if (header->directory_tree.root != directory_tree.root || header->directory_tree.tail != directory_tree.tail) {
+        if (header->directory_tree != directory_tree) {
             header->directory_tree = directory_tree;
             modified = true;
         }

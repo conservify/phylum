@@ -8,6 +8,7 @@ namespace phylum {
 
 class file_reader {
 private:
+    phyctx pc_;
     directory *directory_{ nullptr };
     found_file file_;
     simple_buffer buffer_;

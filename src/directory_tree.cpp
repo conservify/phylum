@@ -190,13 +190,27 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
         }
     }
 
-    if (node_.u.file.attributes.root != attributes_tree.root || node_.u.file.attributes.tail != attributes_tree.tail ) {
+    if (node_.u.file.attributes != attributes_tree) {
         node_.u.file.attributes = attributes_tree;
 
         auto err = flush();
         if (err < 0) {
             return err;
         }
+    }
+
+    return 0;
+}
+
+int32_t directory_tree::file_trees(file_id_t id, tree_ptr_t position_index, tree_ptr_t record_index) {
+    assert(file_.id == id);
+
+    node_.u.file.position_index = position_index;
+    node_.u.file.record_index = record_index;
+
+    auto err = flush();
+    if (err < 0) {
+        return err;
     }
 
     return 0;

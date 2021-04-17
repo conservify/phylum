@@ -3,7 +3,7 @@
 namespace phylum {
 
 file_reader::file_reader(phyctx pc, directory *directory, found_file file)
-    : directory_(directory), file_(file), buffer_(std::move(pc.buffers_.allocate(pc.sectors_.sector_size()))),
+    : pc_(pc), directory_(directory), file_(file), buffer_(std::move(pc.buffers_.allocate(pc.sectors_.sector_size()))),
       data_chain_(pc, file.chain, "file-rdr") {
 }
 

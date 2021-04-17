@@ -50,7 +50,7 @@ public:
         return visited_sectors_;
     }
 
-    void clear_visisted_sectors() {
+    void clear_visited_sectors() {
         visited_sectors_ = 0;
     }
 

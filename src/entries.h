@@ -31,6 +31,14 @@ struct PHY_PACKED head_tail_t {
     bool valid() const {
         return head != InvalidSector;
     }
+
+    bool operator!=(const head_tail_t &other) const {
+        return head != other.head || tail != other.tail;
+    }
+
+    bool operator==(const head_tail_t &other) const {
+        return head == other.head && tail == other.tail;
+    }
 };
 
 struct PHY_PACKED tree_ptr_t {
@@ -48,6 +56,14 @@ struct PHY_PACKED tree_ptr_t {
 
     bool valid() const {
         return root != InvalidSector;
+    }
+
+    bool operator!=(const tree_ptr_t &other) const {
+        return root != other.root || tail != other.tail;
+    }
+
+    bool operator==(const tree_ptr_t &other) const {
+        return root == other.root && tail == other.tail;
     }
 };
 
@@ -254,6 +270,14 @@ struct PHY_PACKED node_ptr_t {
         // NOTE It's also true that position can never be zero for a
         // node_ptr_t, because headers are zero-length.
         return sector != InvalidSector;
+    }
+
+    bool operator!=(const node_ptr_t &other) const {
+        return sector != other.sector || position != other.position;
+    }
+
+    bool operator==(const node_ptr_t &other) const {
+        return sector == other.sector && position == other.position;
     }
 };
 

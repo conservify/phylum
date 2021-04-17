@@ -42,6 +42,8 @@ private:
     sector_allocator *allocator_{ nullptr };
     dir_tree_type tree_;
     found_file file_;
+    // TODO Consider dynamically allocating this. Very stack heavy for
+    // dirtree entries.
     dir_node_type node_;
 
 public:
@@ -118,7 +120,7 @@ public:
             return err;
         }
 
-        alogf(LogLevels::INFO, "dir-tree",
+        alogf(LogLevels::INFO, "phylum",
               "touch-indexed '%s' data-chain=%" PRIu32 " pos-idx=%" PRIu32 " rec-idx=%" PRIu32, name, data_chain.head(),
               position_index_sector, record_index_sector);
 
@@ -142,6 +144,8 @@ protected:
     int32_t file_chain(file_id_t id, head_tail_t chain) override;
 
     int32_t file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) override;
+
+    int32_t file_trees(file_id_t id, tree_ptr_t position_index, tree_ptr_t record_index) override;
 
     int32_t read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) override;
 

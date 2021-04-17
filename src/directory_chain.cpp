@@ -117,6 +117,10 @@ int32_t directory_chain::file_data(file_id_t id, uint8_t const *buffer, size_t s
     return 0;
 }
 
+int32_t directory_chain::file_trees(file_id_t /*id*/, tree_ptr_t /*position_index*/, tree_ptr_t /*record_index*/) {
+    return -1;
+}
+
 int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     logged_task lt{ "dir-find" };
 

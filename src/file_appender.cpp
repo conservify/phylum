@@ -3,7 +3,7 @@
 namespace phylum {
 
 file_appender::file_appender(phyctx pc, directory *directory, found_file file)
-    : directory_(directory), file_(file), buffer_(std::move(pc.buffers_.allocate(pc.sectors_.sector_size()))),
+    : pc_(pc), directory_(directory), file_(file), buffer_(std::move(pc.buffers_.allocate(pc.sectors_.sector_size()))),
       data_chain_(pc, file.chain, "file-app") {
 }
 
@@ -13,7 +13,7 @@ file_appender::~file_appender() {
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
-    return buffer_.fill(data, size, [&](simple_buffer &) {
+    return buffer_.fill(data, size, [&](simple_buffer &) -> int32_t {
         return flush();
     });
 }
@@ -26,8 +26,8 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    err = directory_->read(file_.id, [&](read_buffer data_buffer) {
-        return data_buffer.read_to_end([&](read_buffer rb) {
+    err = directory_->read(file_.id, [&](read_buffer data_buffer) -> int32_t {
+        return data_buffer.read_to_end([&](read_buffer rb) -> int32_t {
             return data_chain_.write(rb.ptr(), rb.size());
         });
     });
@@ -36,7 +36,7 @@ int32_t file_appender::make_data_chain() {
     }
 
     if (buffer_.position() > 0) {
-        auto err = buffer_.read_to_position([&](read_buffer rb) {
+        auto err = buffer_.read_to_position([&](read_buffer rb) -> int32_t {
             return data_chain_.write(rb.ptr(), rb.size());
         });
         if (err < 0) {
@@ -44,6 +44,20 @@ int32_t file_appender::make_data_chain() {
         }
 
         buffer_.clear();
+    }
+
+    return 0;
+}
+
+int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_cursor)> fn) {
+    if (data_chain_.visited_sectors() > 0 && data_chain_.visited_sectors() % 16 == 0) {
+        auto cursor = data_chain_.cursor();
+        auto err = fn(cursor);
+        if (err < 0) {
+            return err;
+        }
+
+        data_chain_.clear_visited_sectors();
     }
 
     return 0;
@@ -59,7 +73,7 @@ int32_t file_appender::flush() {
     if (had_chain) {
         phyinfof("writing to chain");
 
-        auto err = buffer_.read_to_position([&](read_buffer buffer) {
+        auto err = buffer_.read_to_position([&](read_buffer buffer) -> int32_t {
             return data_chain_.write(buffer.ptr(), buffer.size());
         });
         if (err < 0) {
@@ -76,7 +90,7 @@ int32_t file_appender::flush() {
         if (pending < file_.directory_capacity) {
             phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
-            auto err = buffer_.read_to_position([&](read_buffer buffer) {
+            auto err = buffer_.read_to_position([&](read_buffer buffer) -> int32_t {
                 assert(directory_->file_data(file_.id, buffer.ptr(), buffer.size()) >= 0);
                 return buffer.size();
             });
