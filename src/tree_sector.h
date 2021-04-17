@@ -70,7 +70,6 @@ private:
     sector_map *sectors_{ nullptr };
     sector_allocator *allocator_{ nullptr };
     buffer_type buffer_;
-    dhara_sector_t sector_{ InvalidSector };
     dhara_sector_t root_{ InvalidSector };
     dhara_sector_t tail_{ InvalidSector };
     const char *prefix_{ "tree-sector" };
@@ -101,10 +100,6 @@ public:
     }
 
 protected:
-    dhara_sector_t sector() const {
-        return sector_;
-    }
-
     size_t sector_size() const {
         return buffer_.size();
     }
@@ -117,18 +112,10 @@ protected:
         return *allocator_;
     }
 
-    // Allow users to call this to set the sector and defer the read
-    // to when the code actually needs to do a read.
-    void sector(dhara_sector_t sector) {
-        sector_ = sector;
-        name("%s[%d]", prefix_, sector_);
-    }
-
 private:
     static persisted_node_t find_sector_root(dhara_sector_t sector, delimited_buffer &db) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            phydebugf("fsr:iter: %d", iter->position());
             if (iter->as<entry_t>()->type == entry_type::TreeNode) {
                 auto node = db.as_mutable<default_node_type>(*iter);
                 if (selected.node == nullptr || selected.node->depth < node->depth) {
@@ -144,13 +131,9 @@ private:
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
             if (iter->position() == ptr.position) {
                 auto node = db.as_mutable<default_node_type>(*iter);
-                phydebugf("find-node-in-sector: %d:%d (%d) !", ptr.sector, ptr.position, iter->position());
                 return persisted_node_t{ node, ptr };
-            } else {
-                phydebugf("find-node-in-sector: %d:%d (%d)", ptr.sector, ptr.position, iter->position());
             }
         }
-        phydebugf("find-node-in-sector: eos");
         return persisted_node_t{};
     }
 
@@ -243,13 +226,15 @@ private:
         assert(node->number_keys < Size);
         assert(depth != 0);
 
-        auto left = sector();
-
-        phydebugf("%s entered dirty=%d node-ptr=%d:%d", name(), page_lock.is_dirty(), node_ptr.sector, node_ptr.position);
+        auto left = page_lock.sector();
 
         insertion_t insertion;
         auto index = Keys::inner_position_for(key, *node);
         auto child_ptr = node->d.children[index];
+
+        phydebugf("%s entered depth=%d dirty=%d node-ptr=%d:%d follow=%d:%d", name(), depth, page_lock.is_dirty(),
+                  node_ptr.sector, node_ptr.position, child_ptr.sector, child_ptr.position);
+
         persisted_node_t followed;
         auto err = follow_node_ptr(page_lock, child_ptr, followed);
         if (err < 0) {
@@ -270,8 +255,8 @@ private:
             }
         }
 
-        if (left != sector()) {
-            phydebugf("reloading previous=%d (from sector=%d) page-lock-sector=%d dirty=%d", left, sector(), page_lock.sector(), page_lock.is_dirty());
+        if (left != page_lock.sector()) {
+            phydebugf("reloading previous=%d page-lock: sector=%d dirty=%d", left, page_lock.sector(), page_lock.is_dirty());
 
             auto err = flush(page_lock);
             if (err < 0) {
@@ -282,8 +267,6 @@ private:
             if (err < 0) {
                 return err;
             }
-
-            sector(left);
         }
         else {
             phydebugf("same sector %d", left);
@@ -390,8 +373,8 @@ private:
         return 0;
     }
 
-    int32_t flush(page_lock &page_lock) {
-        auto err = page_lock.flush(sector_);
+    int32_t flush(page_lock &lock) {
+        auto err = lock.flush(lock.sector());
         if (err < 0) {
             return err;
         }
@@ -404,11 +387,11 @@ private:
         db().seek_end();
 
         if (db().template room_for<default_node_type>()) {
-            phydebugf("%s appending node %zu/%zu", name(), db().position(), db().size());
+            phydebugf("%s appending node %d:%d", name(), page_lock.sector(), db().position());
 
             auto placed = db().template reserve<default_node_type>();
 
-            ptr = node_ptr_t{ sector_, placed.position };
+            ptr = node_ptr_t{ page_lock.sector(), placed.position };
 
             auto err = fill_fn(placed.record, ptr);
             if (err < 0) {
@@ -421,11 +404,11 @@ private:
         }
 
         auto allocated = allocator_->allocate();
-        assert(allocated != sector_); // Don't ask.
 
         phydebugf("%s grow! %zu/%zu alloc=%d", name(), db().position(), db().size(), allocated);
 
         buffer_type buffer{ *buffers_, *sectors_ };
+
         auto child_page_lock = buffer.overwrite(allocated);
 
         buffer.template emplace<sector_chain_header_t>(entry_type::TreeSector, InvalidSector, tail_);
@@ -454,12 +437,12 @@ private:
     }
 
     int32_t follow_node_ptr(page_lock &page_lock, node_ptr_t &ptr, persisted_node_t &followed) {
-        if (ptr.sector != sector_) {
-            phydebugf("follow %d:%d (load-sector)", ptr.sector, ptr.position);
+        if (ptr.sector != page_lock.sector()) {
+            phyinfof("follow %d -> %d:%d (load-sector)", page_lock.sector(), ptr.sector, ptr.position);
 
             // TODO Move this into replace.
             if (page_lock.is_dirty()) {
-                auto err = page_lock.flush(sector());
+                auto err = page_lock.flush(page_lock.sector());
                 if (err < 0) {
                     return err;
                 }
@@ -472,11 +455,9 @@ private:
 
             assert(page_lock.sector() == ptr.sector);
 
-            sector(ptr.sector);
-
             phydebugf("follow %d:%d (done) page-lock-sector=%d", ptr.sector, ptr.position, page_lock.sector());
         } else {
-            phydebugf("follow %d:%d (same-sector)", ptr.sector, ptr.position);
+            phyinfof("follow %d -> %d:%d (same-sector)", page_lock.sector(), ptr.sector, ptr.position);
         }
 
         followed = find_node_in_sector(db(), ptr);
@@ -489,12 +470,11 @@ private:
     }
 
     int32_t back_to_root(page_lock &page_lock) {
-        phydebugf("%s back-to-root %d -> %d", name(), sector_, root_);
-        sector(root_);
+        phydebugf("%s back-to-root %d -> %d", name(), page_lock.sector(), root_);
 
         assert(!page_lock.is_dirty());
 
-        auto err = page_lock.replace(sector_);
+        auto err = page_lock.replace(root_);
         if (err < 0) {
             return err;
         }
@@ -512,15 +492,15 @@ private:
                 auto child = node->d.children[i];
 
                 if (false) {
-                    phyinfof("inner %d #%d key=%d -> %d:%d", sector(), i, node->keys[i], child.sector, child.position);
+                    phyinfof("inner %d #%d key=%d -> %d:%d", page_lock.sector(), i, node->keys[i], child.sector, child.position);
                 }
                 else {
-                    if (sector() != child.sector) {
-                        phyinfof("sector %d -> %d", sector(), child.sector);
+                    if (page_lock.sector() != child.sector) {
+                        phyinfof("sector %d -> %d", page_lock.sector(), child.sector);
                     }
                 }
 
-                auto left = sector();
+                auto left = page_lock.sector();
 
                 persisted_node_t followed;
                 auto err = follow_node_ptr(page_lock, child, followed);
@@ -533,12 +513,10 @@ private:
                     return err;
                 }
 
-                if (left != sector()) {
+                if (left != page_lock.sector()) {
                     phydebugf("reloading %d", left);
 
-                    sector(left);
-
-                    auto err = page_lock.replace(sector());
+                    auto err = page_lock.replace(left);
                     if (err < 0) {
                         return err;
                     }
@@ -569,11 +547,7 @@ public:
 
         phydebugf("%s creating", name());
 
-        assert(sector_ == InvalidSector);
-
-        sector(root_);
-
-        auto page_lock = db().overwrite(sector());
+        auto page_lock = db().overwrite(root_);
 
         assert(db().empty());
 
@@ -605,7 +579,7 @@ public:
             return err;
         }
 
-        auto pnode = find_sector_root(sector(), db());
+        auto pnode = find_sector_root(page_lock.sector(), db());
         assert(pnode.node != nullptr);
 
         auto node = pnode.node;
@@ -644,7 +618,7 @@ public:
 
             root_ = ptr.sector;
 
-            phydebugf("%s new top", name());
+            phydebugf("%s new root", name());
         }
 
         err = flush(page_lock);
@@ -652,7 +626,7 @@ public:
             return err;
         }
 
-        phydebugf("%s done adding node", name());
+        phydebugf("%s done adding", name());
 
         return 0;
     }
@@ -669,7 +643,7 @@ public:
             return err;
         }
 
-        auto pnode = find_sector_root(sector(), db());
+        auto pnode = find_sector_root(page_lock.sector(), db());
         auto node = pnode.node;
         assert(node != nullptr);
 
@@ -714,7 +688,7 @@ public:
             return err;
         }
 
-        auto pnode = find_sector_root(sector(), db());
+        auto pnode = find_sector_root(page_lock.sector(), db());
         auto node = pnode.node;
         assert(node != nullptr);
 
@@ -776,7 +750,7 @@ public:
             return err;
         }
 
-        auto pnode = find_sector_root(sector(), db());
+        auto pnode = find_sector_root(page_lock.sector(), db());
         auto node = pnode.node;
         assert(node != nullptr);
 
