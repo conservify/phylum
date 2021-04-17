@@ -89,7 +89,7 @@ int32_t sector_chain::back_to_head(page_lock &page_lock) {
     db().rewind();
 
     sector_ = head_;
-    length_sectors_ = 0;
+    visited_sectors_ = 0;
 
     return 0;
 }
@@ -109,9 +109,9 @@ int32_t sector_chain::forward(page_lock &page_lock) {
         if (hdr->np == 0 || hdr->np == UINT32_MAX) {
             if (hdr->type == entry_type::DataSector) {
                 auto dchdr = db().header<data_chain_header_t>();
-                phydebugf("%s sector=%d bytes=%d length=%d (end)", name(), sector_, dchdr->bytes, length_sectors_);
+                phydebugf("%s sector=%d bytes=%d length=%d (end)", name(), sector_, dchdr->bytes, visited_sectors_);
             } else {
-                phydebugf("%s sector=%d length=%d (end)", name(), sector_, length_sectors_);
+                phydebugf("%s sector=%d length=%d (end)", name(), sector_, visited_sectors_);
             }
             return 0;
         }
@@ -120,9 +120,9 @@ int32_t sector_chain::forward(page_lock &page_lock) {
 
         if (hdr->type == entry_type::DataSector) {
             auto dchdr = db().header<data_chain_header_t>();
-            phydebugf("%s sector=%d bytes=%d length=%d", name(), sector_, dchdr->bytes, length_sectors_);
+            phydebugf("%s sector=%d bytes=%d length=%d", name(), sector_, dchdr->bytes, visited_sectors_);
         } else {
-            phydebugf("%s sector=%d length=%d", name(), sector_, length_sectors_);
+            phydebugf("%s sector=%d length=%d", name(), sector_, visited_sectors_);
         }
     }
 
@@ -132,7 +132,7 @@ int32_t sector_chain::forward(page_lock &page_lock) {
         return err;
     }
 
-    length_sectors_++;
+    visited_sectors_++;
 
     return 1;
 }
@@ -290,7 +290,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
     }
 
     buffer_.clear();
-    length_sectors_++;
+    visited_sectors_++;
 
     err = write_header(page_lock);
     if (err < 0) {

@@ -86,7 +86,7 @@ TYPED_TEST(LargeFileFixture, WriteLargeFileIndexed_ContinuousWrites) {
             suppress_logs sl;
 
             while (written < 1024u * 1024u) {
-                if (opened.length_sectors() % 16 == 0) {
+                if (opened.visited_sectors() % 16 == 0) {
                     if (written == 0 || opened.cursor().sector != cursor.sector) {
                         cursor = opened.cursor();
 

@@ -22,7 +22,7 @@ private:
     dhara_sector_t head_{ InvalidSector };
     dhara_sector_t tail_{ InvalidSector };
     dhara_sector_t sector_{ InvalidSector };
-    dhara_sector_t length_sectors_{ 0 };
+    dhara_sector_t visited_sectors_{ 0 };
     bool appendable_{ false };
     const char *prefix_{ "sector-chain" };
     char name_[ChainNameLength];
@@ -42,8 +42,16 @@ public:
         return *buffers_;
     }
 
-    dhara_sector_t length_sectors() const {
-        return length_sectors_;
+    phyctx pc() {
+        return phyctx{ *buffers_, *sectors_, *allocator_ };
+    }
+
+    dhara_sector_t visited_sectors() const {
+        return visited_sectors_;
+    }
+
+    void clear_visisted_sectors() {
+        visited_sectors_ = 0;
     }
 
     bool valid() const {
@@ -78,10 +86,6 @@ protected:
     int32_t flush(page_lock &page_lock);
 
     void name(const char *f, ...);
-
-    phyctx pc() {
-        return phyctx{ *buffers_, *sectors_, *allocator_ };
-    }
 
     dhara_sector_t sector() const {
         return sector_;

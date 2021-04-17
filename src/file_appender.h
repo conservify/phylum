@@ -37,9 +37,9 @@ public:
 
     void u32(uint8_t type, uint32_t value);
 
-    size_t length_sectors() {
+    size_t visited_sectors() {
         if (has_chain()) {
-            return data_chain_.length_sectors();
+            return data_chain_.visited_sectors();
         }
         return 0;
     }
