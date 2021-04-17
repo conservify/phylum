@@ -5,6 +5,9 @@
 
 namespace phylum {
 
+/**
+ * Deprecated and unlikely to receive any new features. \see directory_tree
+ */
 class directory_chain : public record_chain, public directory {
 private:
     found_file file_;
