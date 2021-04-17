@@ -194,7 +194,7 @@ private:
                 lock.dirty();
 
                 if (index < threshold) {
-                    auto err = leaf_insert_nonfull(lock, depth - 1, new_sibling_ptr, node, key, value, index);
+                    auto err = leaf_insert_nonfull(lock, depth - 1, node_ptr, node, key, value, index);
                     if (err < 0) {
                         return err;
                     }
@@ -347,7 +347,7 @@ private:
 
                 // Now insert in the appropriate sibling
                 if (key < insertion.key) {
-                    auto err = inner_insert_nonfull(lock, depth, new_sibling_ptr, node, key, value);
+                    auto err = inner_insert_nonfull(lock, depth, node_ptr, node, key, value);
                     if (err < 0) {
                         return err;
                     }
