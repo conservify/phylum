@@ -4,7 +4,7 @@
 namespace phylum {
 
 int32_t data_chain::write_header(page_lock &page_lock) {
-    logged_task{ "dc-write-hdr", name() };
+    logged_task it{ "dc-write-hdr", name() };
 
     assert_valid();
 
@@ -30,7 +30,7 @@ int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
 }
 
 int32_t data_chain::write(uint8_t const *data, size_t size) {
-    logged_task{ "dc-write", name() };
+    logged_task it{ "dc-write", name() };
 
     auto copied = 0u;
     return write_chain([&](simple_buffer buffer, bool &grow) {
@@ -60,7 +60,7 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
 }
 
 uint32_t data_chain::total_bytes() {
-    logged_task lta{ "total-bytes" };
+    logged_task lt{ "total-bytes" };
 
     auto page_lock = db().reading(head());
 
