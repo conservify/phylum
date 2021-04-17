@@ -32,7 +32,7 @@ private:
     file_size_t position_at_start_of_sector_{ 0 };
 
 public:
-    data_chain(phyctx pc, head_tail_t chain, const char *prefix)
+    data_chain(phyctx pc, head_tail_t chain, const char *prefix = "dc")
         : sector_chain(pc, chain, prefix) {
     }
 

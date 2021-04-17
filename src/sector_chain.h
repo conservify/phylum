@@ -58,6 +58,10 @@ public:
         return tail_;
     }
 
+    head_tail_t chain() const {
+        return  head_tail_t{ head_, tail_ };
+    }
+
     int32_t log();
 
     int32_t create_if_necessary();

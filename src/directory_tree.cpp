@@ -1,4 +1,6 @@
 #include "directory_tree.h"
+#include "data_chain.h"
+#include "tree_sector.h"
 
 namespace phylum {
 
@@ -85,6 +87,8 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     }
     else {
         file_.chain = node_.u.file.chain;
+        file_.position_index = node_.u.file.position_index;
+        file_.record_index = node_.u.file.record_index;
     }
 
     // If we're being asked to load attributes.

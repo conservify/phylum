@@ -5,6 +5,7 @@
 #include "tree_sector.h"
 #include "directory.h"
 #include "sector_chain.h"
+#include "data_chain.h"
 
 namespace phylum {
 
@@ -66,6 +67,61 @@ public:
 
     int32_t touch(const char *name) override;
 
+    template<typename TreeType>
+    int32_t touch_indexed(const char *name) {
+        auto id = make_file_id(name);
+
+        node_ = {};
+        node_.u.file = dirtree_file_t(name);
+
+        data_chain data_chain{ pc(), head_tail_t{} };
+        auto err = data_chain.create_if_necessary();
+        if (err < 0) {
+            return err;
+        }
+
+        node_.u.file.directory_size = 0;
+        node_.u.file.chain = data_chain.chain();
+
+        auto position_index_sector = allocator_->allocate();
+        auto position_index_tree = tree_ptr_t{ position_index_sector };
+        TreeType position_index{ pc(), position_index_tree, "posidx" };
+        err = position_index.create();
+        if (err < 0) {
+            return err;
+        }
+
+        node_.u.file.position_index = position_index_tree;
+
+        auto record_index_sector = allocator_->allocate();
+        auto record_index_tree = tree_ptr_t{ record_index_sector };
+        TreeType record_index{ pc(), record_index_tree, "recidx" };
+        err = record_index.create();
+        if (err < 0) {
+            return err;
+        }
+
+        node_.u.file.record_index = record_index_tree;
+
+        file_ = {};
+        file_.id = id;
+        file_.chain = node_.u.file.chain;
+        file_.position_index = node_.u.file.position_index;
+        file_.record_index = node_.u.file.record_index;
+
+        err = tree_.add(id, node_);
+        if (err < 0) {
+            return err;
+        }
+
+        alogf(LogLevels::INFO, "dir-tree",
+              "touch-indexed '%s' data-chain=%" PRIu32 " pos-idx=%" PRIu32 " rec-idx=%" PRIu32, name, data_chain.head(),
+              position_index_sector, record_index_sector);
+
+        return 0;
+    }
+
+
     int32_t unlink(const char *name) override;
 
     int32_t find(const char *name, open_file_config file_cfg) override;
@@ -87,6 +143,10 @@ protected:
 
 private:
     int32_t flush();
+
+    phyctx pc() {
+        return phyctx{ *buffers_, *sectors_, *allocator_ };
+    }
 
 };
 

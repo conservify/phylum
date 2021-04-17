@@ -19,6 +19,8 @@ struct found_file {
     file_size_t directory_size{ UINT32_MAX };
     file_size_t directory_capacity{ UINT32_MAX };
     head_tail_t chain;
+    tree_ptr_t position_index;
+    tree_ptr_t record_index;
     open_file_config cfg;
 };
 
