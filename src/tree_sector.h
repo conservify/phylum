@@ -164,6 +164,8 @@ private:
             node->d.values[index] = value;
         }
 
+        // assert(lock.sector() == node_ptr.sector);
+
         phydebugf("%s value node=%d:%d depth=%d", name(), node_ptr.sector, node_ptr.position, depth);
 
         lock.dirty();
@@ -188,6 +190,8 @@ private:
                     new_sibling->keys[j] = node->keys[threshold + j];
                     new_sibling->d.values[j] = node->d.values[threshold + j];
                 }
+
+                new_lock.dirty();
 
                 node->number_keys = threshold;
 
@@ -215,6 +219,7 @@ private:
         } else {
             phydebugf("node ok, inserting");
 
+            // NOTE Why this +1?
             return leaf_insert_nonfull(lock, depth + 1, node_ptr, node, key, value, index);
         }
     }
@@ -228,7 +233,6 @@ private:
 
         auto left = lock.sector();
 
-        insertion_t insertion;
         auto index = Keys::inner_position_for(key, *node);
         auto child_ptr = node->d.children[index];
 
@@ -241,6 +245,7 @@ private:
             return err;
         }
 
+        insertion_t insertion;
         if (depth - 1 == 0) {
             // Children are leaf.
             err = leaf_node_insert(lock, depth - 1, followed.ptr, followed.node, key, value, insertion);
@@ -280,9 +285,10 @@ private:
 
         node = relocated.node;
 
-        assert(node->number_keys <= Size);
+        assert(node->number_keys < Size);
 
         if (insertion.split) {
+            assert(index <= node->number_keys);
             if (index == node->number_keys) {
                 // Insertion at the rightmost key
                 node->keys[index] = insertion.key;
@@ -302,11 +308,9 @@ private:
                 node->number_keys++;
             }
 
-            phydebugf("recording split, dirty");
+            phydebugf("recording insertion, dirty %d:%d", node_ptr.sector, node_ptr.position);
 
             lock.dirty();
-        } else {
-            phydebugf("no changes");
         }
 
         return 0;
@@ -326,6 +330,7 @@ private:
             auto err = allocate_node(lock, ignored_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 auto treshold = (Size + 1) / 2;
 
+                new_sibling->depth = depth;
                 new_sibling->type = node_type::Inner;
                 new_sibling->number_keys = node->number_keys - treshold;
                 for (auto i = 0; i < new_sibling->number_keys; ++i) {
@@ -334,6 +339,8 @@ private:
                 }
 
                 new_sibling->d.children[new_sibling->number_keys] = node->d.children[node->number_keys];
+
+                new_lock.dirty();
 
                 node->number_keys = treshold - 1;
 
@@ -393,12 +400,16 @@ private:
 
             ptr = node_ptr_t{ lock.sector(), placed.position };
 
+            phydebugf("allocate-node filling");
+
             auto err = fill_fn(lock, placed.record, ptr);
             if (err < 0) {
                 return err;
             }
 
             lock.dirty();
+
+            phydebugf("allocate-node done filling");
 
             return 0;
         }
@@ -417,20 +428,29 @@ private:
 
         auto placed = buffer.template reserve<default_node_type>();
 
-        phydebugf("creating new node position=%d node-size=%d sector-size=%d", db().position(), sizeof(default_node_type), db().size());
+        phydebugf("creating new node %d:%d node-size=%d sector-size=%d",
+                  allocated, buffer.position(), sizeof(default_node_type), db().size());
 
         ptr = node_ptr_t{ allocated, placed.position };
+
+        phydebugf("allocate-node filling");
 
         auto err = fill_fn(child_lock, placed.record, ptr);
         if (err < 0) {
             return err;
         }
 
-        child_lock.dirty();
+        phydebugf("allocate-node done filling");
 
-        err = child_lock.flush(allocated);
-        if (err < 0) {
-            return err;
+        if (child_lock.is_dirty()) {
+            phydebugf("allocate-node sector is dirty");
+            err = child_lock.flush(allocated);
+            if (err < 0) {
+                return err;
+            }
+        }
+        else {
+            phydebugf("allocate-node leaving");
         }
 
         return 0;
@@ -488,7 +508,7 @@ private:
         logged_task it{ name() };
 
         if (node->type == node_type::Inner) {
-            for (auto i = 0u; i <= node->number_keys; ++i) {
+            for (auto i = 0u; i < node->number_keys; ++i) {
                 auto child = node->d.children[i];
 
                 if (false) {
@@ -585,6 +605,8 @@ public:
         auto node = pnode.node;
         auto node_ptr = pnode.ptr;
 
+        phydebugf("%s adding node depth=%d", name(), node->depth);
+
         insertion_t insertion;
 
         if (node->depth == 0) {
@@ -600,6 +622,10 @@ public:
         }
 
         if (insertion.split) {
+            assert(lock.sector() == root_);
+
+            phydebugf("allocating new root new-depth=%d", node->depth + 1);
+
             // The old root was separated in two parts.
             // We have to create a new root pointing to them
             node_ptr_t ptr;
@@ -610,6 +636,7 @@ public:
                 new_node->keys[0] = insertion.key;
                 new_node->d.children[0] = insertion.left;
                 new_node->d.children[1] = insertion.right;
+                new_lock.dirty();
                 return 0;
             });
             if (err < 0) {
