@@ -297,7 +297,7 @@ private:
 
         node = relocated.node;
 
-        assert(node->number_keys < Size);
+        assert(node->number_keys <= Size);
 
         if (insertion.split) {
             if (index == node->number_keys) {
