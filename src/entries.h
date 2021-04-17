@@ -74,14 +74,6 @@ struct PHY_PACKED entry_t {
     }
 };
 
-struct PHY_PACKED super_block_t : entry_t {
-    uint32_t version{ 0 };
-    uint32_t reserved{ (uint32_t)-1 };
-
-    super_block_t(uint32_t version) : entry_t(entry_type::SuperBlock), version(version) {
-    }
-};
-
 struct PHY_PACKED sector_chain_header_t : entry_t {
     dhara_sector_t pp{ (dhara_sector_t)InvalidSector };
     dhara_sector_t np{ (dhara_sector_t)InvalidSector };
@@ -90,6 +82,15 @@ struct PHY_PACKED sector_chain_header_t : entry_t {
     }
 
     sector_chain_header_t(entry_type type, dhara_sector_t pp, dhara_sector_t np) : entry_t(type), pp(pp), np(np) {
+    }
+};
+
+struct PHY_PACKED super_block_t : sector_chain_header_t {
+    uint32_t version{ 1 };
+    tree_ptr_t directory_tree{ };
+    head_tail_t free_chain{ };
+
+    super_block_t() : sector_chain_header_t(entry_type::SuperBlock) {
     }
 };
 

@@ -44,8 +44,12 @@ private:
     dir_node_type node_;
 
 public:
-    directory_tree(phyctx pc, dhara_sector_t sector)
-        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), tree_(pc, tree_ptr_t{ sector, sector }, "dir-tree") {
+    directory_tree(phyctx pc, tree_ptr_t tree)
+        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), tree_(pc, tree, "dir-tree") {
+    }
+
+    directory_tree(phyctx pc, dhara_sector_t root)
+        : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_), tree_(pc, tree_ptr_t{ root, root }, "dir-tree") {
     }
 
     virtual ~directory_tree() {
@@ -67,6 +71,10 @@ public:
     int32_t find(const char *name, open_file_config file_cfg) override;
 
     found_file open() override;
+
+    tree_ptr_t to_tree_ptr() const {
+        return tree_.to_tree_ptr();
+    }
 
 protected:
     int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) override;

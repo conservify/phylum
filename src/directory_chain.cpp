@@ -3,56 +3,15 @@
 namespace phylum {
 
 int32_t directory_chain::mount() {
-    logged_task lt{ "mount" };
+    auto page_lock = db().writing(InvalidSector);
 
-    sector(head());
-
-    dhara_page_t page = 0;
-    auto find = sectors()->find(0, &page);
-    if (find < 0) {
-        return find;
-    }
-
-    auto page_lock = db().writing(sector());
-
-    auto err = load(page_lock);
-    if (err < 0) {
-        return err;
-    }
-
-    back_to_head(page_lock);
-
-    phyinfof("mounted %d", sector());
-
-    return 0;
+    return mount_chain(page_lock);
 }
 
 int32_t directory_chain::format() {
-    logged_task lt{ "format" };
     auto page_lock = db().writing(head());
 
-    sector(head());
-
-    phyinfof("formatting");
-    auto err = write_header(page_lock);
-    if (err < 0) {
-        return err;
-    }
-
-    assert(db().write_header<directory_chain_header_t>([&](directory_chain_header_t *header) {
-        header->pp = InvalidSector;
-        return 0;
-    }) == 0);
-
-    page_lock.dirty();
-    appendable(true);
-
-    err = flush(page_lock);
-    if (err < 0) {
-        return err;
-    }
-
-    return 0;
+    return create_chain(page_lock);
 }
 
 int32_t directory_chain::write_header(page_lock &page_lock) {

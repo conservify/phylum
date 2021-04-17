@@ -39,7 +39,6 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
         if (copying > 0) {
             memcpy(buffer.cursor(), data + copied, copying);
             copied += copying;
-            // buffer.skip(copying);
         }
         if (size - copied > 0) {
             grow = true;

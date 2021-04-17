@@ -10,7 +10,11 @@ public:
         : sector_chain(pc, chain, prefix) {
     }
 
-public:
+protected:
+    int32_t mount_chain(page_lock &page_lock);
+
+    int32_t create_chain(page_lock &page_lock);
+
     int32_t prepare(page_lock &page_lock, size_t required);
 
     int32_t grow_if_necessary(page_lock &page_lock, size_t required);

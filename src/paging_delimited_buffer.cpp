@@ -17,7 +17,9 @@ page_lock::page_lock(paging_delimited_buffer *buffer, dhara_sector_t sector, boo
 }
 
 page_lock::~page_lock() {
-    assert(buffer_->release() == 0);
+    if (sector_ != InvalidSector) {
+        assert(buffer_->release() == 0);
+    }
 }
 
 int32_t page_lock::replace(dhara_sector_t sector, bool overwrite) {
