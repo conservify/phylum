@@ -180,7 +180,7 @@ private:
             phydebugf("node full, splitting");
 
             node_ptr_t sibling_ptr;
-            return allocate_node(lock, sibling_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
+            return allocate_node(lock, sibling_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -323,7 +323,7 @@ private:
         // but it is simpler and does not break the definition.
         if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
-            auto err = allocate_node(lock, ignored_ptr, [&](default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
+            auto err = allocate_node(lock, ignored_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 auto treshold = (Size + 1) / 2;
 
                 new_sibling->type = node_type::Inner;
@@ -393,7 +393,7 @@ private:
 
             ptr = node_ptr_t{ lock.sector(), placed.position };
 
-            auto err = fill_fn(placed.record, ptr);
+            auto err = fill_fn(lock, placed.record, ptr);
             if (err < 0) {
                 return err;
             }
@@ -421,7 +421,7 @@ private:
 
         ptr = node_ptr_t{ allocated, placed.position };
 
-        auto err = fill_fn(placed.record, ptr);
+        auto err = fill_fn(child_lock, placed.record, ptr);
         if (err < 0) {
             return err;
         }
@@ -603,7 +603,7 @@ public:
             // The old root was separated in two parts.
             // We have to create a new root pointing to them
             node_ptr_t ptr;
-            auto err = allocate_node(lock, ptr, [&](default_node_type *new_node, node_ptr_t /*ignored_ptr*/) {
+            auto err = allocate_node(lock, ptr, [&](page_lock &new_lock, default_node_type *new_node, node_ptr_t /*ignored_ptr*/) {
                 new_node->type = node_type::Inner;
                 new_node->depth = node->depth + 1;
                 new_node->number_keys = 1;
