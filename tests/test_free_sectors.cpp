@@ -31,9 +31,14 @@ public:
     int32_t grow_by(size_t blocks) {
         phydebugf("grow by %d blocks", blocks);
         suppress_logs sl;
-        auto page_lock = db().writing(sector());
+        auto lock = db().writing(sector());
         for (auto i = 0u; i < blocks; ++i) {
-            auto err = grow_tail(page_lock);
+            auto err = grow_tail(lock);
+            if (err < 0) {
+                return err;
+            }
+
+            err = lock.flush(lock.sector());
             if (err < 0) {
                 return err;
             }

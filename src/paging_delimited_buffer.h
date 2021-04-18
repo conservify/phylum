@@ -39,6 +39,10 @@ public:
         return sector_;
     }
 
+    paging_delimited_buffer &db() {
+        return *buffer_;
+    }
+
 };
 
 class paging_delimited_buffer : public delimited_buffer {

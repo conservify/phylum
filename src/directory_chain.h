@@ -51,7 +51,7 @@ private:
 
     int32_t seek_file_entry(file_id_t id);
 
-    int32_t file_attribute(file_id_t id, open_file_attribute attribute);
+    int32_t file_attribute(page_lock &lock, file_id_t id, open_file_attribute attribute);
 
 };
 

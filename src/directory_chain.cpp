@@ -55,18 +55,18 @@ int32_t directory_chain::unlink(const char *name) {
     return 0;
 }
 
-int32_t directory_chain::file_attribute(file_id_t id, open_file_attribute attribute) {
+int32_t directory_chain::file_attribute(page_lock &lock, file_id_t id, open_file_attribute attribute) {
     logged_task lt{ "dir-file-attribute" };
 
-    auto page_lock = db().writing(sector());
-
     file_attribute_t fa{ id, attribute.type, attribute.size };
-    assert(append<file_attribute_t>(page_lock, fa, (uint8_t const *)attribute.ptr, attribute.size) >= 0);
+    assert(append<file_attribute_t>(lock, fa, (uint8_t const *)attribute.ptr, attribute.size) >= 0);
 
     return 0;
 }
 
 int32_t directory_chain::file_attributes(file_id_t file_id, open_file_attribute *attributes, size_t nattrs) {
+    auto lock = db().writing(sector());
+
     for (auto i = 0u; i < nattrs; ++i) {
         auto &attr = attributes[i];
         if (attr.dirty) {
@@ -76,11 +76,11 @@ int32_t directory_chain::file_attributes(file_id_t file_id, open_file_attribute 
             } else {
                 phydebugf("attribute[%d] write type=%d size=%d", i, attr.type, attr.size);
             }
-            assert(file_attribute(file_id, attr) >= 0);
+            assert(file_attribute(lock, file_id, attr) >= 0);
         }
     }
 
-    auto err = flush();
+    auto err = lock.flush(lock.sector());
     if (err < 0) {
         return err;
     }

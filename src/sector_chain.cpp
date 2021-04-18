@@ -18,6 +18,11 @@ int32_t sector_chain::create_if_necessary() {
         return err;
     }
 
+    err = flush(page_lock);
+    if (err < 0) {
+        return err;
+    }
+
     phydebugf("%s: created, ready", name());
 
     return 0;

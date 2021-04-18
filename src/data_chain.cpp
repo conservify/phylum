@@ -157,6 +157,15 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
             }
         }
     }
+
+    // TODO Can we remove this?
+    if (page_lock.is_dirty()) {
+        auto err = page_lock.flush(page_lock.sector());
+        if (err < 0) {
+            return err;
+        }
+    }
+
     return written;
 }
 

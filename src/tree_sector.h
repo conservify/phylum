@@ -177,8 +177,8 @@ private:
     int32_t leaf_node_insert(page_lock &lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "leaf-node" };
 
-        assert(lock.sector() == node_ptr.sector);
         assert(lock.sector() == node->dbg.sector);
+        assert(lock.sector() == node_ptr.sector);
 
         auto index = Keys::leaf_position_for(key, *node);
 
@@ -240,6 +240,7 @@ private:
     int32_t inner_insert_nonfull(page_lock &lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value) {
         logged_task lt{ "inner-nonfull" };
 
+        assert(lock.sector() == node_ptr.sector);
         assert(node->type == node_type::Inner);
         assert(node->number_keys < Size);
         assert(depth != 0);
@@ -293,6 +294,8 @@ private:
             phydebugf("same sector %d", left);
         }
 
+        assert(lock.sector() == node_ptr.sector);
+
         // After the above we can end up with a different page in the
         // buffer and so we need to find the node we were on again. We
         // should fail due to other reasons before here.
@@ -337,6 +340,7 @@ private:
     int32_t inner_node_insert(page_lock &lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "inner-node" };
 
+        assert(lock.sector() == node_ptr.sector);
         assert(node->type == node_type::Inner);
         assert(depth != 0);
 
@@ -382,7 +386,7 @@ private:
                         return err;
                     }
                 } else {
-                    auto err = inner_insert_nonfull(lock, depth, new_sibling_ptr, new_sibling, key, value);
+                    auto err = inner_insert_nonfull(new_lock, depth, new_sibling_ptr, new_sibling, key, value);
                     if (err < 0) {
                         return err;
                     }
@@ -432,6 +436,8 @@ private:
                 return err;
             }
 
+            assert(lock.sector() == ptr.sector);
+
             lock.dirty();
 
             phydebugf("allocate-node done filling");
@@ -466,6 +472,8 @@ private:
         if (err < 0) {
             return err;
         }
+
+        assert(child_lock.sector() == allocated);
 
         phydebugf("allocate-node done filling");
 
