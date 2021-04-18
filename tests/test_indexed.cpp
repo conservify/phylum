@@ -79,7 +79,7 @@ TYPED_TEST(IndexedFixture, TouchedIndexed_10) {
     });
 }
 
-TYPED_TEST(IndexedFixture, DISABLED_TouchedIndexed_100_FindAfterEach) {
+TYPED_TEST(IndexedFixture, TouchedIndexed_100_FindAfterEach) {
     using layout_type = typename TypeParam::layout_type;
     using directory_type = typename TypeParam::directory_type;
     using tree_type = typename TypeParam::tree_type;
@@ -98,12 +98,13 @@ TYPED_TEST(IndexedFixture, DISABLED_TouchedIndexed_100_FindAfterEach) {
     for (auto i = 0; i < 100; ++i) {
         std::string name = string_format("data-%d.txt", i);
 
+        phydebugf("touching %s", name.c_str());
+
         auto pass = true;
 
         memory.mounted<super_chain>([&](super_chain &super) {
             directory_type dir{ memory.pc(), super.directory_tree() };
-            // ASSERT_EQ(dir.template touch_indexed<tree_type>(name.c_str()), 0);
-            ASSERT_EQ(dir.touch(name.c_str()), 0);
+            ASSERT_EQ(dir.template touch_indexed<tree_type>(name.c_str()), 0);
             ASSERT_EQ(dir.find(name.c_str(), open_file_config{ }), 1);
             ASSERT_EQ(super.update(dir.to_tree_ptr()), 0);
         });
@@ -123,7 +124,7 @@ TYPED_TEST(IndexedFixture, DISABLED_TouchedIndexed_100_FindAfterEach) {
     }
 }
 
-TYPED_TEST(IndexedFixture, DISABLED_TouchedIndexed_100) {
+TYPED_TEST(IndexedFixture, TouchedIndexed_100) {
     using layout_type = typename TypeParam::layout_type;
     using directory_type = typename TypeParam::directory_type;
     using tree_type = typename TypeParam::tree_type;
@@ -141,10 +142,13 @@ TYPED_TEST(IndexedFixture, DISABLED_TouchedIndexed_100) {
 
     for (auto i = 0; i < 100; ++i) {
         std::string name = string_format("data-%d.txt", i);
+        phydebugf("touching %s", name.c_str());
         memory.mounted<super_chain>([&](super_chain &super) {
             directory_type dir{ memory.pc(), super.directory_tree() };
             ASSERT_EQ(dir.template touch_indexed<tree_type>(name.c_str()), 0);
             ASSERT_EQ(super.update(dir.to_tree_ptr()), 0);
+
+            memory.buffers().debug();
         });
         files.push_back(name);
     }

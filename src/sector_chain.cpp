@@ -217,9 +217,6 @@ int32_t sector_chain::log() {
             } else {
                 phyinfof("data (%zu) id=0x%x chain=%d/%d", record.size_of_record(), fd->id, fd->chain.head,
                          fd->chain.tail);
-
-                data_chain dc{ pc(), fd->chain, "bytes-dc" };
-                phyinfof("chain total-bytes=%d", dc.total_bytes());
             }
             break;
         }

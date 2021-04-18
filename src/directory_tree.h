@@ -65,6 +65,10 @@ public:
 
     int32_t format() override;
 
+    int32_t log() {
+        return tree_.log();
+    }
+
     int32_t touch(const char *name) override;
 
     template<typename TreeType>

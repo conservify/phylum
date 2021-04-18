@@ -116,7 +116,7 @@ public:
             if (p.sector == sector) {
                 // Otherwise, this sector is open for writing as we
                 // speak. Which should never happen.
-                if (read_only) {
+                if (read_only && p.refs >= 0) {
                     assert(p.refs >= 0);
                     p.refs++;
                 }
@@ -178,7 +178,7 @@ public:
             }
         }
         else {
-            phydebugf("wbuffers[%d]: allocating", selected);
+            phydebugf("wbuffers[%d]: allocating sector=%d", selected, sector);
         }
 
         // Load the sector.

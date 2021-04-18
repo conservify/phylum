@@ -129,15 +129,20 @@ TYPED_TEST(BasicsFixture, TouchAndFindMultiple) {
     };
     memory.mounted<dir_type>([&](auto &dir) {
         for (auto name : names) {
+            phydebugf("touching %s", name);
             ASSERT_EQ(dir.touch(name), 0);
+            ASSERT_EQ(dir.find(name, open_file_config{}), 1);
         }
     });
 
     memory.mounted<dir_type>([&](auto &dir) {
+        phydebugf("finding nope.txt");
         ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
         for (auto name : names) {
+            phydebugf("finding %s", name);
             ASSERT_EQ(dir.find(name, open_file_config{}), 1);
         }
+        phydebugf("finding nope.txt");
         ASSERT_EQ(dir.find("nope.txt", open_file_config{}), 0);
     });
 }
@@ -172,7 +177,9 @@ TYPED_TEST(BasicsFixture, TouchAndFindAndUnlinkMultiple) {
 
     memory.mounted<dir_type>([&](auto &dir) {
         for (auto name : names) {
+            phydebugf("unlink %s", name);
             ASSERT_EQ(dir.unlink(name), 0);
+            ASSERT_EQ(dir.find(name, open_file_config{}), 0);
         }
     });
 
