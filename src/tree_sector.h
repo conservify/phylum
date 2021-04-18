@@ -183,6 +183,8 @@ private:
 
             node_ptr_t sibling_ptr;
             return allocate_node(lock, sibling_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
+                assert(new_lock.sector() == new_sibling_ptr.sector);
+
                 auto threshold = (Size + 1) / 2;
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -208,7 +210,7 @@ private:
                         return err;
                     }
                 } else {
-                    auto err = leaf_insert_nonfull(lock, depth - 1, new_sibling_ptr, new_sibling, key, value, index - threshold);
+                    auto err = leaf_insert_nonfull(new_lock, depth - 1, new_sibling_ptr, new_sibling, key, value, index - threshold);
                     if (err < 0) {
                         return err;
                     }
