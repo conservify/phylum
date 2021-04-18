@@ -164,7 +164,7 @@ private:
             node->d.values[index] = value;
         }
 
-        phydebugf("%s value node=%d:%d depth=%d page-lock=%d", name(), node_ptr.sector, node_ptr.position, depth, lock.sector());
+        phydebugf("%s value node=%d:%d depth=%d page-lock=%d number-keys=%d", name(), node_ptr.sector, node_ptr.position, depth, lock.sector(), node->number_keys);
 
         assert(lock.sector() == node_ptr.sector);
 
@@ -186,6 +186,9 @@ private:
                 assert(new_lock.sector() == new_sibling_ptr.sector);
 
                 auto threshold = (Size + 1) / 2;
+
+                phydebugf("node->number_keys=%d threshold=%d", node->number_keys, threshold);
+
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
                 for (auto j = 0u; j < new_sibling->number_keys; ++j) {
@@ -196,6 +199,8 @@ private:
                 new_lock.dirty();
 
                 node->number_keys = threshold;
+
+                phydebugf("node->number_keys=%d (threshold)", threshold);
 
                 lock.dirty();
 
@@ -238,7 +243,8 @@ private:
         auto index = Keys::inner_position_for(key, *node);
         auto child_ptr = node->d.children[index];
 
-        phydebugf("%s entered depth=%d dirty=%d node-ptr=%d:%d follow=%d:%d", name(), depth, lock.is_dirty(),
+        phydebugf("%s entered depth=%d nkeys=%d dirty=%d node-ptr=%d:%d follow=%d:%d",
+                  name(), depth, node->number_keys, lock.is_dirty(),
                   node_ptr.sector, node_ptr.position, child_ptr.sector, child_ptr.position);
 
         persisted_node_t followed;
@@ -297,6 +303,7 @@ private:
                 node->d.children[index] = insertion.left;
                 node->d.children[index + 1] = insertion.right;
                 node->number_keys++;
+                phydebugf("node->number_keys %d (a)", node->number_keys);
             } else {
                 // Insertion not at the rightmost key
                 node->d.children[node->number_keys + 1] = node->d.children[node->number_keys];
@@ -308,6 +315,7 @@ private:
                 node->d.children[index + 1] = insertion.right;
                 node->keys[index] = insertion.key;
                 node->number_keys++;
+                phydebugf("node->number_keys %d (b)", node->number_keys);
             }
 
             phydebugf("recording insertion, dirty %d:%d", node_ptr.sector, node_ptr.position);
@@ -330,27 +338,31 @@ private:
         if (node->number_keys == Size) {
             node_ptr_t ignored_ptr;
             auto err = allocate_node(lock, ignored_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
-                auto treshold = (Size + 1) / 2;
+                auto threshold = (Size + 1) / 2;
+
+                phydebugf("node->number_keys=%d threshold=%d", node->number_keys, threshold);
 
                 new_sibling->depth = depth;
                 new_sibling->type = node_type::Inner;
-                new_sibling->number_keys = node->number_keys - treshold;
+                new_sibling->number_keys = node->number_keys - threshold;
                 for (auto i = 0; i < new_sibling->number_keys; ++i) {
-                    new_sibling->keys[i] = node->keys[treshold + i];
-                    new_sibling->d.children[i] = node->d.children[treshold + i];
+                    new_sibling->keys[i] = node->keys[threshold + i];
+                    new_sibling->d.children[i] = node->d.children[threshold + i];
                 }
 
                 new_sibling->d.children[new_sibling->number_keys] = node->d.children[node->number_keys];
 
                 new_lock.dirty();
 
-                node->number_keys = treshold - 1;
+                node->number_keys = threshold - 1;
+
+                phydebugf("node->number_keys = %d - 1", threshold);
 
                 lock.dirty();
 
                 // Set up the return variable
                 insertion.split = true;
-                insertion.key = node->keys[treshold - 1];
+                insertion.key = node->keys[threshold - 1];
                 insertion.left = node_ptr;
                 insertion.right = new_sibling_ptr;
 
@@ -509,7 +521,11 @@ private:
     int32_t log(page_lock &lock, default_node_type *node) {
         logged_task it{ name() };
 
+        name("%s[%d]", prefix_, lock.sector());
+
         if (node->type == node_type::Inner) {
+            phyinfof("inner nkeys=%d", node->number_keys);
+
             for (auto i = 0u; i < node->number_keys; ++i) {
                 auto child = node->d.children[i];
 
@@ -537,6 +553,8 @@ private:
             }
         }
         else {
+            phyinfof("leaf nkeys=%d", node->number_keys);
+
             for (auto i = 0u; i < node->number_keys; ++i) {
                 phyinfof("leaf %d #%d key=%d = %d", lock.sector(), i, node->keys[i], node->d.values[i]);
             }
