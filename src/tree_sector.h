@@ -513,14 +513,7 @@ private:
             for (auto i = 0u; i < node->number_keys; ++i) {
                 auto child = node->d.children[i];
 
-                if (false) {
-                    phyinfof("inner %d #%d key=%d -> %d:%d", lock.sector(), i, node->keys[i], child.sector, child.position);
-                }
-                else {
-                    if (lock.sector() != child.sector) {
-                        phyinfof("sector %d -> %d", lock.sector(), child.sector);
-                    }
-                }
+                phyinfof("inner %d #%d key=%d -> %d:%d", lock.sector(), i, node->keys[i], child.sector, child.position);
 
                 auto left = lock.sector();
 
@@ -536,13 +529,16 @@ private:
                 }
 
                 if (left != lock.sector()) {
-                    phydebugf("reloading %d", left);
-
                     auto err = lock.replace(left);
                     if (err < 0) {
                         return err;
                     }
                 }
+            }
+        }
+        else {
+            for (auto i = 0u; i < node->number_keys; ++i) {
+                phyinfof("leaf %d #%d key=%d = %d", lock.sector(), i, node->keys[i], node->d.values[i]);
             }
         }
 

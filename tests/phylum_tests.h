@@ -139,17 +139,23 @@ public:
 
 };
 
-class suppress_logs {
+class temporary_log_level {
 private:
     uint8_t saved_;
 
 public:
-    suppress_logs() {
+    temporary_log_level(LogLevels level) {
         saved_ = log_get_level();
-        log_configure_level(LogLevels::NONE);
+        log_configure_level(level);
     }
 
-    virtual ~suppress_logs() {
+    virtual ~temporary_log_level() {
         log_configure_level((LogLevels)saved_);
+    }
+};
+
+class suppress_logs : public temporary_log_level {
+public:
+    suppress_logs() : temporary_log_level(LogLevels::NONE) {
     }
 };

@@ -62,6 +62,9 @@ TYPED_TEST(TreeFixture, SingleNodeTree) {
         ASSERT_EQ(found, 3u);
 
         ASSERT_EQ(tree.find(4, &found), 0);
+
+        temporary_log_level info{ LogLevels::INFO };
+        ASSERT_EQ(tree.log(), 0);
     });
 }
 
@@ -120,7 +123,11 @@ TYPED_TEST(TreeFixture, TreeWith1024Node1Reachable) {
 
         for (auto i = 1u; i < 1024; ++i) {
             ASSERT_EQ(tree.add(i, i), 0);
-            ASSERT_EQ(tree.log(), 0);
+
+            {
+                temporary_log_level info{ LogLevels::INFO };
+                ASSERT_EQ(tree.log(), 0);
+            }
 
             uint32_t found = 0u;
             EXPECT_EQ(tree.find(1, &found), 1);
