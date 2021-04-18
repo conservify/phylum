@@ -22,6 +22,7 @@ page_lock::page_lock(page_lock &&other)
 }
 
 page_lock::~page_lock() {
+    assert(!dirty_);
     if (sector_ != InvalidSector) {
         assert(buffer_->release(sector_) == 0);
         sector_ = InvalidSector;

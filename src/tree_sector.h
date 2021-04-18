@@ -202,7 +202,7 @@ private:
                 insertion.split = true;
                 insertion.key = new_sibling->keys[0];
                 insertion.left = node_ptr;
-                insertion.right = sibling_ptr;
+                insertion.right = new_sibling_ptr;
 
                 if (index < threshold) {
                     auto err = leaf_insert_nonfull(lock, depth - 1, node_ptr, node, key, value, index);
@@ -445,7 +445,7 @@ private:
         phydebugf("allocate-node done filling");
 
         if (child_lock.is_dirty()) {
-            phydebugf("allocate-node sector is dirty");
+            phydebugf("allocate-node sector=%d is dirty", child_lock.sector());
             err = child_lock.flush(allocated);
             if (err < 0) {
                 return err;
@@ -610,7 +610,6 @@ public:
         phydebugf("%s adding node depth=%d", name(), node->depth);
 
         insertion_t insertion;
-
         if (node->depth == 0) {
             auto err = leaf_node_insert(lock, node->depth, node_ptr, node, key, value, insertion);
             if (err < 0) {

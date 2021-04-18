@@ -120,6 +120,7 @@ TYPED_TEST(TreeFixture, TreeWith1024Node1Reachable) {
 
         for (auto i = 1u; i < 1024; ++i) {
             ASSERT_EQ(tree.add(i, i), 0);
+            ASSERT_EQ(tree.log(), 0);
 
             uint32_t found = 0u;
             EXPECT_EQ(tree.find(1, &found), 1);
