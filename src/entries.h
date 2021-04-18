@@ -260,7 +260,11 @@ public:
     depth_type depth{ 0 };
     index_type number_keys{ 0 };
     node_type type{ node_type::Leaf };
-    uint8_t reserved[11];
+    union PHY_PACKED debug_t {
+        uint8_t reserved[11];
+        dhara_sector_t sector;
+    };
+    debug_t dbg;
 
 public:
     tree_node_header_t() : entry_t(entry_type::TreeNode) {

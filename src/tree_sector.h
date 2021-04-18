@@ -151,6 +151,9 @@ private:
         assert(index < Size);
         assert(index <= node->number_keys);
 
+        assert(lock.sector() == node_ptr.sector);
+        assert(lock.sector() == node->dbg.sector);
+
         if (node->keys[index] == key) {
             // We are inserting a duplicate value. Simply overwrite the old one
             node->d.values[index] = value;
@@ -166,8 +169,6 @@ private:
 
         phydebugf("%s value node=%d:%d depth=%d page-lock=%d number-keys=%d", name(), node_ptr.sector, node_ptr.position, depth, lock.sector(), node->number_keys);
 
-        assert(lock.sector() == node_ptr.sector);
-
         lock.dirty();
 
         return 0;
@@ -175,6 +176,9 @@ private:
 
     int32_t leaf_node_insert(page_lock &lock, depth_type depth, node_ptr_t node_ptr, default_node_type *node, KEY &key, VALUE &value, insertion_t &insertion) {
         logged_task lt{ "leaf-node" };
+
+        assert(lock.sector() == node_ptr.sector);
+        assert(lock.sector() == node->dbg.sector);
 
         auto index = Keys::leaf_position_for(key, *node);
 
@@ -184,11 +188,13 @@ private:
             node_ptr_t sibling_ptr;
             return allocate_node(lock, sibling_ptr, [&](page_lock &new_lock, default_node_type *new_sibling, node_ptr_t new_sibling_ptr) -> int32_t {
                 assert(new_lock.sector() == new_sibling_ptr.sector);
+                assert(new_lock.sector() == new_sibling->dbg.sector);
 
                 auto threshold = (Size + 1) / 2;
 
                 phydebugf("node->number_keys=%d threshold=%d", node->number_keys, threshold);
 
+                new_sibling->dbg.sector = new_lock.sector();
                 new_sibling->type = node_type::Leaf;
                 new_sibling->number_keys = node->number_keys - threshold;
                 for (auto j = 0u; j < new_sibling->number_keys; ++j) {
@@ -246,6 +252,8 @@ private:
         phydebugf("%s entered depth=%d nkeys=%d dirty=%d node-ptr=%d:%d follow=%d:%d",
                   name(), depth, node->number_keys, lock.is_dirty(),
                   node_ptr.sector, node_ptr.position, child_ptr.sector, child_ptr.position);
+
+        node = nullptr;
 
         persisted_node_t followed;
         auto err = follow_node_ptr(lock, child_ptr, followed);
@@ -342,6 +350,7 @@ private:
 
                 phydebugf("node->number_keys=%d threshold=%d", node->number_keys, threshold);
 
+                new_sibling->dbg.sector = new_lock.sector();
                 new_sibling->depth = depth;
                 new_sibling->type = node_type::Inner;
                 new_sibling->number_keys = node->number_keys - threshold;
@@ -414,6 +423,8 @@ private:
 
             ptr = node_ptr_t{ lock.sector(), placed.position };
 
+            placed.record->dbg.sector = lock.sector();
+
             phydebugf("allocate-node filling");
 
             auto err = fill_fn(lock, placed.record, ptr);
@@ -446,6 +457,8 @@ private:
                   allocated, buffer.position(), sizeof(default_node_type), db().size());
 
         ptr = node_ptr_t{ allocated, placed.position };
+
+        placed.record->dbg.sector = child_lock.sector();
 
         phydebugf("allocate-node filling");
 
@@ -591,7 +604,10 @@ public:
 
         phydebugf("creating new tree position=%d node-size=%d sector-size=%d", db().position(), sizeof(default_node_type), db().size());
 
-        db().template emplace<default_node_type>(node_type::Leaf);
+        auto placed = db().template reserve<default_node_type>();
+
+        placed.record->type = node_type::Leaf;
+        placed.record->dbg.sector = lock.sector();
 
         lock.dirty();
 
@@ -645,6 +661,7 @@ public:
             // We have to create a new root pointing to them
             node_ptr_t ptr;
             auto err = allocate_node(lock, ptr, [&](page_lock &new_lock, default_node_type *new_node, node_ptr_t /*ignored_ptr*/) {
+                new_node->dbg.sector = new_lock.sector();
                 new_node->type = node_type::Inner;
                 new_node->depth = node->depth + 1;
                 new_node->number_keys = 1;
