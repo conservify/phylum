@@ -164,9 +164,9 @@ private:
             node->d.values[index] = value;
         }
 
-        // assert(lock.sector() == node_ptr.sector);
+        phydebugf("%s value node=%d:%d depth=%d page-lock=%d", name(), node_ptr.sector, node_ptr.position, depth, lock.sector());
 
-        phydebugf("%s value node=%d:%d depth=%d", name(), node_ptr.sector, node_ptr.position, depth);
+        assert(lock.sector() == node_ptr.sector);
 
         lock.dirty();
 
@@ -197,6 +197,11 @@ private:
 
                 lock.dirty();
 
+                insertion.split = true;
+                insertion.key = new_sibling->keys[0];
+                insertion.left = node_ptr;
+                insertion.right = sibling_ptr;
+
                 if (index < threshold) {
                     auto err = leaf_insert_nonfull(lock, depth - 1, node_ptr, node, key, value, index);
                     if (err < 0) {
@@ -208,11 +213,6 @@ private:
                         return err;
                     }
                 }
-
-                insertion.split = true;
-                insertion.key = new_sibling->keys[0];
-                insertion.left = node_ptr;
-                insertion.right = sibling_ptr;
 
                 return 0;
             });
