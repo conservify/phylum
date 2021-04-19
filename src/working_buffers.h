@@ -252,7 +252,7 @@ public:
             if (p.refs == 0) {
                 counter_++;
 
-                p.refs++;
+                p.refs--;
                 p.used = counter_;
 
                 update_highwater();
