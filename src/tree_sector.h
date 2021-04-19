@@ -770,12 +770,6 @@ public:
         return log(pnode.ptr);
     }
 
-    int32_t dequeue_sector(dhara_sector_t *sector) {
-        assert(sector != nullptr);
-        *sector = InvalidSector;
-        return 0;
-    }
-
 };
 
 } // namespace phylum
