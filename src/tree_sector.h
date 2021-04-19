@@ -561,6 +561,11 @@ public:
 
         phydebugf("%s creating", name());
 
+        if (root_ == InvalidSector) {
+            root_ = allocator_->allocate();
+            tail_ = root_;
+        }
+
         buffer_type db{ *buffers_, *sectors_ };
 
         auto lock = db.overwrite(root_);
@@ -588,6 +593,8 @@ public:
 
     int32_t add(KEY key, VALUE value) {
         logged_task lt{ "tree-add" };
+
+        assert(root_ != InvalidSector);
 
         phydebugf("%s adding node", name());
 
