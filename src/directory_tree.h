@@ -29,7 +29,7 @@ template <size_t Size> struct PHY_PACKED attribute_value_t {
 
 class directory_tree : public directory {
 private:
-    static constexpr size_t DataCapacity = 128 + 29;
+    static constexpr size_t DataCapacity = 128;
     static constexpr size_t AttributeCapacity = 256;
     using dir_node_type = dirtree_tree_value_t<DataCapacity>;
     using dir_tree_type = tree_sector<uint32_t, dir_node_type, 4>;

@@ -135,6 +135,7 @@ enum class FsDirTreeFlags : uint16_t {
 struct PHY_PACKED dirtree_entry_t : entry_t {
     char name[MaximumNameLength];
     file_flags_t flags;
+    uint32_t reserved[3] = { 0, 0, 0 };
 
     dirtree_entry_t(entry_type type, const char *full_name, uint16_t flags) : entry_t(type), flags(flags) {
         bzero(name, sizeof(name));

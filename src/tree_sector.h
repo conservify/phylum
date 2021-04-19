@@ -200,7 +200,7 @@ private:
             db.seek_end();
 
             if (db.template room_for<default_node_type>()) {
-                phydebugf("%s appending node %d:%d", name(), lock.sector(), db.position());
+                phydebugf("%s appending node %d:%d (%d)", name(), lock.sector(), db.position(), sizeof(default_node_type));
 
                 auto placed = db.template reserve<default_node_type>();
 
@@ -221,6 +221,9 @@ private:
 
                 return 0;
             }
+            else {
+                phydebugf("%s page full %zu/%zu (%zu)", name(), db.position(), db.size(), db.available());
+            }
         }
 
         buffer_type buffer{ *buffers_, *sectors_ };
@@ -231,7 +234,7 @@ private:
 
         auto &db = child_lock.db();
 
-        phydebugf("%s grow! %zu/%zu alloc=%d", name(), db.position(), db.size(), allocated);
+        phydebugf("%s grow! allocated=%d", name(), allocated);
 
         db.rewind();
 
