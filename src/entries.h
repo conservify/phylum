@@ -86,11 +86,14 @@ struct PHY_PACKED sector_chain_header_t : entry_t {
 };
 
 struct PHY_PACKED super_block_t : sector_chain_header_t {
+    char magic[8];
     uint32_t version{ 1 };
     tree_ptr_t directory_tree{ };
     head_tail_t free_chain{ };
 
     super_block_t() : sector_chain_header_t(entry_type::SuperBlock) {
+        bzero(magic, sizeof(magic));
+        strncpy(magic, "phylum", sizeof(magic));
     }
 };
 
