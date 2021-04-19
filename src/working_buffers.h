@@ -254,6 +254,7 @@ public:
 
                 p.refs--;
                 p.used = counter_;
+                p.sector = InvalidSector;
 
                 update_highwater();
 
