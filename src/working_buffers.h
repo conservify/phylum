@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(__linux__)
+#include <map>
+#endif
+
 #include "simple_buffer.h"
 
 namespace phylum {
@@ -12,6 +16,7 @@ protected:
         dhara_sector_t sector{ InvalidSector };
         bool dirty{ false };
         int32_t refs{ 0 };
+        int32_t hits{ 0 };
         uint32_t used{ 0 };
     };
 
@@ -23,6 +28,15 @@ protected:
     size_t reads_{ 0 };
     size_t writes_{ 0 };
     size_t misses_{ 0 };
+
+#if defined(__linux__)
+    struct sector_statistics_t {
+        size_t reads{ 0 };
+        size_t writes{ 0 };
+        size_t misses{ 0 };
+    };
+    std::map<dhara_sector_t, sector_statistics_t> statistics_;
+#endif
 
 public:
     working_buffers(size_t buffer_size) : buffer_size_(buffer_size) {
@@ -99,6 +113,9 @@ public:
                     flushed = true;
                     p.dirty = false;
                     writes_++;
+#if defined(__linux__)
+                    statistics_[sector].writes++;
+#endif
                 }
             }
         }
@@ -115,6 +132,9 @@ public:
         auto flushing = -1;
 
         reads_++;
+#if defined(__linux__)
+        statistics_[sector].reads++;
+#endif
 
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
@@ -137,6 +157,7 @@ public:
                 counter_++;
 
                 p.used = counter_;
+                p.hits++;
 
                 phydebugf("wbuffers[%d]: reusing refs=%d", i, p.refs);
 
@@ -212,6 +233,9 @@ public:
         // this'll have the number of bytes we read.
         if (err > 0) {
             misses_++;
+#if defined(__linux__)
+            statistics_[sector].misses++;
+#endif
         }
 
         if (read_only) {
@@ -225,6 +249,7 @@ public:
 
         p.sector = sector;
         p.used = counter_;
+        p.hits = 0;
 
         if (false) {
             phydebug_dump_memory("alloc[%d, sector=%d] ", p.buffer, buffer_size_, selected, sector);
@@ -239,9 +264,16 @@ public:
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
             if (p.buffer != nullptr) {
-                phydebugf("wbuffers[%d] sector=%d dirty=%d refs=%d used=%d", i, p.sector, p.dirty, p.refs, p.used);
+                phydebugf("wbuffers[%d] sector=%d dirty=%d refs=%d hits=%d used=%d", i, p.sector, p.dirty, p.refs, p.hits, p.used);
             }
         }
+
+#if defined(__linux__)
+        for (auto i : statistics_) {
+            phydebugf("wbuffers[-] sector=%d reads=%zu writes=%zu misses=%zu",
+                      i.first, i.second.reads, i.second.writes, i.second.misses);
+        }
+#endif
 
         return 0;
     }
@@ -292,6 +324,7 @@ public:
         auto &p = pages_[selected];
         p.used = counter_;
         p.sector = InvalidSector;
+        p.hits = 0;
         p.refs--;
 
         update_highwater();
