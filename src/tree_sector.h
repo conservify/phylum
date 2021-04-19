@@ -433,6 +433,8 @@ private:
     }
 
     int32_t insert_non_full(node_ptr_t node_ptr, KEY &key, VALUE &value) {
+        node_ptr_t insertion_ptr;
+
         auto err = dereference(false, node_ptr, [&](page_lock &lock, default_node_type *node) -> int32_t {
             index_type index = node->number_keys - 1;
 
@@ -495,12 +497,10 @@ private:
                     return err;
                 }
 
-                // Index can change above, so we dereference again.
-                child_ptr = node->d.children[index + 1];
-                err = insert_non_full(child_ptr, key, value);
-                if (err < 0) {
-                    return err;
-                }
+                // Index can change above, so we dereference again and
+                // then yield this to the outer scope so we can
+                // release this one.
+                insertion_ptr = node->d.children[index + 1];
 
                 return 0;
             }
@@ -510,6 +510,14 @@ private:
         if (err < 0) {
             return err;
         }
+
+        if (insertion_ptr.valid()) {
+            err = insert_non_full(insertion_ptr, key, value);
+            if (err < 0) {
+                return err;
+            }
+        }
+
         return 0;
     }
 
@@ -563,6 +571,8 @@ public:
 
         phydebugf("%s adding node", name());
 
+        node_ptr_t insertion_ptr;
+
         auto err = dereference_root([&](page_lock &lock, default_node_type *node, node_ptr_t node_ptr) -> int32_t {
             phydebugf("%s adding node depth=%d", name(), node->depth);
 
@@ -604,10 +614,7 @@ public:
                         index++;
                     }
 
-                    err = insert_non_full(new_node->d.children[index], key, value);
-                    if (err < 0) {
-                        return 0;
-                    }
+                    insertion_ptr = new_node->d.children[index];
 
                     return 0;
                 });
@@ -620,16 +627,20 @@ public:
                 root_ = allocated_ptr.sector;
             }
             else {
-                auto err = insert_non_full(node_ptr, key, value);
-                if (err < 0) {
-                    return err;
-                }
+                insertion_ptr = node_ptr;
             }
 
             return 0;
         });
         if (err < 0) {
             return err;
+        }
+
+        if (insertion_ptr.valid()) {
+            auto err = insert_non_full(insertion_ptr, key, value);
+            if (err < 0) {
+                return err;
+            }
         }
 
         phydebugf("%s done adding", name());

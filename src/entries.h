@@ -245,6 +245,12 @@ struct PHY_PACKED node_ptr_t {
 
     node_ptr_t(dhara_sector_t sector, sector_offset_t position): sector(sector), position(position) {
     }
+
+    bool valid() const {
+        // NOTE It's also true that position can never be zero for a
+        // node_ptr_t, because headers are zero-length.
+        return sector != InvalidSector;
+    }
 };
 
 using depth_type = uint8_t;
