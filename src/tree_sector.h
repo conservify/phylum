@@ -331,32 +331,49 @@ private:
 
         logged_task it{ name() };
 
-        auto err = dereference(true, node_ptr, [&](page_lock &/*lock*/, default_node_type *node) -> int32_t {
-            if (node->type == node_type::Inner) {
-                phyinfof("inner nkeys=%d", node->number_keys);
+        for (auto i = 0; i < (index_type)Size; ++i) {
+            node_ptr_t follow_ptr;
 
-                for (auto i = 0; i <= node->number_keys; ++i) {
-                    auto child = node->d.children[i];
+            // We recurse outside of the dereference lambda so that we
+            // are only ever consuming the minimum number of pages.
+            auto err = dereference(true, node_ptr, [&](page_lock &/*lock*/, default_node_type *node) -> int32_t {
+                if (node->type == node_type::Inner) {
+                    if (i == 0) {
+                        phyinfof("inner nkeys=%d", node->number_keys);
+                    }
 
-                    phyinfof("inner %d:%d #%d key=%d -> %d:%d", node_ptr.sector, node_ptr.position, i, node->keys[i], child.sector, child.position);
-
-                    auto err = log(child);
-                    if (err < 0) {
-                        return err;
+                    if (i <= node->number_keys) {
+                        auto child = node->d.children[i];
+                        phyinfof("inner %d:%d #%d key=%d -> %d:%d", node_ptr.sector, node_ptr.position, i, node->keys[i], child.sector, child.position);
+                        follow_ptr = child;
+                    }
+                    else {
+                        i = Size;
                     }
                 }
-            }
-            else {
-                phyinfof("leaf nkeys=%d", node->number_keys);
+                else {
+                    if (i == 0) {
+                        phyinfof("leaf nkeys=%d", node->number_keys);
 
-                for (auto i = 0; i < node->number_keys; ++i) {
-                    phyinfof("leaf %d:%d #%d key=%d = (%d bytes)", node_ptr.sector, node_ptr.position, i, node->keys[i], sizeof(VALUE));
+                        for (auto j = 0; j < node->number_keys; ++j) {
+                            phyinfof("leaf %d:%d #%d key=%d = (%d bytes)", node_ptr.sector, node_ptr.position, j, node->keys[j], sizeof(VALUE));
+                        }
+                    }
+
+                    i = Size;
+                }
+                return 0;
+            });
+            if (err < 0) {
+                return err;
+            }
+
+            if (follow_ptr.valid()) {
+                auto err = log(follow_ptr);
+                if (err < 0) {
+                    return err;
                 }
             }
-            return 0;
-        });
-        if (err < 0) {
-            return err;
         }
 
         return 0;
