@@ -33,7 +33,7 @@ int32_t page_lock::replace(dhara_sector_t sector, bool overwrite) {
     assert(sector != InvalidSector);
 
     if (sector_ == sector) {
-        phydebugf("page-lock: noop replace sector=%d", sector);
+        phyverbosef("page-lock: noop replace sector=%d", sector);
         return 0;
     }
 
@@ -76,19 +76,19 @@ paging_delimited_buffer::paging_delimited_buffer(working_buffers &buffers, secto
 }
 
 page_lock paging_delimited_buffer::reading(dhara_sector_t sector) {
-    phydebugf("page-lock: opening (rd) %d", sector);
+    phyverbosef("page-lock: opening (rd) %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, true, false };
 }
 
 page_lock paging_delimited_buffer::writing(dhara_sector_t sector) {
-    phydebugf("page-lock: opening (wr) %d", sector);
+    phyverbosef("page-lock: opening (wr) %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, false, false };
 }
 
 page_lock paging_delimited_buffer::overwrite(dhara_sector_t sector) {
-    phydebugf("page-lock: overwriting %d", sector);
+    phyverbosef("page-lock: overwriting %d", sector);
     assert(!valid_);
     return page_lock{ this, sector, false, true };
 }
@@ -103,7 +103,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
     phydebugf("page-lock: replacing previous=%d sector=%d read-only=%d overwrite=%s", sector_, sector, read_only, overwrite ? "yes" : "no");
 
     if (sector == sector_) {
-        phydebugf("page-lock: replace (noop)");
+        phyverbosef("page-lock: replace (noop)");
         return 0;
     }
 
@@ -114,7 +114,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
             memset(buffer, 0xff, size);
             return 0;
         }
-        phydebugf("page-lock: miss %d", page_sector);
+        phyverbosef("page-lock: miss %d", page_sector);
         return sectors_->read(page_sector, buffer, size);
     };
 
@@ -126,14 +126,14 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
     auto opened = buffers_->open_sector(sector, read_only, miss_fn, flush_fn);
 
     if (ptr() != nullptr) {
-        phydebugf("page-lock: freeing previous");
+        phyverbosef("page-lock: freeing previous");
         buffers_->free(ptr());
         ptr(nullptr, 0);
     }
 
     ptr(opened, buffers_->buffer_size());
 
-    phydebugf("page-lock: replaced previous=%d sector=%d buffer=0x%x read-only=%d", sector_, sector, opened, read_only);
+    phyverbosef("page-lock: replaced previous=%d sector=%d buffer=0x%x read-only=%d", sector_, sector, opened, read_only);
 
     sector_ = sector;
     valid_ = true;
