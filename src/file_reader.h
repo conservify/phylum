@@ -23,6 +23,8 @@ public:
 public:
     int32_t read(uint8_t *data, size_t size);
 
+    int32_t read(size_t size);
+
     int32_t close();
 
     uint32_t u32(uint8_t type);

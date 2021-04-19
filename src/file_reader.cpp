@@ -10,16 +10,28 @@ file_reader::file_reader(phyctx pc, directory *directory, found_file file)
 file_reader::~file_reader() {
 }
 
+int32_t file_reader::read(size_t size) {
+    return read(nullptr, size);
+}
+
 int32_t file_reader::read(uint8_t *data, size_t size) {
     if (has_chain()) {
-        auto err = data_chain_.read(data, size);
-        if (err < 0) {
-            return err;
+        auto nread = 0u;
+        while (nread < size) {
+            auto err = data_chain_.read(data, size - nread);
+            if (err < 0) {
+                return err;
+            }
+
+            if (err == 0) {
+                break;
+            }
+
+            position_ += err;
+            nread += err;
         }
 
-        position_ += err;
-
-        return err;
+        return nread;
     }
 
     // Right now all inline data has to be read in a single
