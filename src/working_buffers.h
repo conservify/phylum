@@ -20,6 +20,9 @@ protected:
     page_t pages_[Size];
     size_t highwater_{ 0 };
     uint32_t counter_{ 0 };
+    size_t reads_{ 0 };
+    size_t writes_{ 0 };
+    size_t misses_{ 0 };
 
 public:
     working_buffers(size_t buffer_size) : buffer_size_(buffer_size) {
@@ -29,7 +32,7 @@ public:
     }
 
     virtual ~working_buffers() {
-        phyinfof("wbuffers::dtor hw=%zu", highwater_);
+        phyinfof("wbuffers::dtor hw=%zu reads=%zu writes=%zu misses=%zu", highwater_, reads_, writes_, misses_);
         debug();
     }
 
@@ -87,14 +90,15 @@ public:
                     }
 
                     phydebugf("wbuffers[%d] flush sector=%d", i, sector);
+
                     auto err = flush(sector, p.buffer, buffer_size_);
                     if (err < 0) {
                         return err;
                     }
 
                     flushed = true;
-
                     p.dirty = false;
+                    writes_++;
                 }
             }
         }
@@ -110,9 +114,14 @@ public:
         auto selected = -1;
         auto flushing = -1;
 
+        reads_++;
+
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
             if (p.buffer == nullptr) break;
+            if (p.sector == InvalidSector) {
+                // Free page.
+            }
             if (p.sector == sector) {
                 // Otherwise, this sector is open for writing as we
                 // speak. Which should never happen.
@@ -138,15 +147,23 @@ public:
                 return p.buffer;
             }
             else {
-                // If we see any pages that are unreferenced save just
-                // in case we need to load.
-                // TODO LRU?
                 if (p.refs == 0) {
                     if (p.dirty) {
+                        // TODO Check age
                         flushing = i;
                     }
                     else {
-                        selected = i;
+                        if (selected == -1)  {
+                            selected = i;
+                        }
+                        else {
+                            if (p.sector == InvalidSector && pages_[selected].sector != InvalidSector) {
+                                selected = i;
+                            }
+                            else if (p.used < pages_[selected].used) {
+                                selected = i;
+                            }
+                        }
                     }
                 }
             }
@@ -169,6 +186,7 @@ public:
 
                 p.dirty = false;
                 p.sector = InvalidSector;
+                writes_++;
 
                 selected = flushing;
             }
@@ -188,6 +206,12 @@ public:
         if (err < 0) {
             assert(err >= 0);
             return { };
+        }
+
+        // If we just zeroed the buffer, this will be zero otherwise
+        // this'll have the number of bytes we read.
+        if (err > 0) {
+            misses_++;
         }
 
         if (read_only) {
@@ -244,28 +268,37 @@ public:
 
         update_highwater();
 
+        auto selected = -1;
+
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
-            if (p.buffer == nullptr) {
-                break;
-            }
+            if (p.buffer == nullptr) break;
             if (p.refs == 0) {
-                counter_++;
-
-                p.refs--;
-                p.used = counter_;
-                p.sector = InvalidSector;
-
-                update_highwater();
-
-                phydebugf("wbuffers[%d]: allocate sector=%d hw=%zu", i, p.sector, highwater_);
-                auto free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
-                return simple_buffer{ pages_[i].buffer, size, free_fn };
+                if (selected < 0) {
+                    selected = i;
+                }
+                else {
+                    if (pages_[selected].sector != InvalidSector && p.sector == InvalidSector) {
+                        selected = i;
+                    }
+                }
             }
         }
 
-        assert(false);
-        return simple_buffer{ nullptr, 0u };
+        assert(selected >= 0);
+
+        counter_++;
+
+        auto &p = pages_[selected];
+        p.used = counter_;
+        p.sector = InvalidSector;
+        p.refs--;
+
+        update_highwater();
+
+        phydebugf("wbuffers[%d]: allocate sector=%d hw=%zu", selected, p.sector, highwater_);
+        auto free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
+        return simple_buffer{ p.buffer, size, free_fn };
     }
 
     void free(uint8_t const *ptr) {

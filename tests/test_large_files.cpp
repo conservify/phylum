@@ -90,10 +90,8 @@ TYPED_TEST(LargeFileFixture, WriteLargeFileIndexed_ContinuousWrites) {
                     if (written == 0 || opened.cursor().sector != cursor.sector) {
                         cursor = opened.cursor();
 
-                        log_configure_level(LogLevels::DEBUG);
                         phydebugf("cursor sector=%d position=%d position_atsos=%d record_number=%d",
                                   cursor.sector, cursor.position, cursor.position_at_start_of_sector, record_number);
-                        log_configure_level(LogLevels::NONE);
 
                         ASSERT_EQ(position_index.add(cursor.position_at_start_of_sector, cursor.sector), 0);
                         ASSERT_EQ(record_index.add(record_number, cursor.position), 0);

@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "paging_delimited_buffer.h"
 
 namespace phylum {
@@ -110,12 +112,16 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
     auto miss_fn = [=](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
         assert(size > 0);
         if (overwrite) {
-            phydebugf("page-lock: erase %d", page_sector);
-            memset(buffer, 0xff, size);
             return 0;
         }
+
         phyverbosef("page-lock: miss %d", page_sector);
-        return sectors_->read(page_sector, buffer, size);
+        auto err = sectors_->read(page_sector, buffer, size);
+        if (err < 0) {
+            return err;
+        }
+
+        return size;
     };
 
     auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
