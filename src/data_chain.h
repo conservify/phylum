@@ -51,7 +51,7 @@ public:
     file_size_t total_bytes();
 
 public:
-    data_chain_cursor cursor() {
+    data_chain_cursor cursor() const {
         if (sector() == InvalidSector) {
             return data_chain_cursor{ head(), position_, position_at_start_of_sector_ };
         }

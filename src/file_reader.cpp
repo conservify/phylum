@@ -10,6 +10,15 @@ file_reader::file_reader(phyctx pc, directory *directory, found_file file)
 file_reader::~file_reader() {
 }
 
+file_size_t file_reader::position() const {
+    auto buffer_position = buffer_.position();
+    if (has_chain()) {
+        auto dcc = data_chain_.cursor();
+        return dcc.position + buffer_position;
+    }
+    return inline_position_;
+}
+
 int32_t file_reader::read(size_t size) {
     return read(nullptr, size);
 }
@@ -27,7 +36,6 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
                 break;
             }
 
-            position_ += err;
             nread += err;
         }
 
@@ -55,7 +63,7 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
         return err;
     }
 
-    position_ += err;
+    inline_position_ += err;
 
     return err;
 }

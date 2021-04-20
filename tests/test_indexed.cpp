@@ -330,7 +330,7 @@ TYPED_TEST(IndexedFixture, WriteFile_Large_Position_SeekBeginningAndEnd) {
     });
 }
 
-TYPED_TEST(IndexedFixture, WriteFile_Large_Records_SeekBeginningAndEnd) {
+TYPED_TEST(IndexedFixture, WriteFile_OneIndex_Records_SeekBeginningAndEnd) {
     using layout_type = typename TypeParam::layout_type;
     using directory_type = typename TypeParam::directory_type;
     using tree_type = typename TypeParam::tree_type;
@@ -350,6 +350,8 @@ TYPED_TEST(IndexedFixture, WriteFile_Large_Records_SeekBeginningAndEnd) {
         ASSERT_EQ(fops.dir().find("data.txt", open_file_config{ }), 1);
 
         write_large_file_delimited(fops, 1024u * 65u, written, record_number);
+
+        // TODO Verify we actually indexed.
     });
 
     memory.mounted<super_chain>([&](super_chain &super) {
@@ -364,7 +366,45 @@ TYPED_TEST(IndexedFixture, WriteFile_Large_Records_SeekBeginningAndEnd) {
 
         ASSERT_EQ(fops.seek_record(reader, UINT32_MAX), (int32_t)record_number);
 
-        // ASSERT_EQ(reader.position(), written);
+        ASSERT_EQ(reader.position(), written);
+    });
+}
+
+TYPED_TEST(IndexedFixture, WriteFile_Large_Records_SeekBeginningAndEnd) {
+    using layout_type = typename TypeParam::layout_type;
+    using directory_type = typename TypeParam::directory_type;
+    using tree_type = typename TypeParam::tree_type;
+    using file_ops_type = file_ops<directory_type, tree_type>;
+
+    layout_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    record_number_t record_number = 0;
+    size_t written = 0u;
+
+    memory.mounted<super_chain>([&](super_chain &super) {
+        file_ops_type fops{ memory.pc(), super };
+        ASSERT_EQ(fops.format(), 0);
+        ASSERT_EQ(fops.touch("data.txt"), 0);
+
+        ASSERT_EQ(fops.dir().find("data.txt", open_file_config{ }), 1);
+
+        write_large_file_delimited(fops, 1024u * 1024u, written, record_number);
+    });
+
+    memory.mounted<super_chain>([&](super_chain &super) {
+        file_ops_type fops{ memory.pc(), super };
+
+        ASSERT_EQ(fops.dir().find("data.txt", open_file_config{ }), 1);
+        file_reader reader{ memory.pc(), &fops.dir(), fops.dir().open() };
+
+        ASSERT_EQ(fops.seek_record(reader, 0), 0);
+
+        ASSERT_EQ(reader.position(), 0u);
+
+        ASSERT_EQ(fops.seek_record(reader, UINT32_MAX), (int32_t)record_number);
+
+        ASSERT_EQ(reader.position(), written);
     });
 }
 

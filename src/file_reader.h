@@ -13,7 +13,7 @@ private:
     found_file file_;
     simple_buffer buffer_;
     data_chain data_chain_;
-    file_size_t position_{ 0 };
+    file_size_t inline_position_{ 0 };
 
 public:
     file_reader(phyctx pc, directory *directory, found_file file);
@@ -21,9 +21,7 @@ public:
     virtual ~file_reader();
 
 public:
-    file_size_t position() const {
-        return position_;
-    }
+    file_size_t position() const;
 
 public:
     int32_t read(uint8_t *data, size_t size);
@@ -44,8 +42,6 @@ public:
         uint32_t found_position = 0;
         uint32_t found_sector = 0;
 
-        position_ = 0;
-
         position_index.log();
 
         err = position_index.find_last_less_then(desired_position, &found_sector, &found_position);
@@ -62,9 +58,7 @@ public:
             return err;
         }
 
-        position_ = found_position + err;
-
-        return position_;
+        return position();
     }
 
     template <typename tree_type>
@@ -110,7 +104,7 @@ public:
     }
 
 private:
-    bool has_chain() {
+    bool has_chain() const {
         return data_chain_.valid();
     }
 };
