@@ -4,6 +4,8 @@
 
 namespace phylum {
 
+constexpr size_t MaximumNullReadSize = 65 * 1024;
+
 enum seek_reference {
     Start,
     End,
@@ -47,8 +49,13 @@ public:
 
 public:
     data_chain_cursor cursor() {
+        if (sector() == InvalidSector) {
+            return data_chain_cursor{ head(), position_, position_at_start_of_sector_ };
+        }
         return data_chain_cursor{ sector(), position_, position_at_start_of_sector_ };
     }
+
+    int32_t seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t position);
 
 protected:
     int32_t write_header(page_lock &page_lock) override;

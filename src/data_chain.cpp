@@ -18,6 +18,35 @@ int32_t data_chain::write_header(page_lock &page_lock) {
     return 0;
 }
 
+int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t position) {
+    sector(new_sector);
+
+    position_ = position_at_start_of_sector;
+    position_at_start_of_sector_ = position_at_start_of_sector;
+
+    auto nread = 0;
+
+    while (position_ != position) {
+        auto remaining = MaximumNullReadSize;
+        if (position != UINT32_MAX) {
+            remaining = position - position_;
+        }
+
+        auto err = read(nullptr, remaining);
+        if (err < 0) {
+            return err;
+        }
+        if (err == 0) {
+            break;
+        }
+
+        position_ += err;
+        nread += err;
+    }
+
+    return nread;
+}
+
 int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     auto err = db().seek_end();
     if (err < 0) {

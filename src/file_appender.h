@@ -20,6 +20,11 @@ public:
     virtual ~file_appender();
 
 public:
+    size_t visited_sectors();
+
+    data_chain_cursor cursor();
+
+public:
     int32_t write(char const *str) {
         return write((uint8_t *)str, strlen(str));
     }
@@ -29,6 +34,14 @@ public:
     }
 
     int32_t write(uint8_t const *data, size_t size);
+
+    uint32_t u32(uint8_t type);
+
+    void u32(uint8_t type, uint32_t value);
+
+    int32_t flush();
+
+    int32_t close();
 
     int32_t index_if_necessary(std::function<int32_t(data_chain_cursor)> fn);
 
@@ -69,28 +82,6 @@ public:
         });
 
         return err;
-    }
-
-    int32_t flush();
-
-    int32_t close();
-
-    uint32_t u32(uint8_t type);
-
-    void u32(uint8_t type, uint32_t value);
-
-    size_t visited_sectors() {
-        if (has_chain()) {
-            return data_chain_.visited_sectors();
-        }
-        return 0;
-    }
-
-    data_chain_cursor cursor() {
-        if (has_chain()) {
-            return data_chain_.cursor();
-        }
-        return data_chain_cursor{ };
     }
 
 private:

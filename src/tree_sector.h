@@ -769,13 +769,17 @@ public:
         auto index = Keys::leaf_position_for(key, *node);
 
         if (index <= node->number_keys) {
-            index -= 1;
-            if (index < node->number_keys && key == node->keys[index]) {
+            if (index > 0) {
                 index -= 1;
+            }
+            if (index < node->number_keys && key == node->keys[index]) {
+                if (index > 0) {
+                    index -= 1;
+                }
             }
 
             if (index < node->number_keys) {
-                assert(node->keys[index] < key);
+                assert(node->keys[index] <= key);
 
                 if (value != nullptr) {
                     *value = node->d.values[index];

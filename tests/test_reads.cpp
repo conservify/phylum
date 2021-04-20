@@ -333,8 +333,7 @@ TYPED_TEST(ReadFixture, ReadInlineWrite_NullRead) {
         ASSERT_EQ(chain.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ memory.pc(), &chain, chain.open() };
 
-        uint8_t buffer[256];
-        ASSERT_EQ(reader.read(sizeof(buffer)), (int32_t)strlen(hello));
+        ASSERT_EQ(reader.read(1024), (int32_t)strlen(hello));
         ASSERT_EQ(reader.position(), strlen(hello));
         ASSERT_EQ(reader.close(), 0);
     });

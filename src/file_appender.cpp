@@ -10,6 +10,20 @@ file_appender::file_appender(phyctx pc, directory *directory, found_file file)
 file_appender::~file_appender() {
 }
 
+size_t file_appender::visited_sectors() {
+    if (has_chain()) {
+        return data_chain_.visited_sectors();
+    }
+    return 0;
+}
+
+data_chain_cursor file_appender::cursor() {
+    if (has_chain()) {
+        return data_chain_.cursor();
+    }
+    return data_chain_cursor{};
+}
+
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
@@ -50,8 +64,10 @@ int32_t file_appender::make_data_chain() {
 }
 
 int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_cursor)> fn) {
-    if (data_chain_.visited_sectors() > 0 && data_chain_.visited_sectors() % 16 == 0) {
-        auto cursor = data_chain_.cursor();
+    auto cursor = data_chain_.cursor();
+    assert(cursor.sector != InvalidSector);
+
+    if (cursor.position == 0 || (data_chain_.visited_sectors() > 0 && data_chain_.visited_sectors() % 16 == 0)) {
         auto err = fn(cursor);
         if (err < 0) {
             return err;

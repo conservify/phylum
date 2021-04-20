@@ -21,15 +21,43 @@ public:
     virtual ~file_reader();
 
 public:
+    file_size_t position() const {
+        return position_;
+    }
+
+public:
     int32_t read(uint8_t *data, size_t size);
 
     int32_t read(size_t size);
 
-    int32_t close();
-
     uint32_t u32(uint8_t type);
 
-    file_size_t position() const {
+    int32_t close();
+
+public:
+    template <typename tree_type>
+    int32_t seek(uint32_t position) {
+        int32_t err;
+
+        tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
+
+        uint32_t found_position = 0;
+        uint32_t found_sector = 0;
+
+        position_index.log();
+
+        err = position_index.find_last_less_then(position, &found_sector, &found_position);
+        if (err < 0) {
+            return err;
+        }
+
+        err = data_chain_.seek_sector(found_sector, found_position, position);
+        if (err < 0) {
+            return err;
+        }
+
+        position_ = found_position + err;
+
         return position_;
     }
 
