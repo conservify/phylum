@@ -10,7 +10,7 @@ constexpr size_t MaximumNameLength = 64;
 typedef uint32_t file_id_t;
 typedef uint32_t file_size_t;
 typedef uint16_t file_flags_t;
-typedef uint16_t record_number_t;
+typedef uint32_t record_number_t;
 typedef uint16_t sector_offset_t;
 typedef uint32_t dhara_sector_t;
 
