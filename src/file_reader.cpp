@@ -18,7 +18,7 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
     if (has_chain()) {
         auto nread = 0u;
         while (nread < size) {
-            auto err = data_chain_.read(data, size - nread);
+            auto err = data_chain_.read(data == nullptr ? nullptr : data + nread, size - nread);
             if (err < 0) {
                 return err;
             }

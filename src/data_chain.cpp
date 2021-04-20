@@ -160,8 +160,10 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
                 header->bytes += err;
                 return 0;
             }) == 0);
+
             written += err;
             position_ += err;
+
             db().skip(err); // TODO Remove
 
             return err;
@@ -202,7 +204,9 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
 int32_t data_chain::constrain() {
     auto iter = db().begin();
     auto hdr = db().header<data_chain_header_t>();
-    assert(db().constrain(hdr->bytes + iter->position() + iter->size_of_record() + 1) >= 0);
+    auto total = hdr->bytes + iter->position() + iter->size_of_record() + 1 /*     Null terminator */;
+    phydebugf("constrain hdr-bytes=%d + hdr-pos=%d + hdr->size=%d + 1 <null> = total=%d", hdr->bytes, iter->position(), iter->size_of_record(), total);
+    assert(db().constrain(total) >= 0);
     return 0;
 }
 
@@ -229,8 +233,6 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
             if (err < 0) {
                 return err;
             }
-
-            db().skip(1); // HACK TODO Skip terminator.
 
             assert(constrain() >= 0);
 

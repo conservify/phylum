@@ -219,6 +219,7 @@ public:
     }
 
     int32_t constrain(size_t bytes) {
+        assert(bytes <= size_);
         size_ = bytes;
         return 0;
     }
