@@ -44,8 +44,11 @@ public:
 public:
     int32_t write(uint8_t const *data, size_t size);
     int32_t read(uint8_t *data, size_t size);
-    uint32_t total_bytes();
-    int32_t seek(file_size_t position, seek_reference reference);
+    int32_t read_delimiter(uint32_t *delimiter);
+    int32_t seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t desired_position);
+    int32_t skip_bytes(file_size_t bytes);
+    int32_t skip_records(record_number_t number_records);
+    file_size_t total_bytes();
 
 public:
     data_chain_cursor cursor() {
@@ -54,8 +57,6 @@ public:
         }
         return data_chain_cursor{ sector(), position_, position_at_start_of_sector_ };
     }
-
-    int32_t seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t position);
 
 protected:
     int32_t write_header(page_lock &page_lock) override;

@@ -111,6 +111,16 @@ public:
         return size_;
     }
 
+    int32_t read_byte(uint8_t *byte) {
+        assert(byte != nullptr);
+        if (position_ == size_) {
+            return 0;
+        }
+        *byte = *((uint8_t *)ptr() + position());
+        position_++;
+        return 1;
+    }
+
     template <typename T>
     int32_t fill(general_buffer<uint8_t const> &sb, T flush) {
         if (sb.ptr() == nullptr) {

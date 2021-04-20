@@ -19,7 +19,11 @@ size_t file_appender::visited_sectors() {
 
 data_chain_cursor file_appender::cursor() {
     if (has_chain()) {
-        return data_chain_.cursor();
+        auto dcc = data_chain_.cursor();
+        return data_chain_cursor{
+            dcc.sector, dcc.position + (file_size_t)buffer_.position(),
+            dcc.position_at_start_of_sector
+        };
     }
     return data_chain_cursor{};
 }
@@ -64,7 +68,7 @@ int32_t file_appender::make_data_chain() {
 }
 
 int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_cursor)> fn) {
-    auto cursor = data_chain_.cursor();
+    auto cursor = this->cursor();
     assert(cursor.sector != InvalidSector);
 
     if (cursor.position == 0 || (data_chain_.visited_sectors() > 0 && data_chain_.visited_sectors() % 16 == 0)) {

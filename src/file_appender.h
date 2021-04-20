@@ -25,6 +25,17 @@ public:
     data_chain_cursor cursor();
 
 public:
+    int32_t write_delimiter(size_t delimited_size) {
+        uint8_t buffer[4];
+        auto size_of_delimiter = varint_encoding_length(delimited_size);
+        varint_encode(delimited_size, buffer, sizeof(buffer));
+        auto err = write(buffer, size_of_delimiter);
+        if (err < 0) {
+            return err;
+        }
+        return size_of_delimiter;
+    }
+
     int32_t write(char const *str) {
         return write((uint8_t *)str, strlen(str));
     }

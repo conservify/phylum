@@ -36,7 +36,7 @@ public:
 
 public:
     template <typename tree_type>
-    int32_t seek(uint32_t position) {
+    int32_t seek_position(uint32_t desired_position) {
         int32_t err;
 
         tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
@@ -44,14 +44,20 @@ public:
         uint32_t found_position = 0;
         uint32_t found_sector = 0;
 
+        position_ = 0;
+
         position_index.log();
 
-        err = position_index.find_last_less_then(position, &found_sector, &found_position);
+        err = position_index.find_last_less_then(desired_position, &found_sector, &found_position);
         if (err < 0) {
             return err;
         }
 
-        err = data_chain_.seek_sector(found_sector, found_position, position);
+        phydebugf("seeking desired=%d found-position=%d found-sector=%d", desired_position, found_position, found_sector);
+
+        assert(desired_position >= found_position);
+
+        err = data_chain_.seek_sector(found_sector, found_position, desired_position);
         if (err < 0) {
             return err;
         }
@@ -59,6 +65,48 @@ public:
         position_ = found_position + err;
 
         return position_;
+    }
+
+    template <typename tree_type>
+    int32_t seek_record(record_number_t desired_record) {
+        int32_t err;
+
+        // TODO Skip this if desired_record == 0
+
+        tree_type record_index{ data_chain_.pc(), file_.record_index, "recidx" };
+
+        uint32_t found_record = 0;
+        uint32_t found_record_position = 0;
+
+        record_index.log();
+
+        err = record_index.find_last_less_then(desired_record, &found_record_position, &found_record);
+        if (err < 0) {
+            return err;
+        }
+
+        phydebugf("seeking record desired=%d found-record=%d found-position=%d", desired_record, found_record, found_record_position);
+
+        err = seek_position<tree_type>(found_record_position);
+        if (err < 0) {
+            return err;
+        }
+
+        phydebugf("skipping %d records position=%d", desired_record, err);
+
+        if (desired_record == UINT32_MAX) {
+            err = data_chain_.skip_records(desired_record);
+        }
+        else {
+            err = data_chain_.skip_records(desired_record - found_record);
+        }
+        if (err < 0) {
+            return err;
+        }
+
+        phydebugf("done skipping %d", err);
+
+        return found_record + err;
     }
 
 private:

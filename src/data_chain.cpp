@@ -18,18 +18,36 @@ int32_t data_chain::write_header(page_lock &page_lock) {
     return 0;
 }
 
-int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t position) {
+int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t desired_position) {
+    assert(desired_position >= position_at_start_of_sector);
+
     sector(new_sector);
 
     position_ = position_at_start_of_sector;
     position_at_start_of_sector_ = position_at_start_of_sector;
 
-    auto nread = 0;
+    auto nread = skip_bytes(desired_position == UINT32_MAX ? desired_position : desired_position - position_);
+    if (nread < 0) {
+        return nread;
+    }
 
-    while (position_ != position) {
+    phydebugf("seek done desired=%d position=%d nread=%d", desired_position, position_, nread);
+
+    assert(desired_position == InvalidSector || desired_position == position_);
+
+    return nread;
+}
+
+int32_t data_chain::skip_bytes(file_size_t bytes) {
+    int32_t nread = 0;
+
+    while (true) {
         auto remaining = MaximumNullReadSize;
-        if (position != UINT32_MAX) {
-            remaining = position - position_;
+        if (bytes != UINT32_MAX) {
+            remaining = bytes - nread;
+        }
+        if (remaining == 0) {
+            break;
         }
 
         auto err = read(nullptr, remaining);
@@ -40,11 +58,39 @@ int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_
             break;
         }
 
-        position_ += err;
         nread += err;
     }
 
     return nread;
+}
+
+int32_t data_chain::skip_records(record_number_t number_records) {
+    int32_t err;
+
+    record_number_t skipped = 0;
+
+    while (skipped < number_records) {
+        uint32_t record_size = 0;
+        err = read_delimiter(&record_size);
+        if (err < 0) {
+            return err;
+        }
+
+        if (err == 0) {
+            break;
+        }
+
+        phydebugf("%d record-size: %d (%d delim-bytes)", position_, record_size, err);
+
+        err = skip_bytes(record_size);
+        if (err < 0) {
+            return err;
+        }
+
+        skipped++;
+    }
+
+    return skipped;
 }
 
 int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
@@ -52,6 +98,8 @@ int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
     if (err < 0) {
         return err;
     }
+
+    phydebugf("seeking end of buffer %d", db().position());
 
     appendable(true);
 
@@ -62,7 +110,7 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
     logged_task it{ "dc-write", name() };
 
     auto copied = 0u;
-    return write_chain([&](simple_buffer buffer, bool &grow) {
+    return write_chain([&](write_buffer buffer, bool &grow) {
         auto remaining = size - copied;
         auto copying = std::min<int32_t>(buffer.available(), remaining);
         if (copying > 0) {
@@ -73,6 +121,45 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
             grow = true;
         }
         return copying;
+    });
+}
+
+int32_t data_chain::read_delimiter(uint32_t *delimiter) {
+    assert(delimiter != nullptr);
+
+    logged_task lt{ "dc-read", name() };
+
+    assert_valid();
+
+    *delimiter = 0;
+
+    int32_t bits = 0;
+    int32_t nread = 0;
+
+    return read_chain([&](read_buffer view) {
+        uint8_t byte;
+
+        while (true) {
+            auto err = view.read_byte(&byte);
+            if (err < 0) {
+                return err;
+            }
+            if (err != 1) {
+                return -1;
+            }
+
+            nread++;
+
+            uint32_t ll = byte;
+            *delimiter += ((ll & 0x7F) << bits);
+            bits += 7;
+
+            if (!(byte & 0x80)) {
+                break;
+            }
+        }
+
+        return nread;
     });
 }
 
@@ -87,7 +174,7 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
     });
 }
 
-uint32_t data_chain::total_bytes() {
+file_size_t data_chain::total_bytes() {
     logged_task lt{ "total-bytes" };
 
     auto page_lock = db().reading(head());
@@ -103,10 +190,6 @@ uint32_t data_chain::total_bytes() {
     phydebugf("done (%d)", bytes);
 
     return bytes;
-}
-
-int32_t data_chain::seek(file_size_t /*position*/, seek_reference /*reference*/) {
-    return 0;
 }
 
 int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> data_fn) {
