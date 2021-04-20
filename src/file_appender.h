@@ -24,6 +24,8 @@ public:
 
     data_chain_cursor cursor();
 
+    file_size_t position();
+
 public:
     int32_t write_delimiter(size_t delimited_size) {
         uint8_t buffer[4];

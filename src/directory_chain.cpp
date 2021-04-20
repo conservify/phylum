@@ -134,13 +134,14 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     }
 
     auto err = walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) -> int32_t {
-        // HACK Buffer is unpaged outside of this lambda.
-        file_.directory_capacity = db().size() / 2;
-
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
             if (strncmp(fe->name, name, MaximumNameLength) == 0) {
+                file_ = found_file{ };
+                file_.cfg = file_cfg;
                 file_.id = fe->id;
+                file_.directory_size = 0;
+                file_.directory_capacity = db().size() / 2;
             }
         }
         if (entry->type == entry_type::FileData) {
@@ -148,8 +149,10 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
             if (fd->id == file_.id) {
                 if (fd->chain.head != InvalidSector || fd->chain.tail != InvalidSector) {
                     file_.directory_size = 0;
+                    file_.directory_capacity = 0;
                     file_.chain = fd->chain;
                 } else {
+                    // Empty FileData is a deletion.
                     if (fd->size == 0) {
                         file_ = found_file{ };
                     }

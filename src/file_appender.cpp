@@ -28,6 +28,13 @@ data_chain_cursor file_appender::cursor() {
     return data_chain_cursor{};
 }
 
+file_size_t file_appender::position() {
+    if (has_chain()) {
+        return cursor().position;
+    }
+    return file_.directory_size + buffer_.position();
+}
+
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
