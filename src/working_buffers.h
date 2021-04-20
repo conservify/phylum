@@ -269,9 +269,11 @@ public:
         }
 
 #if defined(__linux__)
-        for (auto i : statistics_) {
-            phydebugf("wbuffers[-] sector=%d reads=%zu writes=%zu misses=%zu",
-                      i.first, i.second.reads, i.second.writes, i.second.misses);
+        if (false) {
+            for (auto i : statistics_) {
+                phydebugf("wbuffers[-] sector=%d reads=%zu writes=%zu misses=%zu",
+                        i.first, i.second.reads, i.second.writes, i.second.misses);
+            }
         }
 #endif
 
