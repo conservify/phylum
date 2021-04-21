@@ -494,7 +494,7 @@ private:
                 }
 
                 auto child_ptr = node->d.children[index + 1];
-                auto err = dereference(false, child_ptr, [&](page_lock &child_lock, default_node_type *child) -> int32_t {
+                auto err = dereference(false, child_ptr, [this, &lock, &index, &key, child_ptr, node_ptr, node](page_lock &child_lock, default_node_type *child) -> int32_t {
                     if (child->number_keys == Size) {
                         phydebugf("splitting child %d:%d", child_ptr.sector, child_ptr.position);
 
