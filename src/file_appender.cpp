@@ -98,7 +98,17 @@ int32_t file_appender::flush() {
     // Do we already have a data chain?
     auto had_chain = data_chain_.valid();
     if (had_chain) {
-        phyinfof("writing to chain");
+        phydebugf("writing to chain");
+
+        auto truncated = ((int32_t)file_.cfg.flags & (int32_t)open_file_flags::Truncate) > 0;
+        if (!truncated_ && truncated) {
+            phyinfof("truncating");
+            auto err = data_chain_.truncate();
+            if (err < 0) {
+                return err;
+            }
+            truncated_ = true;
+        }
 
         auto err = buffer_.read_to_position([&](read_buffer buffer) -> int32_t {
             return data_chain_.write(buffer.ptr(), buffer.size());

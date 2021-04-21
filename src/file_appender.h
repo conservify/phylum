@@ -13,6 +13,7 @@ private:
     found_file file_;
     simple_buffer buffer_;
     data_chain data_chain_;
+    bool truncated_{ false };
 
 public:
     file_appender(phyctx pc, directory *directory, found_file file);

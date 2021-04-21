@@ -78,6 +78,8 @@ public:
         return name_;
     }
 
+    int32_t truncate();
+
     int32_t flush();
 
     int32_t dequeue_sector(dhara_sector_t *sector);

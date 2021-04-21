@@ -68,3 +68,49 @@ TYPED_TEST(TruncateFixture, Truncate_Inline) {
         ASSERT_EQ(reader.close(), 0);
     });
 }
+
+TYPED_TEST(TruncateFixture, Truncate_DataChain_Simple) {
+    using layout_type = typename TypeParam::first_type;
+    using dir_type = typename TypeParam::second_type;
+
+    layout_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    auto written = 0u;
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("data.txt"), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        file_appender opened{ memory.pc(), &dir, dir.open() };
+
+        written = opened.write(lorem1k, memory.sector_size() * 4);
+        ASSERT_GT(written, 0u);
+        ASSERT_EQ(opened.flush(), 0);
+    });
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        file_reader reader{ memory.pc(), &dir, dir.open() };
+
+        auto nread = reader.read(MaximumNullReadSize);
+        ASSERT_EQ(nread, (int32_t)written);
+    });
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg(open_file_flags::Truncate)), 1);
+        file_appender opened{ memory.pc(), &dir, dir.open() };
+
+        written = opened.write(lorem1k, memory.sector_size() * 4);
+        ASSERT_GT(written, 0u);
+        ASSERT_EQ(opened.flush(), 0);
+    });
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        file_reader reader{ memory.pc(), &dir, dir.open() };
+
+        auto nread = reader.read(MaximumNullReadSize);
+        ASSERT_EQ(nread, (int32_t)written);
+    });
+}

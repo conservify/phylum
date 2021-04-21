@@ -90,14 +90,23 @@ struct PHY_PACKED entry_t {
     }
 };
 
+enum class sector_flags : uint8_t {
+    None = 0,
+    Tail = 1,
+};
+
 struct PHY_PACKED sector_chain_header_t : entry_t {
     dhara_sector_t pp{ (dhara_sector_t)InvalidSector };
     dhara_sector_t np{ (dhara_sector_t)InvalidSector };
+    sector_flags flags{ sector_flags::None };
 
     sector_chain_header_t(entry_type type) : entry_t(type) {
     }
 
     sector_chain_header_t(entry_type type, dhara_sector_t pp, dhara_sector_t np) : entry_t(type), pp(pp), np(np) {
+    }
+
+    sector_chain_header_t(entry_type type, dhara_sector_t pp, dhara_sector_t np, sector_flags flags) : entry_t(type), pp(pp), np(np), flags(flags) {
     }
 };
 
@@ -119,6 +128,9 @@ struct PHY_PACKED directory_chain_header_t : sector_chain_header_t {
 
     directory_chain_header_t(dhara_sector_t pp, dhara_sector_t np) : sector_chain_header_t(entry_type::DirectorySector, pp, np) {
     }
+
+    directory_chain_header_t(dhara_sector_t pp, dhara_sector_t np, sector_flags flags) : sector_chain_header_t(entry_type::DirectorySector, pp, np, flags) {
+    }
 };
 
 struct PHY_PACKED free_chain_header_t : sector_chain_header_t {
@@ -139,6 +151,9 @@ struct PHY_PACKED data_chain_header_t : sector_chain_header_t {
     }
 
     data_chain_header_t(uint16_t bytes, dhara_sector_t pp, dhara_sector_t np) : sector_chain_header_t(entry_type::DataSector, pp, np), bytes(bytes) {
+    }
+
+    data_chain_header_t(uint16_t bytes, dhara_sector_t pp, dhara_sector_t np, sector_flags flags) : sector_chain_header_t(entry_type::DataSector, pp, np, flags), bytes(bytes) {
     }
 };
 

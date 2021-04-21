@@ -106,12 +106,21 @@ int32_t sector_chain::forward(page_lock &page_lock) {
         sector_ = head_;
     } else {
         auto hdr = db().header<sector_chain_header_t>();
+        if (((int32_t)hdr->flags & (int32_t)sector_flags::Tail) > 0) {
+            if (hdr->type == entry_type::DataSector) {
+                auto dchdr = db().header<data_chain_header_t>();
+                phydebugf("%s sector=%d bytes=%d visited=%d (tail)", name(), sector_, dchdr->bytes, visited_sectors_);
+            } else {
+                phydebugf("%s sector=%d visited=%d (tail)", name(), sector_, visited_sectors_);
+            }
+            return 0;
+        }
         if (hdr->np == 0 || hdr->np == UINT32_MAX) {
             if (hdr->type == entry_type::DataSector) {
                 auto dchdr = db().header<data_chain_header_t>();
-                phydebugf("%s sector=%d bytes=%d length=%d (end)", name(), sector_, dchdr->bytes, visited_sectors_);
+                phydebugf("%s sector=%d bytes=%d visited=%d (end)", name(), sector_, dchdr->bytes, visited_sectors_);
             } else {
-                phydebugf("%s sector=%d length=%d (end)", name(), sector_, visited_sectors_);
+                phydebugf("%s sector=%d visited=%d (end)", name(), sector_, visited_sectors_);
             }
             return 0;
         }
@@ -120,9 +129,9 @@ int32_t sector_chain::forward(page_lock &page_lock) {
 
         if (hdr->type == entry_type::DataSector) {
             auto dchdr = db().header<data_chain_header_t>();
-            phydebugf("%s sector=%d bytes=%d length=%d", name(), sector_, dchdr->bytes, visited_sectors_);
+            phydebugf("%s sector=%d bytes=%d visited=%d", name(), sector_, dchdr->bytes, visited_sectors_);
         } else {
-            phydebugf("%s sector=%d length=%d", name(), sector_, visited_sectors_);
+            phydebugf("%s sector=%d visited=%d", name(), sector_, visited_sectors_);
         }
     }
 
@@ -135,6 +144,39 @@ int32_t sector_chain::forward(page_lock &page_lock) {
     visited_sectors_++;
 
     return 1;
+}
+
+int32_t sector_chain::truncate() {
+    assert(head_ != InvalidSector && tail_ != InvalidSector);
+
+    sector(head_);
+
+    auto page_lock = db().writing(sector());
+
+    sector_chain_header_t saved = *db().header<sector_chain_header_t>();
+
+    db().clear();
+
+    auto err = write_header(page_lock);
+    if (err < 0) {
+        return err;
+    }
+
+    phydebugf("truncated, keeping pp=%d np=%d", saved.pp, saved.np);
+
+    assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
+        header->np = saved.np;
+        header->pp = saved.pp;
+        header->flags = sector_flags::Tail;
+        return 0;
+    }) == 0);
+
+    err = flush(page_lock);
+    if (err < 0) {
+        return err;
+    }
+
+    return 0;
 }
 
 int32_t sector_chain::load(page_lock &page_lock) {
@@ -270,6 +312,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
 
         assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
             header->np = allocated;
+            header->flags = sector_flags::None;
             return 0;
         }) == 0);
 
@@ -299,6 +342,7 @@ int32_t sector_chain::grow_tail(page_lock &page_lock) {
 
     assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
         header->pp = previous_sector;
+        header->flags = sector_flags::Tail;
         return 0;
     }) == 0);
 
