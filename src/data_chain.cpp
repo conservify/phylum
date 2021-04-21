@@ -136,7 +136,7 @@ int32_t data_chain::read_delimiter(uint32_t *delimiter) {
     int32_t bits = 0;
     int32_t nread = 0;
 
-    return read_chain([&](read_buffer view) {
+    return read_chain([&](read_buffer view) -> int32_t {
         uint8_t byte;
 
         while (true) {
