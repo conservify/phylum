@@ -617,31 +617,39 @@ public:
                 lock.dirty();
             }
             else if (node->number_keys == Size) {
-                phydebugf("root full, growing tree %d", lock.sector());
+                phydebugf("root full, growing tree");
 
                 node_ptr_t allocated_ptr;
                 auto err = allocate_node(lock, allocated_ptr, [&](page_lock &new_lock, default_node_type *new_node, node_ptr_t new_node_ptr) -> int32_t {
-                    new_node->type = node_type::Inner;
-                    new_node->depth = node->depth + 1;
-                    new_node->d.children[0] = node_ptr;
+                    // This is unusual and the reason we do this is so
+                    // that the root node is always in the same
+                    // place. This has several benefits, the most
+                    // notable of which is that we don't need to
+                    // update references to this tree when we add
+                    // values and we keep the head of the "chain"
+                    // formed by the sectors in the tree.
+                    *new_node = *node;
 
                     new_lock.dirty();
 
-                    auto err = split_child(new_lock, 0, new_node_ptr, new_node, node_ptr, node);
+                    *node = default_node_type{ };
+                    node->type = node_type::Inner;
+                    node->depth = new_node->depth + 1;
+                    node->d.children[0] = new_node_ptr;
+
+                    auto err = split_child(new_lock, 0, node_ptr, node, new_node_ptr, new_node);
                     if (err < 0) {
                         return err;
                     }
 
                     lock.dirty();
 
-                    phydebugf("after split nkeys=%d", new_node->number_keys);
-
                     auto index = 0;
-                    if (new_node->keys[0] < key) {
+                    if (node->keys[0] < key) {
                         index++;
                     }
 
-                    insertion_ptr = new_node->d.children[index];
+                    insertion_ptr = node->d.children[index];
 
                     return 0;
                 });
@@ -649,9 +657,8 @@ public:
                     return err;
                 }
 
-                phydebugf("root full, new root=%d:%d", allocated_ptr.sector, allocated_ptr.position);
-
-                root_ = allocated_ptr.sector;
+                phydebugf("root full, root=%d:%d old-root=%d:%d", node_ptr.sector, node_ptr.position,
+                          allocated_ptr.sector, allocated_ptr.position);
             }
             else {
                 insertion_ptr = node_ptr;
