@@ -9,7 +9,13 @@ struct open_file_attribute {
     bool    dirty{ 0 };
 };
 
+enum class open_file_flags {
+    None = 0,
+    Truncate = 1,
+};
+
 struct open_file_config {
+    open_file_flags flags{ open_file_flags::None };
     open_file_attribute *attributes{ nullptr };
     size_t nattrs{ 0 };
 };
@@ -21,6 +27,7 @@ struct found_file {
     head_tail_t chain;
     tree_ptr_t position_index;
     tree_ptr_t record_index;
+    sector_position_t record;
     open_file_config cfg;
 };
 
@@ -43,7 +50,7 @@ public:
 
     virtual int32_t file_chain(file_id_t id, head_tail_t chain) = 0;
 
-    virtual int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) = 0;
+    virtual int32_t file_data(file_id_t id, file_size_t position, uint8_t const *buffer, size_t size) = 0;
 
     virtual int32_t file_trees(file_id_t id, tree_ptr_t position_index, tree_ptr_t record_index) = 0;
 

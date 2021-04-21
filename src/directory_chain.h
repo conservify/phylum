@@ -38,7 +38,7 @@ public:
     found_file open() override;
 
 protected:
-    int32_t file_data(file_id_t id, uint8_t const *buffer, size_t size) override;
+    int32_t file_data(file_id_t id, file_size_t position, uint8_t const *buffer, size_t size) override;
 
     int32_t file_chain(file_id_t id, head_tail_t chain) override;
 

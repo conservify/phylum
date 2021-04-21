@@ -118,7 +118,7 @@ int32_t file_appender::flush() {
             phyinfof("flush: inline id=0x%x bytes=%zu begin", file_.id, pending);
 
             auto err = buffer_.read_to_position([&](read_buffer buffer) -> int32_t {
-                assert(directory_->file_data(file_.id, buffer.ptr(), buffer.size()) >= 0);
+                assert(directory_->file_data(file_.id, file_.directory_size, buffer.ptr(), buffer.size()) >= 0);
                 return buffer.size();
             });
             if (err < 0) {
@@ -126,6 +126,7 @@ int32_t file_appender::flush() {
             }
 
             file_.directory_capacity -= pending;
+            file_.directory_size += pending;
 
             buffer_.clear();
 

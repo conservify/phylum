@@ -82,8 +82,14 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     assert(node_.u.e.type == entry_type::FsFileEntry);
 
     if (!node_.u.file.chain.valid()) {
-        file_.directory_size = node_.u.file.directory_size;
-        file_.directory_capacity = DataCapacity - node_.u.file.directory_size;
+        if (((int32_t)file_cfg.flags & (int32_t)open_file_flags::Truncate) == 0) {
+            file_.directory_size = node_.u.file.directory_size;
+            file_.directory_capacity = DataCapacity - node_.u.file.directory_size;
+        }
+        else {
+            file_.directory_size = 0;
+            file_.directory_capacity = DataCapacity;
+        }
     }
     else {
         file_.chain = node_.u.file.chain;
@@ -118,16 +124,16 @@ found_file directory_tree::open() {
     return file_;
 }
 
-int32_t directory_tree::file_data(file_id_t id, uint8_t const *buffer, size_t size) {
+int32_t directory_tree::file_data(file_id_t id, file_size_t position, uint8_t const *buffer, size_t size) {
     assert(file_.id == id);
 
-    if (node_.u.file.directory_size + size > DataCapacity) {
+    if (position + size > DataCapacity) {
         return -1;
     }
 
-    memcpy(node_.data + node_.u.file.directory_size, buffer, size);
+    memcpy(node_.data + position, buffer, size);
 
-    node_.u.file.directory_size += size;
+    node_.u.file.directory_size = position + size;
 
     auto err = flush();
     if (err < 0) {

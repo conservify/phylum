@@ -216,6 +216,11 @@ struct PHY_PACKED file_entry_t : entry_t {
         bzero(name, sizeof(name));
         strncpy(name, full_name, sizeof(name));
     }
+
+    file_entry_t(file_id_t id, uint16_t flags = 0)
+        : entry_t(entry_type::FileEntry), id(id), flags(flags) {
+        bzero(name, sizeof(name));
+    }
 };
 
 struct PHY_PACKED file_data_t : entry_t {
@@ -263,6 +268,9 @@ struct PHY_PACKED node_ptr_t {
     node_ptr_t() : sector(InvalidSector), position(0) {
     }
 
+    node_ptr_t(dhara_sector_t sector, size_t position): sector(sector), position((sector_offset_t)position) {
+    }
+
     node_ptr_t(dhara_sector_t sector, sector_offset_t position): sector(sector), position(position) {
     }
 
@@ -280,6 +288,8 @@ struct PHY_PACKED node_ptr_t {
         return sector == other.sector && position == other.position;
     }
 };
+
+using sector_position_t = node_ptr_t;
 
 using depth_type = uint8_t;
 using index_type = int16_t;

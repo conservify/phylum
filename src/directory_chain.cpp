@@ -102,10 +102,20 @@ int32_t directory_chain::file_chain(file_id_t id, head_tail_t chain) {
     return 0;
 }
 
-int32_t directory_chain::file_data(file_id_t id, uint8_t const *buffer, size_t size) {
+int32_t directory_chain::file_data(file_id_t id, file_size_t position, uint8_t const *buffer, size_t size) {
     logged_task lt{ "dir-file-data" };
     auto page_lock = db().writing(sector());
 
+    // Detect a truncation. This is fine by me and is in keeping with
+    // the design goals of the directory chain implementation in that
+    // they be append only. We still need a garbage collection/compaction.
+    auto truncated = ((int32_t)file_.cfg.flags & (int32_t)open_file_flags::Truncate) > 0;
+    if (position == 0 && truncated) {
+        phydebugf("truncating");
+        assert(emplace<file_entry_t>(page_lock, id) >= 0);
+    }
+
+    phydebugf("appending data");
     file_data_t fd{ id, (uint32_t)size };
     assert(append<file_data_t>(page_lock, fd, buffer, size) >= 0);
 
@@ -118,11 +128,14 @@ int32_t directory_chain::file_data(file_id_t id, uint8_t const *buffer, size_t s
 }
 
 int32_t directory_chain::file_trees(file_id_t /*id*/, tree_ptr_t /*position_index*/, tree_ptr_t /*record_index*/) {
+    assert(false);
     return -1;
 }
 
 int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     logged_task lt{ "dir-find" };
+
+    auto id = make_file_id(name);
 
     file_ = found_file{};
     file_.cfg = file_cfg;
@@ -136,12 +149,14 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
     auto err = walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) -> int32_t {
         if (entry->type == entry_type::FileEntry) {
             auto fe = record.as<file_entry_t>();
-            if (strncmp(fe->name, name, MaximumNameLength) == 0) {
+            if (strncmp(fe->name, name, MaximumNameLength) == 0 || fe->id == id) {
                 file_ = found_file{ };
                 file_.cfg = file_cfg;
                 file_.id = fe->id;
                 file_.directory_size = 0;
                 file_.directory_capacity = db().size() / 2;
+                file_.record = sector_position_t{ sector(), record.position() };
+                phydebugf("found file_entry");
             }
         }
         if (entry->type == entry_type::FileData) {
@@ -157,8 +172,10 @@ int32_t directory_chain::find(const char *name, open_file_config file_cfg) {
                         file_ = found_file{ };
                     }
                     else {
-                        file_.directory_size += fd->size;
-                        file_.directory_capacity -= fd->size;
+                        if (((int32_t)file_cfg.flags & (int32_t)open_file_flags::Truncate) == 0) {
+                            file_.directory_size += fd->size;
+                            file_.directory_capacity -= fd->size;
+                        }
                     }
                 }
             }
@@ -218,9 +235,14 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
 
 int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
     auto copied = 0u;
+    auto can_read = false;
 
-    auto err = walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) {
-        if (entry->type == entry_type::FileData) {
+    auto err = walk([&](page_lock & /*page_lock*/, entry_t const *entry, record_ptr &record) {
+        if (entry->type == entry_type::FileEntry) {
+            auto spos = sector_position_t{ sector(), record.position() };
+            can_read = spos == file_.record;
+        }
+        if (entry->type == entry_type::FileData && can_read) {
             auto fd = record.as<file_data_t>();
             if (fd->id == id) {
                 phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);

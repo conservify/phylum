@@ -107,7 +107,8 @@ private:
     open_file_config file_cfg_;
 
 public:
-    open_file_config &file_cfg() {
+    open_file_config &file_cfg(open_file_flags flags = open_file_flags::None) {
+        file_cfg_.flags = flags;
         return file_cfg_;
     }
 
