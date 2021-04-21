@@ -118,6 +118,7 @@ protected:
     }
 
     void head(dhara_sector_t sector) {
+        assert(sector != InvalidSector);
         head_ = sector;
         if (tail_ == InvalidSector) {
             tail(sector);
@@ -125,6 +126,7 @@ protected:
     }
 
     void tail(dhara_sector_t sector) {
+        assert(sector != InvalidSector);
         tail_ = sector;
         if (head_ == InvalidSector) {
             head(sector);
@@ -152,6 +154,8 @@ protected:
     }
 
     int32_t back_to_head(page_lock &page_lock);
+
+    int32_t prepare_sector(page_lock &lock, dhara_sector_t previous_sector, bool preserve_header);
 
     int32_t forward(page_lock &page_lock);
 
