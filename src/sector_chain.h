@@ -166,7 +166,7 @@ protected:
         assert_valid();
 
         while (true) {
-            for (auto &record_ptr : buffer_) {
+            for (auto record_ptr : buffer_) {
                 auto entry = record_ptr.as<entry_t>();
                 assert(entry != nullptr);
                 auto err = fn(page_lock, entry, record_ptr);

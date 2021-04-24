@@ -107,10 +107,11 @@ private:
     static persisted_node_t find_root_in_sector(dhara_sector_t sector, delimited_buffer &db) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            if (iter->as<entry_t>()->type == entry_type::TreeNode) {
-                auto node = db.as_mutable<default_node_type>(*iter);
+            auto rp = *iter;
+            if (rp.as<entry_t>()->type == entry_type::TreeNode) {
+                auto node = db.as_mutable<default_node_type>(rp);
                 if (selected.node == nullptr || selected.node->depth < node->depth) {
-                    selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)iter->position() } };
+                    selected = persisted_node_t{ node, node_ptr_t{ sector, (sector_offset_t)rp.position() } };
                 }
             }
         }
@@ -121,8 +122,9 @@ private:
     static persisted_node_t find_node_in_sector(delimited_buffer &db, node_ptr_t ptr) {
         persisted_node_t selected;
         for (auto iter = db.begin(); iter != db.end(); ++iter) {
-            if (iter->position() == ptr.position) {
-                auto node = db.as_mutable<default_node_type>(*iter);
+            auto rp = *iter;
+            if (rp.position() == ptr.position) {
+                auto node = db.as_mutable<default_node_type>(rp);
                 return persisted_node_t{ node, ptr };
             }
         }
