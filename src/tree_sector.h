@@ -637,7 +637,7 @@ public:
 
                     new_lock.dirty();
 
-                    *node = default_node_type{ };
+                    new (node) default_node_type{ };
                     node->type = node_type::Inner;
                     node->depth = new_node->depth + 1;
                     node->d.children[0] = new_node_ptr;
