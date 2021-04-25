@@ -605,8 +605,6 @@ public:
         auto err = dereference_root([this, &insertion_ptr, &key, &value](page_lock &lock, default_node_type *node, node_ptr_t node_ptr) -> int32_t {
             phydebugf("%s adding node depth=%d", name(), node->depth);
 
-            log_node(node_ptr, node);
-
             if (node->number_keys == 0) {
                 assert(node->type == node_type::Leaf);
 
