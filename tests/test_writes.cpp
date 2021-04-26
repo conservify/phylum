@@ -214,6 +214,10 @@ TYPED_TEST(WriteFixture, WriteAppends_DataChainGrowingToNewBlock) {
         ASSERT_EQ(opened.flush(), 0);
         ASSERT_GT(opened.write(hello, memory.sector_size()), 0);
         ASSERT_EQ(opened.flush(), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        data_chain dc{ memory.pc(), dir.open().chain };
+        ASSERT_EQ(dc.log(true), 0);
     });
 }
 
@@ -338,5 +342,31 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocks) {
             ASSERT_GT(opened.write(hello), 0);
         }
         ASSERT_EQ(opened.flush(), 0);
+    });
+}
+
+TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SeveralBlocks) {
+    using layout_type = typename TypeParam::first_type;
+    using dir_type = typename TypeParam::second_type;
+
+    layout_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    auto hello = "Hello, world! How are you!";
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("data.txt"), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        file_appender opened{ memory.pc(), &dir, dir.open() };
+
+        for (auto i = 0u; i < 100; ++i) {
+            ASSERT_GT(opened.write(hello), 0);
+        }
+        ASSERT_EQ(opened.flush(), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        data_chain dc{ memory.pc(), dir.open().chain };
+        ASSERT_EQ(dc.log(true), 0);
     });
 }

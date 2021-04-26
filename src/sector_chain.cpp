@@ -213,12 +213,32 @@ int32_t sector_chain::load(page_lock &page_lock) {
     return 0;
 }
 
-int32_t sector_chain::log() {
+int32_t sector_chain::log(bool graph) {
     logged_task lt{ "log" };
 
     assert_valid();
 
-    return walk([&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) {
+    if (graph) {
+        phygraphf("digraph g {");
+
+        phygraphf("graph [ rankdir = \"LR\" ];");
+        phygraphf("node [ fontsize = \"16\" ];");
+    }
+
+    auto load_fn = [&](dhara_sector_t previous, dhara_sector_t sector) -> int32_t {
+        if (graph) {
+            phygraphf("\"sector_%d\" [", sector);
+            phygraphf("  label = \"<f0> %d\"", sector);
+            phygraphf("  shape = \"record\"");
+            phygraphf("]");
+            if (previous != InvalidSector) {
+                phygraphf("\"sector_%d\":f0 -> \"sector_%d\":f0 []", previous, sector);
+            }
+        }
+        return 0;
+    };
+
+    auto walk_fn = [&](page_lock &/*page_lock*/, entry_t const *entry, record_ptr &record) -> int32_t {
         logged_task lt{ this->name() };
 
         switch (entry->type) {
@@ -293,7 +313,15 @@ int32_t sector_chain::log() {
         }
         }
         return 0;
-    });
+    };
+
+    auto err = walk(walk_fn, load_fn);
+
+    if (graph) {
+        phygraphf("}");
+    }
+
+    return err;
 }
 
 int32_t sector_chain::write_header_if_at_start(page_lock &page_lock) {
