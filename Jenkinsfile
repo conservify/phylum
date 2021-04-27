@@ -2,6 +2,14 @@
 
 conservifyProperties()
 
+def getBranch(scmInfo) {
+	def (remoteOrBranch, branch) = scmInfo.GIT_BRANCH.tokenize('/')
+	if (branch) {
+		return branch;
+	}
+	return remoteOrBranch;
+}
+
 timestamps {
     try {
 		node ("jenkins-aws-ubuntu") {
@@ -11,7 +19,7 @@ timestamps {
 				scmInfo = checkout scm
 			}
 
-			def (remote, branch) = scmInfo.GIT_BRANCH.tokenize('/')
+			def branch = getBranch(scmInfo)
 
 			stage ('clean') {
 				sh "make clean"
