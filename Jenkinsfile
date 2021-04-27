@@ -17,8 +17,10 @@ timestamps {
 				sh "make clean"
 			}
 
-			stage ('build') {
-				sh "make"
+			withEnv(["GIT_LOCAL_BRANCH=${branch}"]) {
+				stage ('build') {
+					sh "make"
+				}
 			}
 
 			def version = readFile('build/version.txt')
