@@ -3,10 +3,11 @@
 #include "data_chain.h"
 #include "simple_buffer.h"
 #include "directory.h"
+#include "writer.h"
 
 namespace phylum {
 
-class file_appender {
+class file_appender : public io_writer {
 private:
     phyctx pc_;
     directory *directory_{ nullptr };
@@ -39,15 +40,9 @@ public:
         return size_of_delimiter;
     }
 
-    int32_t write(char const *str) {
-        return write((uint8_t *)str, strlen(str));
-    }
+    int32_t write(uint8_t const *data, size_t size) override;
 
-    int32_t write(char const *str, size_t size) {
-        return write((uint8_t *)str, size);
-    }
-
-    int32_t write(uint8_t const *data, size_t size);
+    using io_writer::write;
 
     uint32_t u32(uint8_t type);
 

@@ -3,10 +3,11 @@
 #include "data_chain.h"
 #include "simple_buffer.h"
 #include "directory.h"
+#include "reader.h"
 
 namespace phylum {
 
-class file_reader {
+class file_reader : public io_reader {
 private:
     phyctx pc_;
     directory *directory_{ nullptr };
@@ -24,9 +25,9 @@ public:
     file_size_t position() const;
 
 public:
-    int32_t read(uint8_t *data, size_t size);
+    int32_t read(uint8_t *data, size_t size) override;
 
-    int32_t read(size_t size);
+    int32_t read(size_t size) override;
 
     uint32_t u32(uint8_t type);
 
