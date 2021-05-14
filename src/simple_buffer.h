@@ -114,7 +114,7 @@ public:
     int32_t read_byte(uint8_t *byte) {
         assert(byte != nullptr);
         if (position_ == size_) {
-            return 0;
+            return -1;
         }
         *byte = *((uint8_t *)ptr() + position());
         position_++;
