@@ -165,6 +165,10 @@ public:
         return fn(general_buffer<uint8_t const>(ptr_, position_));
     }
 
+    general_buffer<uint8_t const> read_back() {
+        return general_buffer<uint8_t const>{ ptr_, position_ };
+    }
+
     template <typename T>
     int32_t unsafe_all(T fn) {
         assert(ptr_ != nullptr);
