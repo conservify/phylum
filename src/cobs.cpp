@@ -61,8 +61,7 @@ int32_t cobs_writer::write(uint8_t const *data, size_t size) {
             }
         }
         else {
-            *buffer_.take(1) = *source_ptr;
-            source_ptr++;
+            buffer_.write(*source_ptr++);
         }
     }
 

@@ -220,6 +220,15 @@ public:
         return p;
     }
 
+    int32_t write(uint8_t byte) {
+        if (position_ >= size_) {
+            return 0;
+        }
+        ptr_[position_] = byte;
+        position_++;
+        return 1;
+    }
+
     bool room_for(size_t bytes) {
         return bytes + position_ <= size_;
     }
