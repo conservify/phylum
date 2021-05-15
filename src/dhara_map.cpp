@@ -56,6 +56,7 @@ int32_t dhara_sector_map::begin(bool force_create) {
     // unsafe_all, in that dhara basically owns this buffer now.
     auto err = buffer_.unsafe_forever([&](uint8_t *ptr, size_t size) {
         assert(size == page_size);
+        memset(&dmap_, 0, sizeof(struct dhara_map));
         dhara_map_init(&dmap_, &nand_.dhara, ptr, gc_ratio_);
         return 0;
     });
@@ -64,14 +65,18 @@ int32_t dhara_sector_map::begin(bool force_create) {
     }
 
     dhara_error_t derr;
-    if (dhara_map_resume(&dmap_, &derr) < 0) {
-        phywarnf("resume failed, clearing");
-        dhara_map_clear(&dmap_);
-    }
 
     if (force_create) {
-        phywarnf("force create, clearing");
+        phywarnf("dhara clearing");
+        auto err = dhara_map_resume(&dmap_, &derr);
+        phywarnf("dhara clearing (resume) err=%d, derr=%d", err, derr);
         dhara_map_clear(&dmap_);
+    }
+    else  {
+        if (dhara_map_resume(&dmap_, &derr) < 0) {
+            phyerrorf("dhara resume failed (%d)", derr);
+            return -1;
+        }
     }
 
     page_size_ = page_size;
@@ -175,6 +180,8 @@ int32_t dhara_sector_map::clear() {
 }
 
 int32_t dhara_sector_map::sync() {
+    phyinfof("syncing");
+
     dhara_error_t derr;
     auto err = dhara_map_sync(&dmap_, &derr);
     if (err < 0) {

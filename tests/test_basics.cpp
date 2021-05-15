@@ -56,12 +56,20 @@ TYPED_TEST(BasicsFixture, MountFormatMount) {
     typename TypeParam::first_type layout;
     FlashMemory memory{ layout.sector_size };
 
-    memory.begin(true);
+    {
+        memory.begin(true);
+        memory.sync([&]{
+            dir_type dir{ memory.pc(), 0 };
+            ASSERT_EQ(dir.mount(), -1);
+            ASSERT_EQ(dir.format(), 0);
+        });
+    }
 
-    dir_type dir{ memory.pc(), 0 };
-    ASSERT_EQ(dir.mount(), -1);
-    ASSERT_EQ(dir.format(), 0);
-    ASSERT_EQ(dir.mount(), 0);
+    {
+        memory.begin(false);
+        dir_type dir{ memory.pc(), 0 };
+        ASSERT_EQ(dir.mount(), 0);
+    }
 }
 
 TYPED_TEST(BasicsFixture, FormatPersists) {
@@ -75,6 +83,8 @@ TYPED_TEST(BasicsFixture, FormatPersists) {
         dir_type dir{ memory.pc(), 0 };
         ASSERT_EQ(dir.format(), 0);
     });
+
+    memory.begin(false);
 
     memory.sync([&]() {
         dir_type dir{ memory.pc(), 0 };

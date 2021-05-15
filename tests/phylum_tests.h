@@ -77,7 +77,7 @@ public:
 
 public:
     void begin(bool force_create) {
-        ASSERT_EQ(sectors_.begin(true), 0);
+        ASSERT_EQ(sectors_.begin(force_create), 0);
         initialized_ = true;
     }
 
