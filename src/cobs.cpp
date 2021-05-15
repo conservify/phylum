@@ -96,15 +96,12 @@ int32_t cobs_reader::read(uint8_t *data, size_t size) {
         }
         else {
             auto terminated = code != 0xff;
-            if (terminated) {
-                *decode++ = 0;
-            }
             block = code = byte;
             if (code == 0x00) {
-                if (!terminated) {
-                    *decode++ = 0;
-                }
                 break;
+            }
+            if (terminated) {
+                *decode++ = 0;
             }
         }
     }
