@@ -71,6 +71,17 @@ public:
     using miss_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
     using flush_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
 
+    int32_t clear() {
+        for (auto i = 0u; i < Size; ++i) {
+            if (pages_[i].buffer != nullptr) {
+                memset(pages_[i].buffer, 0xff, pages_[i].size);
+                pages_[i].sector = InvalidSector;
+                pages_[i].dirty = false;
+            }
+        }
+        return 0;
+    }
+
     int32_t dirty_sector(dhara_sector_t sector) {
         auto err = -1;
 

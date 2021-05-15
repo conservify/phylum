@@ -68,8 +68,6 @@ int32_t dhara_sector_map::begin(bool force_create) {
 
     if (force_create) {
         phywarnf("dhara clearing");
-        auto err = dhara_map_resume(&dmap_, &derr);
-        phywarnf("dhara clearing (resume) err=%d, derr=%d", err, derr);
         dhara_map_clear(&dmap_);
     }
     else  {

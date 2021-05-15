@@ -77,6 +77,8 @@ public:
 
 public:
     void begin(bool force_create) {
+        buffers_.clear();
+
         ASSERT_EQ(sectors_.begin(force_create), 0);
         initialized_ = true;
     }
