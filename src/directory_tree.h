@@ -23,6 +23,7 @@ private:
     sector_map *sectors_{ nullptr };
     sector_allocator *allocator_{ nullptr };
     dir_tree_type tree_;
+    tree_value_ptr_t file_node_ptr_;
     found_file file_;
 
 public:
@@ -94,7 +95,7 @@ public:
         file_.position_index = node.u.file.position_index;
         file_.record_index = node.u.file.record_index;
 
-        err = tree_.add(id, node);
+        err = tree_.add(id, &node, &file_node_ptr_);
         if (err < 0) {
             return err;
         }

@@ -20,13 +20,19 @@ int32_t directory_tree::format() {
 int32_t directory_tree::touch(const char *name) {
     auto id = make_file_id(name);
 
-    dir_node_type node = {};
-    node.u.file = dirtree_file_t(name);
-
     file_ = {};
     file_.id = id;
 
-    auto err = tree_.add(id, node);
+    auto err = tree_.add(id, nullptr, &file_node_ptr_);
+    if (err < 0) {
+        return err;
+    }
+
+    err = flush([&](dir_node_type *node) -> int32_t {
+        *node = dir_node_type{};
+        node->u.file = dirtree_file_t(name);
+        return 1;
+    });
     if (err < 0) {
         return err;
     }
@@ -37,12 +43,18 @@ int32_t directory_tree::touch(const char *name) {
 int32_t directory_tree::unlink(const char *name) {
     auto id = make_file_id(name);
 
-    dir_node_type node = {};
-    node.u.file = dirtree_file_t(name, (uint16_t)FsDirTreeFlags::Deleted);
-
     file_ = {};
 
-    auto err = tree_.add(id, node);
+    auto err = tree_.find(id, nullptr, &file_node_ptr_);
+    if (err < 0) {
+        return err;
+    }
+
+    err = flush([&](dir_node_type *node) -> int32_t {
+        *node = dir_node_type{};
+        node->u.file = dirtree_file_t(name, (uint16_t)FsDirTreeFlags::Deleted);
+        return 1;
+    });
     if (err < 0) {
         return err;
     }
@@ -63,51 +75,61 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
         bzero(attr.ptr, attr.size);
     }
 
-    dir_node_type node;
-    auto err = tree_.find(id, &node);
+    auto err = tree_.find(id, nullptr, &file_node_ptr_);
     if (err < 0) {
         file_ = found_file{};
         return err;
     }
-
     if (err == 0) {
-        file_ = found_file{};
         return 0;
     }
 
-    auto mask = (uint16_t)FsDirTreeFlags::Deleted;
-    if ((node.u.e.flags & mask) == mask) {
-        file_ = found_file{};
-        return 0;
-    }
+    auto deleted = false;
 
-    assert(node.u.e.type == entry_type::FsFileEntry);
-
-    if (!node.u.file.chain.valid()) {
-        if (((int32_t)file_cfg.flags & (int32_t)open_file_flags::Truncate) == 0) {
-            file_.directory_size = node.u.file.directory_size;
-            file_.directory_capacity = DataCapacity - node.u.file.directory_size;
+    err = flush([&](dir_node_type *node) -> int32_t {
+        auto mask = (uint16_t)FsDirTreeFlags::Deleted;
+        if ((node->u.e.flags & mask) == mask) {
+            deleted = true;
+            return 0;
         }
-        else {
-            file_.directory_size = 0;
-            file_.directory_capacity = DataCapacity;
-        }
-    }
-    else {
-        file_.chain = node.u.file.chain;
-        file_.position_index = node.u.file.position_index;
-        file_.record_index = node.u.file.record_index;
-    }
 
-    // If we're being asked to load attributes.
-    if (file_cfg.nattrs > 0) {
-        if (node.u.file.attributes.valid()) {
-            attribute_storage_type attributes_storage{ pc() };
-            auto err = attributes_storage.read(node.u.file.attributes, id, file_cfg);
-            if (err < 0) {
-                return err;
+        assert(node->u.e.type == entry_type::FsFileEntry);
+
+        if (!node->u.file.chain.valid()) {
+            if (((int32_t)file_cfg.flags & (int32_t)open_file_flags::Truncate) == 0) {
+                file_.directory_size = node->u.file.directory_size;
+                file_.directory_capacity = DataCapacity - node->u.file.directory_size;
+            }
+            else {
+                file_.directory_size = 0;
+                file_.directory_capacity = DataCapacity;
             }
         }
+        else {
+            file_.chain = node->u.file.chain;
+            file_.position_index = node->u.file.position_index;
+            file_.record_index = node->u.file.record_index;
+        }
+
+        // If we're being asked to load attributes.
+        if (file_cfg.nattrs > 0) {
+            if (node->u.file.attributes.valid()) {
+                attribute_storage_type attributes_storage{ pc() };
+                auto err = attributes_storage.read(node->u.file.attributes, id, file_cfg);
+                if (err < 0) {
+                    return err;
+                }
+            }
+        }
+
+        return 0;
+    });
+    if (err < 0) {
+        return err;
+    }
+
+    if (deleted) {
+        return 0;
     }
 
     return 1;
@@ -147,7 +169,7 @@ int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
         node->u.file.directory_size = 0;
         node->u.file.chain = chain;
 
-        return 0;
+        return 1;
     });
     if (err < 0) {
         return err;
@@ -168,7 +190,10 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
             return err;
         }
 
-        node->u.file.attributes = attributes_ptr;
+        if (node->u.file.attributes != attributes_ptr) {
+            node->u.file.attributes = attributes_ptr;
+            return 1;
+        }
 
         return 0;
     });
@@ -185,7 +210,8 @@ int32_t directory_tree::file_trees(file_id_t id, tree_ptr_t position_index, tree
     auto err = flush([&](dir_node_type *node) -> int32_t {
         node->u.file.position_index = position_index;
         node->u.file.record_index = record_index;
-        return 0;
+
+        return 1;
     });
     if (err < 0) {
         return err;
@@ -198,7 +224,7 @@ int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> f
     assert(file_.id == id);
 
     dir_node_type node;
-    auto err = tree_.find(file_.id, &node);
+    auto err = tree_.find(file_.id, &node, &file_node_ptr_);
     if (err < 0) {
         return err;
     }
@@ -216,20 +242,9 @@ int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> f
 }
 
 int32_t directory_tree::flush(std::function<int32_t(dir_node_type *node)> fn) {
-    assert(file_.id != UINT32_MAX);
+    assert(file_node_ptr_.node.sector != InvalidSector);
 
-    dir_node_type node;
-    auto err = tree_.find(file_.id, &node);
-    if (err < 0) {
-        return err;
-    }
-
-    err = fn(&node);
-    if (err < 0) {
-        return err;
-    }
-
-    err = tree_.add(file_.id, node);
+    auto err = tree_.modify_in_place(file_node_ptr_, fn);
     if (err < 0) {
         return err;
     }

@@ -48,7 +48,8 @@ int32_t tree_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     for (auto i = 0u; i < nattrs; ++i) {
         auto &attr = attributes[i];
-        auto err = tree.add(attr.type, attr_node_type{ attr.ptr, attr.size });
+        attr_node_type node{ attr.ptr, attr.size };
+        auto err = tree.add(attr.type, &node, nullptr);
         if (err < 0) {
             return err;
         }

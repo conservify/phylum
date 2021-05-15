@@ -35,6 +35,11 @@ public:
     }
 };
 
+struct tree_value_ptr_t {
+    node_ptr_t node;
+    index_type index;
+};
+
 template <typename KEY, typename VALUE, size_t Size>
 class tree_sector {
 public:
@@ -378,10 +383,10 @@ private:
         return 0;
     }
 
-    int32_t insert_non_full(node_ptr_t node_ptr, KEY &key, VALUE &value) {
+    int32_t insert_non_full(node_ptr_t node_ptr, KEY &key, VALUE *value, tree_value_ptr_t *found_ptr) {
         node_ptr_t insertion_ptr;
 
-        auto err = dereference(false, node_ptr, [this, &insertion_ptr, node_ptr, &key, &value](page_lock &lock, default_node_type *node) -> int32_t {
+        auto err = dereference(false, node_ptr, [this, &insertion_ptr, node_ptr, &key, &value, found_ptr](page_lock &lock, default_node_type *node) -> int32_t {
             index_type index = node->number_keys - 1;
 
             assert(node->number_keys < (index_type)Size);
@@ -393,7 +398,13 @@ private:
                 for (auto i = 0; i < node->number_keys; ++i) {
                     if (node->keys[i] == key) {
                         phydebugf("replace leaf=%d:%d index=%d key=%d nkeys=%d", node_ptr.sector, node_ptr.position, i, key, node->number_keys);
-                        node->d.values[i] = value;
+                        if (value != nullptr) {
+                            node->d.values[i] = *value;
+                        }
+                        if (found_ptr != nullptr) {
+                            found_ptr->node = node_ptr;
+                            found_ptr->index = i;
+                        }
                         overwrite = true;
                         break;
                     }
@@ -408,7 +419,13 @@ private:
 
                     phydebugf("value leaf=%d:%d index=%d key=%d nkeys=%d", node_ptr.sector, node_ptr.position, index + 1, key, node->number_keys);
                     node->keys[index + 1] = key;
-                    node->d.values[index + 1] = value;
+                    if (value != nullptr) {
+                        node->d.values[index + 1] = *value;
+                    }
+                    if (found_ptr != nullptr) {
+                        found_ptr->node = node_ptr;
+                        found_ptr->index = index + 1;
+                    }
                     node->number_keys++;
                 }
 
@@ -458,7 +475,7 @@ private:
         }
 
         if (insertion_ptr.valid()) {
-            err = insert_non_full(insertion_ptr, key, value);
+            err = insert_non_full(insertion_ptr, key, value, found_ptr);
             if (err < 0) {
                 return err;
             }
@@ -593,7 +610,32 @@ public:
         return 0;
     }
 
+    int32_t modify_in_place(tree_value_ptr_t value_ptr, std::function<int32_t(VALUE *)> fn) {
+        auto err = dereference(false, value_ptr.node, [&](page_lock &lock, default_node_type *node) -> int32_t {
+            auto value = &node->d.values[value_ptr.index];
+
+            auto err = fn(value);
+            if (err < 0) {
+                return err;
+            }
+
+            if (err > 0) {
+                lock.dirty();
+            }
+
+            return 0;
+        });
+        if (err < 0) {
+            return err;
+        }
+        return 0;
+    }
+
     int32_t add(KEY key, VALUE value) {
+        return add(key, &value, nullptr);
+    }
+
+    int32_t add(KEY key, VALUE *value, tree_value_ptr_t *found_ptr) {
         logged_task lt{ "tree-add" };
 
         assert(root_ != InvalidSector);
@@ -602,14 +644,20 @@ public:
 
         node_ptr_t insertion_ptr;
 
-        auto err = dereference_root([this, &insertion_ptr, &key, &value](page_lock &lock, default_node_type *node, node_ptr_t node_ptr) -> int32_t {
+        auto err = dereference_root([this, &insertion_ptr, &key, &value, found_ptr](page_lock &lock, default_node_type *node, node_ptr_t node_ptr) -> int32_t {
             phydebugf("%s adding node depth=%d", name(), node->depth);
 
             if (node->number_keys == 0) {
                 assert(node->type == node_type::Leaf);
 
                 node->keys[0] = key;
-                node->d.values[0] = value;
+                if (value != nullptr) {
+                    node->d.values[0] = *value;
+                }
+                if (found_ptr != nullptr) {
+                    found_ptr->node = node_ptr;
+                    found_ptr->index = 0;
+                }
                 node->number_keys++;
 
                 phydebugf("value leaf=%d:%d index=%d key=%d (root)", node_ptr.sector, node_ptr.position, 0, key);
@@ -674,7 +722,7 @@ public:
         }
 
         if (insertion_ptr.valid()) {
-            auto err = insert_non_full(insertion_ptr, key, value);
+            auto err = insert_non_full(insertion_ptr, key, value, found_ptr);
             if (err < 0) {
                 return err;
             }
@@ -685,7 +733,7 @@ public:
         return 0;
     }
 
-    int32_t find(KEY key, VALUE *value = 0) {
+    int32_t find(KEY key, VALUE *value = nullptr, tree_value_ptr_t *found_ptr = nullptr) {
         logged_task lt{ "tree-find" };
 
         phydebugf("finding %d", key);
@@ -729,6 +777,10 @@ public:
             phydebugf("found! %d:%d #%d key=%d", node_ptr.sector, node_ptr.position, index, key);
             if (value != nullptr) {
                 *value = node->d.values[index];
+            }
+            if (found_ptr != nullptr) {
+                found_ptr->node = node_ptr;
+                found_ptr->index = index;
             }
             return 1;
         }
