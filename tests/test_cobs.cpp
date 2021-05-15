@@ -28,10 +28,11 @@ TEST_F(CobsFixture, Write_Examples_0) {
     cobs_writer writer{ &destination, lookahead };
 
     auto test = "Jacob Lewallen";
-    EXPECT_EQ(writer.write((uint8_t *)test, strlen(test)), (int32_t)strlen(test) + 1);
+    EXPECT_EQ(writer.write((uint8_t *)test, strlen(test)), (int32_t)strlen(test) + 2);
 
-    uint8_t expected[strlen(test) + 1];
+    uint8_t expected[strlen(test) + 2];
     expected[0] = strlen(test) + 1;
+    expected[strlen(test) + 1] = 0;
     memcpy(expected + 1, test, strlen(test));
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
@@ -39,7 +40,7 @@ TEST_F(CobsFixture, Write_Examples_0) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)strlen(test));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)strlen(test) + 1);
 
     EXPECT_EQ(memcmp(test, test, strlen(test)), 0);
 }
@@ -50,8 +51,8 @@ TEST_F(CobsFixture, Write_Examples_1) {
     buffer_writer destination{ destination_buffer };
     cobs_writer writer{ &destination, lookahead };
 
-    uint8_t original[] = { 0x00 };
-    uint8_t expected[] = { 0x01, 0x01 };
+    uint8_t original[] = { 0x0 };
+    uint8_t expected[] = { 0x1, 0x1, 0x0 };
     EXPECT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
     phydebug_dump_memory("original ", original, sizeof(original));
@@ -63,7 +64,7 @@ TEST_F(CobsFixture, Write_Examples_1) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -75,7 +76,7 @@ TEST_F(CobsFixture, Write_Examples_2) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[] = { 0x00, 0x00 };
-    uint8_t expected[] = { 0x01, 0x01, 0x01 };
+    uint8_t expected[] = { 0x01, 0x01, 0x01, 0x00 };
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
@@ -83,7 +84,7 @@ TEST_F(CobsFixture, Write_Examples_2) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -95,7 +96,7 @@ TEST_F(CobsFixture, Write_Examples_3) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[] = { 0x11, 0x22, 0x00, 0x33 };
-    uint8_t expected[] = { 0x03, 0x11, 0x22, 0x02, 0x33 };
+    uint8_t expected[] = { 0x03, 0x11, 0x22, 0x02, 0x33, 0x00 };
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
@@ -103,7 +104,7 @@ TEST_F(CobsFixture, Write_Examples_3) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -115,7 +116,7 @@ TEST_F(CobsFixture, Write_Examples_4) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[] = { 0x11, 0x22, 0x33, 0x44 };
-    uint8_t expected[] = { 0x05, 0x11, 0x22, 0x33, 0x44 };
+    uint8_t expected[] = { 0x05, 0x11, 0x22, 0x33, 0x44, 0x00 };
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
@@ -123,7 +124,7 @@ TEST_F(CobsFixture, Write_Examples_4) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -135,7 +136,7 @@ TEST_F(CobsFixture, Write_Examples_5) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[] = { 0x11, 0x00, 0x00, 0x00 };
-    uint8_t expected[] = { 0x02, 0x11, 0x01, 0x01, 0x01 };
+    uint8_t expected[] = { 0x02, 0x11, 0x01, 0x01, 0x01, 0x00 };
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
@@ -143,7 +144,7 @@ TEST_F(CobsFixture, Write_Examples_5) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -155,21 +156,30 @@ TEST_F(CobsFixture, Write_Examples_6) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[254];
-    uint8_t expected[255];
+    uint8_t expected[256];
+    expected[0] = 0xff;
     for (auto i = 0; i < 255; ++i) {
         original[i    ] = i + 1;
         expected[i + 1] = i + 1;
     }
-    expected[0] = 0xff;
+    expected[255] = 0;
+
+    // phydebug_dump_memory("original ", original, sizeof(original));
+    // phydebug_dump_memory("expected ", expected, sizeof(expected));
 
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
+
+    // phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    memset(actual, 0xff, sizeof(actual));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
+
+    // phydebug_dump_memory("verify ", actual, sizeof(actual));
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -181,25 +191,31 @@ TEST_F(CobsFixture, Write_Examples_7) {
     cobs_writer writer{ &destination, lookahead };
 
     uint8_t original[255];
-    uint8_t expected[256];
+    uint8_t expected[257];
     for (auto i = 0; i < 255; ++i) {
         original[i    ] = i;
         expected[i + 1] = i;
     }
     expected[0] = 0x01;
     expected[1] = 0xff;
+    expected[256] = 0;
 
-    phydebug_dump_memory("original ", original, sizeof(original));
-    phydebug_dump_memory("expected ", expected, sizeof(expected));
+    // phydebug_dump_memory("original ", original, sizeof(original));
+    // phydebug_dump_memory("expected ", expected, sizeof(expected));
 
     ASSERT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
+
+    // phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    memset(actual, 0xff, sizeof(actual));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
+
+    // phydebug_dump_memory("verify ", actual, sizeof(actual));
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -215,27 +231,28 @@ TEST_F(CobsFixture, Write_Examples_8) {
         original[i] = i + 1;
     }
 
-    uint8_t expected[257];
+    uint8_t expected[258];
     expected[0] = 255;
     for (auto i = 0; i < 255; ++i) {
         expected[i + 1] = i + 1;
     }
     expected[255] = 0x02;
     expected[256] = 0xff;
+    expected[257] = 0;
 
-    phydebug_dump_memory("original ", original, sizeof(original));
-    phydebug_dump_memory("expected ", expected, sizeof(expected));
+    // phydebug_dump_memory("original ", original, sizeof(original));
+    // phydebug_dump_memory("expected ", expected, sizeof(expected));
 
     EXPECT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
-    phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
+    // phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -251,16 +268,17 @@ TEST_F(CobsFixture, Write_Examples_9) {
         original[i] = i + 2;
     }
 
-    uint8_t expected[257];
+    uint8_t expected[258];
     expected[0] = 255;
     for (auto i = 0u; i < 255; ++i) {
         expected[i + 1] = i + 2;
     }
     expected[255] = 1;
     expected[256] = 1;
+    expected[257] = 0;
 
-    phydebug_dump_memory("original ", original, sizeof(original));
-    phydebug_dump_memory("expected ", expected, sizeof(expected));
+    // phydebug_dump_memory("original ", original, sizeof(original));
+    // phydebug_dump_memory("expected ", expected, sizeof(expected));
 
     EXPECT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
@@ -269,7 +287,7 @@ TEST_F(CobsFixture, Write_Examples_9) {
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }
@@ -285,27 +303,74 @@ TEST_F(CobsFixture, Write_Examples_10) {
         original[i] = i + 3;
     }
 
-    uint8_t expected[256];
+    uint8_t expected[257];
     expected[0] = 254;
     for (auto i = 0u; i < 255; ++i) {
         expected[i + 1] = i + 3;
     }
     expected[254] = 2;
     expected[255] = 1;
+    expected[256] = 0;
 
-    phydebug_dump_memory("original ", original, sizeof(original));
-    phydebug_dump_memory("expected ", expected, sizeof(expected));
+    // phydebug_dump_memory("original ", original, sizeof(original));
+    // phydebug_dump_memory("expected ", expected, sizeof(expected));
 
     EXPECT_EQ(writer.write(original, sizeof(original)), (int32_t)sizeof(expected));
 
-    phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
+    // phydebug_dump_memory("actual ", destination_buffer.ptr(), destination_buffer.position());
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
     buffer_reader verifying{ destination_buffer.read_back() };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
-    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
+    memset(actual, 0xff, sizeof(actual));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original) + 1);
+
+    EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
+}
+
+TEST_F(CobsFixture, Write_MultipleWrites) {
+    malloc_write_buffer destination_buffer{ 1024 };
+    malloc_write_buffer lookahead{ 256 };
+    buffer_writer destination{ destination_buffer };
+    cobs_writer writer{ &destination, lookahead };
+
+    uint8_t original[16];
+    for (auto i = 0u; i < sizeof(original); ++i) {
+        original[i] = i + 1;
+    }
+
+    EXPECT_GT(writer.write(original, sizeof(original)), 0);
+    EXPECT_GT(writer.write(original, sizeof(original)), 0);
+    EXPECT_GT(writer.write(original, sizeof(original)), 0);
+    EXPECT_GT(writer.write(original, sizeof(original)), 0);
+
+    // Appending these means they'll end up with \0 delimiters between
+    // them, so the actual size that's read back includes those
+    // delimiters.
+
+    // phydebug_dump_memory("encoded ", destination_buffer.ptr(), destination_buffer.position());
+
+    buffer_reader verifying{ destination_buffer.read_back() };
+    cobs_reader reader{ &verifying };
+    uint8_t actual[1024];
+    bzero(actual, sizeof(actual));
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), 17);
+    EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
+
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), 17);
+    EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
+
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), 17);
+    EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
+
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), 17);
+    EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
+
+    EXPECT_EQ(reader.read(actual, sizeof(actual)), 0);
+
+    // phydebug_dump_memory("actual ", actual, sizeof(actual));
 
     EXPECT_EQ(memcmp(original, actual, sizeof(original)), 0);
 }

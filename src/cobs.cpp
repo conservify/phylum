@@ -65,6 +65,14 @@ int32_t cobs_writer::write(uint8_t const *data, size_t size) {
         }
     }
 
+    uint8_t end = 0;
+    if (target_->write(&end, 1) != 1) {
+        phyerrorf("cobs: writing end");
+        return -1;
+    }
+
+    wrote++;
+
     return wrote;
 }
 
@@ -87,11 +95,15 @@ int32_t cobs_reader::read(uint8_t *data, size_t size) {
             *decode++ = byte;
         }
         else {
-            if (code != 0xff) {
+            auto terminated = code != 0xff;
+            if (terminated) {
                 *decode++ = 0;
             }
             block = code = byte;
             if (code == 0x00) {
+                if (!terminated) {
+                    *decode++ = 0;
+                }
                 break;
             }
         }
