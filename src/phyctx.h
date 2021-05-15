@@ -30,6 +30,7 @@ public:
     friend class directory_tree;
 
     friend class tree_attribute_storage;
+    friend class flat_attribute_storage;
 };
 
 } // namespace phylum

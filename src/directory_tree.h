@@ -7,6 +7,7 @@
 #include "sector_chain.h"
 #include "data_chain.h"
 #include "tree_attribute_storage.h"
+#include "flat_attribute_storage.h"
 
 namespace phylum {
 
@@ -15,6 +16,7 @@ public:
     static constexpr size_t DataCapacity = 128;
     using dir_node_type = dirtree_tree_value_t<DataCapacity>;
     using dir_tree_type = tree_sector<uint32_t, dir_node_type, 4>;
+    using attribute_storage_type = flat_attribute_storage;
 
 private:
     working_buffers *buffers_{ nullptr };

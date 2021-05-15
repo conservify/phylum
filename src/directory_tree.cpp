@@ -101,7 +101,7 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     // If we're being asked to load attributes.
     if (file_cfg.nattrs > 0) {
         if (node_.u.file.attributes.valid()) {
-            tree_attribute_storage attributes_storage{ pc() };
+            attribute_storage_type attributes_storage{ pc() };
             auto err = attributes_storage.read(node_.u.file.attributes, id, file_cfg);
             if (err < 0) {
                 return err;
@@ -157,7 +157,7 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
 
     auto attributes_ptr = node_.u.file.attributes;
 
-    tree_attribute_storage attributes_storage{ pc() };
+    attribute_storage_type attributes_storage{ pc() };
     auto err = attributes_storage.update(attributes_ptr, id, attributes, nattrs);
     if (err < 0) {
         return err;
