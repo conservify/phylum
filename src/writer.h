@@ -2,6 +2,7 @@
 
 #include "phylum.h"
 #include "simple_buffer.h"
+#include "blake2b.h"
 
 namespace phylum {
 
@@ -43,6 +44,24 @@ public:
     int32_t write(uint8_t const */*data*/, size_t size) override {
         return size;
     }
+
+};
+
+constexpr size_t HashSize = 32;
+
+class blake2b_writer : public io_writer {
+private:
+    io_writer *target_{ nullptr };
+    BLAKE2b b2b_;
+
+public:
+    blake2b_writer(io_writer *target);
+
+public:
+    int32_t write(uint8_t const *data, size_t size) override;
+
+public:
+    void finalize(void *hash, size_t buffer_length);
 
 };
 
