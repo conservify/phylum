@@ -25,7 +25,7 @@ public:
 public:
     int32_t read(uint8_t *data, size_t size) {
         write_buffer copying{ data, size };
-        return copying.fill_from(buffer_);
+        return copying.copy_from(buffer_);
     }
 
 };

@@ -168,9 +168,9 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
 
     assert_valid();
 
-    simple_buffer reading{ data, size };
+    simple_buffer reading_into{ data, size };
     return read_chain([&](read_buffer view) {
-        return reading.fill_from(view);
+        return reading_into.copy_from(view);
     });
 }
 

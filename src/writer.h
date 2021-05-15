@@ -30,11 +30,33 @@ public:
 
 public:
     int32_t write(uint8_t const *data, size_t size) override {
-        return buffer_.fill(data, size, [](write_buffer&) -> int32_t {
-            // TODO Overflow
-            assert(0);
+        return buffer_.fill_from_buffer_ptr(data, size, [](simple_buffer&) -> int32_t {
+            phyerrorf("unexpected flush (overflow)");
+            assert(false);
             return -1;
         });
+    }
+
+};
+
+class buffering_writer : public io_writer {
+private:
+    io_writer *target_{ nullptr };
+    write_buffer &buffer_;
+
+public:
+    buffering_writer(io_writer *target, write_buffer &buffer) : target_(target), buffer_(buffer) {
+    }
+
+public:
+    int32_t write(uint8_t const *data, size_t size) override {
+        return buffer_.fill_from_buffer_ptr(data, size, [=](simple_buffer &rb) -> int32_t {
+            return target_->write(rb.ptr(), rb.position());
+        });
+    }
+
+    int32_t flush() {
+        return target_->write(buffer_.ptr(), buffer_.position());
     }
 
 };

@@ -36,13 +36,13 @@ int32_t cobs_writer::write(uint8_t const *data, size_t size) {
                     phyerrorf("cobs: writing buffer (%d)", buffered);
                     return -1;
                 }
+
+                buffer_.clear();
             }
 
             wrote += bytes_wrote;
 
             // phydebugf("end=%d full=%d zero=%d flag=%d buffered=%d wrote=%d", end_of_data, buffer_full, zero_byte, buffered, wrote);
-
-            buffer_.clear();
 
             if (end_of_data) {
                 break;

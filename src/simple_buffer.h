@@ -122,15 +122,7 @@ public:
     }
 
     template <typename T>
-    int32_t fill(general_buffer<uint8_t const> &sb, T flush) {
-        if (sb.ptr() == nullptr) {
-            return fill(nullptr, sb.size() - sb.position(), flush);
-        }
-        return fill(sb.ptr() + sb.position(), sb.size() - sb.position(), flush);
-    }
-
-    template <typename T>
-    int32_t fill(uint8_t const *source, size_t size, T flush) {
+    int32_t fill_from_buffer_ptr(uint8_t const *source, size_t size, T flush) {
         auto copied = 0u;
         while (copied < size) {
             auto copying = std::min<size_t>(size - copied, size_ - position_);
@@ -187,7 +179,15 @@ public:
         return fn(ptr_ + position_, size_ - position_);
     }
 
-    int32_t fill_from(general_buffer<uint8_t const> &buffer) {
+    template <typename T>
+    int32_t fill_from_buffer(general_buffer<uint8_t const> &sb, T flush) {
+        if (sb.ptr() == nullptr) {
+            return fill_from_buffer_ptr(nullptr, sb.size() - sb.position(), flush);
+        }
+        return fill_from_buffer_ptr(sb.ptr() + sb.position(), sb.size() - sb.position(), flush);
+    }
+
+    int32_t copy_from(general_buffer<uint8_t const> &buffer) {
         auto copying = std::min<int32_t>(buffer.available(), available());
         if (copying > 0) {
             if (cursor() != nullptr) {

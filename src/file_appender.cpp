@@ -38,7 +38,7 @@ file_size_t file_appender::position() {
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
-    return buffer_.fill(data, size, [&](simple_buffer &) -> int32_t {
+    return buffer_.fill_from_buffer_ptr(data, size, [&](simple_buffer &) -> int32_t {
         return flush();
     });
 }
