@@ -10,6 +10,7 @@
 #include "working_buffers.h"
 #include "sector_allocator.h"
 #include "file_ops.h"
+#include "memory_flash_memory.h"
 
 namespace phylum {
 
