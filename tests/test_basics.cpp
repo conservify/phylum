@@ -32,8 +32,8 @@ TEST(General, ObjectSizes) {
 
     phydebugf("sizeof(directory_tree::dir_node_type) = %zu", sizeof(directory_tree::dir_node_type));
     phydebugf("sizeof(directory_tree::dir_tree_type) = %zu", sizeof(directory_tree::dir_tree_type));
-    phydebugf("sizeof(directory_tree::attr_node_type) = %zu", sizeof(directory_tree::attr_node_type));
-    phydebugf("sizeof(directory_tree::attr_tree_type) = %zu", sizeof(directory_tree::attr_tree_type));
+    phydebugf("sizeof(tree_attribute_storage::attr_node_type) = %zu", sizeof(tree_attribute_storage::attr_node_type));
+    phydebugf("sizeof(tree_attribute_storage::attr_tree_type) = %zu", sizeof(tree_attribute_storage::attr_tree_type));
 
     phydebugf("sizeof(delimited_buffer::iterator) = %zu", sizeof(delimited_buffer::iterator));
     phydebugf("sizeof(read_buffer) = %zu", sizeof(read_buffer));

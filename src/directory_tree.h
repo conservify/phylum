@@ -6,35 +6,15 @@
 #include "directory.h"
 #include "sector_chain.h"
 #include "data_chain.h"
+#include "tree_attribute_storage.h"
 
 namespace phylum {
-
-template <size_t Size> struct PHY_PACKED attribute_value_t {
-    uint8_t data[Size];
-
-    attribute_value_t() {
-    }
-
-    attribute_value_t(uint32_t value) {
-        memset(data, 0, sizeof(data));
-        memcpy(data, &value, sizeof(uint32_t));
-    }
-
-    attribute_value_t(void const *buffer, size_t size) {
-        assert(size <= Size);
-        memset(data, 0, sizeof(data));
-        memcpy(data, buffer, size);
-    }
-};
 
 class directory_tree : public directory {
 public:
     static constexpr size_t DataCapacity = 128;
-    static constexpr size_t AttributeCapacity = 256;
     using dir_node_type = dirtree_tree_value_t<DataCapacity>;
     using dir_tree_type = tree_sector<uint32_t, dir_node_type, 4>;
-    using attr_node_type = attribute_value_t<AttributeCapacity>;
-    using attr_tree_type = tree_sector<uint32_t, attr_node_type, 15>;
 
 private:
     working_buffers *buffers_{ nullptr };
