@@ -20,13 +20,13 @@ int32_t directory_tree::format() {
 int32_t directory_tree::touch(const char *name) {
     auto id = make_file_id(name);
 
-    node_ = {};
-    node_.u.file = dirtree_file_t(name);
+    dir_node_type node = {};
+    node.u.file = dirtree_file_t(name);
 
     file_ = {};
     file_.id = id;
 
-    auto err = tree_.add(id, node_);
+    auto err = tree_.add(id, node);
     if (err < 0) {
         return err;
     }
@@ -37,12 +37,12 @@ int32_t directory_tree::touch(const char *name) {
 int32_t directory_tree::unlink(const char *name) {
     auto id = make_file_id(name);
 
-    node_ = {};
-    node_.u.file = dirtree_file_t(name, (uint16_t)FsDirTreeFlags::Deleted);
+    dir_node_type node = {};
+    node.u.file = dirtree_file_t(name, (uint16_t)FsDirTreeFlags::Deleted);
 
     file_ = {};
 
-    auto err = tree_.add(id, node_);
+    auto err = tree_.add(id, node);
     if (err < 0) {
         return err;
     }
@@ -63,7 +63,8 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
         bzero(attr.ptr, attr.size);
     }
 
-    auto err = tree_.find(id, &node_);
+    dir_node_type node;
+    auto err = tree_.find(id, &node);
     if (err < 0) {
         file_ = found_file{};
         return err;
@@ -75,17 +76,17 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
     }
 
     auto mask = (uint16_t)FsDirTreeFlags::Deleted;
-    if ((node_.u.e.flags & mask) == mask) {
+    if ((node.u.e.flags & mask) == mask) {
         file_ = found_file{};
         return 0;
     }
 
-    assert(node_.u.e.type == entry_type::FsFileEntry);
+    assert(node.u.e.type == entry_type::FsFileEntry);
 
-    if (!node_.u.file.chain.valid()) {
+    if (!node.u.file.chain.valid()) {
         if (((int32_t)file_cfg.flags & (int32_t)open_file_flags::Truncate) == 0) {
-            file_.directory_size = node_.u.file.directory_size;
-            file_.directory_capacity = DataCapacity - node_.u.file.directory_size;
+            file_.directory_size = node.u.file.directory_size;
+            file_.directory_capacity = DataCapacity - node.u.file.directory_size;
         }
         else {
             file_.directory_size = 0;
@@ -93,16 +94,16 @@ int32_t directory_tree::find(const char *name, open_file_config file_cfg) {
         }
     }
     else {
-        file_.chain = node_.u.file.chain;
-        file_.position_index = node_.u.file.position_index;
-        file_.record_index = node_.u.file.record_index;
+        file_.chain = node.u.file.chain;
+        file_.position_index = node.u.file.position_index;
+        file_.record_index = node.u.file.record_index;
     }
 
     // If we're being asked to load attributes.
     if (file_cfg.nattrs > 0) {
-        if (node_.u.file.attributes.valid()) {
+        if (node.u.file.attributes.valid()) {
             attribute_storage_type attributes_storage{ pc() };
-            auto err = attributes_storage.read(node_.u.file.attributes, id, file_cfg);
+            auto err = attributes_storage.read(node.u.file.attributes, id, file_cfg);
             if (err < 0) {
                 return err;
             }
@@ -124,11 +125,12 @@ int32_t directory_tree::file_data(file_id_t id, file_size_t position, uint8_t co
         return -1;
     }
 
-    memcpy(node_.data + position, buffer, size);
+    auto err = flush([&](dir_node_type *node) -> int32_t {
+        memcpy(node->data + position, buffer, size);
+        node->u.file.directory_size = position + size;
 
-    node_.u.file.directory_size = position + size;
-
-    auto err = flush();
+        return 0;
+    });
     if (err < 0) {
         return err;
     }
@@ -139,12 +141,14 @@ int32_t directory_tree::file_data(file_id_t id, file_size_t position, uint8_t co
 int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
     assert(file_.id == id);
 
-    assert(!node_.u.file.chain.valid());
+    auto err = flush([&](dir_node_type *node) -> int32_t {
+        assert(!node->u.file.chain.valid());
 
-    node_.u.file.directory_size = 0;
-    node_.u.file.chain = chain;
+        node->u.file.directory_size = 0;
+        node->u.file.chain = chain;
 
-    auto err = flush();
+        return 0;
+    });
     if (err < 0) {
         return err;
     }
@@ -155,21 +159,21 @@ int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
 int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attributes, size_t nattrs) {
     assert(file_.id == id);
 
-    auto attributes_ptr = node_.u.file.attributes;
+    auto err = flush([&](dir_node_type *node) -> int32_t {
+        auto attributes_ptr = node->u.file.attributes;
 
-    attribute_storage_type attributes_storage{ pc() };
-    auto err = attributes_storage.update(attributes_ptr, id, attributes, nattrs);
-    if (err < 0) {
-        return err;
-    }
-
-    if (node_.u.file.attributes != attributes_ptr) {
-        node_.u.file.attributes = attributes_ptr;
-
-        auto err = flush();
+        attribute_storage_type attributes_storage{ pc() };
+        auto err = attributes_storage.update(attributes_ptr, id, attributes, nattrs);
         if (err < 0) {
             return err;
         }
+
+        node->u.file.attributes = attributes_ptr;
+
+        return 0;
+    });
+    if (err < 0) {
+        return err;
     }
 
     return 0;
@@ -178,10 +182,11 @@ int32_t directory_tree::file_attributes(file_id_t id, open_file_attribute *attri
 int32_t directory_tree::file_trees(file_id_t id, tree_ptr_t position_index, tree_ptr_t record_index) {
     assert(file_.id == id);
 
-    node_.u.file.position_index = position_index;
-    node_.u.file.record_index = record_index;
-
-    auto err = flush();
+    auto err = flush([&](dir_node_type *node) -> int32_t {
+        node->u.file.position_index = position_index;
+        node->u.file.record_index = record_index;
+        return 0;
+    });
     if (err < 0) {
         return err;
     }
@@ -192,17 +197,39 @@ int32_t directory_tree::file_trees(file_id_t id, tree_ptr_t position_index, tree
 int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> fn) {
     assert(file_.id == id);
 
-    if (node_.u.file.directory_size == 0) {
+    dir_node_type node;
+    auto err = tree_.find(file_.id, &node);
+    if (err < 0) {
+        return err;
+    }
+
+    if (node.u.file.directory_size == 0) {
         return 0;
     }
 
-    return fn(read_buffer{ node_.data, node_.u.file.directory_size });
+    err = fn(read_buffer{ node.data, node.u.file.directory_size });
+    if (err < 0) {
+        return err;
+    }
+
+    return err;
 }
 
-int32_t directory_tree::flush() {
+int32_t directory_tree::flush(std::function<int32_t(dir_node_type *node)> fn) {
     assert(file_.id != UINT32_MAX);
 
-    auto err = tree_.add(file_.id, node_);
+    dir_node_type node;
+    auto err = tree_.find(file_.id, &node);
+    if (err < 0) {
+        return err;
+    }
+
+    err = fn(&node);
+    if (err < 0) {
+        return err;
+    }
+
+    err = tree_.add(file_.id, node);
     if (err < 0) {
         return err;
     }

@@ -24,9 +24,6 @@ private:
     sector_allocator *allocator_{ nullptr };
     dir_tree_type tree_;
     found_file file_;
-    // TODO Consider dynamically allocating this. Very stack heavy for
-    // dirtree entries.
-    dir_node_type node_;
 
 public:
     directory_tree(phyctx pc, tree_ptr_t tree)
@@ -59,8 +56,8 @@ public:
     int32_t touch_indexed(const char *name) {
         auto id = make_file_id(name);
 
-        node_ = {};
-        node_.u.file = dirtree_file_t(name);
+        dir_node_type node = {};
+        node.u.file = dirtree_file_t(name);
 
         data_chain data_chain{ pc(), head_tail_t{} };
         auto err = data_chain.create_if_necessary();
@@ -68,8 +65,8 @@ public:
             return err;
         }
 
-        node_.u.file.directory_size = 0;
-        node_.u.file.chain = data_chain.chain();
+        node.u.file.directory_size = 0;
+        node.u.file.chain = data_chain.chain();
 
         auto position_index_sector = allocator_->allocate();
         auto position_index_tree = tree_ptr_t{ position_index_sector };
@@ -79,7 +76,7 @@ public:
             return err;
         }
 
-        node_.u.file.position_index = position_index_tree;
+        node.u.file.position_index = position_index_tree;
 
         auto record_index_sector = allocator_->allocate();
         auto record_index_tree = tree_ptr_t{ record_index_sector };
@@ -89,15 +86,15 @@ public:
             return err;
         }
 
-        node_.u.file.record_index = record_index_tree;
+        node.u.file.record_index = record_index_tree;
 
         file_ = {};
         file_.id = id;
-        file_.chain = node_.u.file.chain;
-        file_.position_index = node_.u.file.position_index;
-        file_.record_index = node_.u.file.record_index;
+        file_.chain = node.u.file.chain;
+        file_.position_index = node.u.file.position_index;
+        file_.record_index = node.u.file.record_index;
 
-        err = tree_.add(id, node_);
+        err = tree_.add(id, node);
         if (err < 0) {
             return err;
         }
@@ -132,7 +129,7 @@ protected:
     int32_t read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) override;
 
 private:
-    int32_t flush();
+    int32_t flush(std::function<int32_t(dir_node_type *node)> fn);
 
     phyctx pc() {
         return phyctx{ *buffers_, *sectors_, *allocator_ };
