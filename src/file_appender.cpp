@@ -90,6 +90,19 @@ int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_curso
     return 0;
 }
 
+int32_t file_appender::seek() {
+    if (!data_chain_.valid()) {
+        phydebugf("noop seek");
+        return 0;
+    }
+
+    auto err = data_chain_.seek_sector(data_chain_.head(), 0, UINT32_MAX);
+    if (err < 0) {
+        return err;
+    }
+    return 0;
+}
+
 int32_t file_appender::flush() {
     logged_task lt{ "fa-flush" };
 

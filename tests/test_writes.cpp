@@ -73,6 +73,7 @@ TYPED_TEST(WriteFixture, WriteInline_TwiceSeparately_Appends) {
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         file_appender opened{ memory.pc(), &dir, dir.open() };
 
+        ASSERT_EQ(opened.position(), strlen(hello));
         ASSERT_GT(opened.write(hello), 0);
         ASSERT_EQ(opened.position(), strlen(hello) * 2);
         ASSERT_EQ(opened.flush(), 0);
@@ -81,6 +82,8 @@ TYPED_TEST(WriteFixture, WriteInline_TwiceSeparately_Appends) {
     memory.mounted<dir_type>([&](auto &dir) {
         ASSERT_EQ(dir.find("data.txt", open_file_config{ }), 1);
         file_reader reader{ memory.pc(), &dir, dir.open() };
+
+        ASSERT_EQ(reader.position(), 0u);
 
         uint8_t buffer[256];
         ASSERT_EQ(reader.read(buffer, sizeof(buffer)), (int32_t)strlen(hello) * 2);
@@ -368,5 +371,38 @@ TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_SeveralBlocks) {
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         data_chain dc{ memory.pc(), dir.open().chain };
         ASSERT_EQ(dc.log(true), 0);
+    });
+}
+
+TYPED_TEST(WriteFixture, WriteImmediatelyToDataChain_TwoBlocksAppending) {
+    using layout_type = typename TypeParam::first_type;
+    using dir_type = typename TypeParam::second_type;
+
+    layout_type layout;
+    FlashMemory memory{ layout.sector_size };
+
+    auto hello = "Hello, world! How are you!";
+
+    memory.mounted<dir_type>([&](auto &dir) {
+        ASSERT_EQ(dir.touch("data.txt"), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+
+        file_appender opened{ memory.pc(), &dir, dir.open() };
+        for (auto i = 0u; i < 10; ++i) {
+            ASSERT_GT(opened.write(hello), 0);
+        }
+        ASSERT_EQ(opened.close(), 0);
+
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
+        file_appender again{ memory.pc(), &dir, dir.open() };
+        ASSERT_EQ(again.seek(), 0);
+        ASSERT_EQ(opened.position(), again.position());
+        for (auto i = 0u; i < 10; ++i) {
+            ASSERT_GT(again.write(hello), 0);
+        }
+        ASSERT_EQ(again.close(), 0);
+
+        ASSERT_EQ(again.position(), strlen(hello) * 20);
     });
 }

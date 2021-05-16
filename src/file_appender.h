@@ -40,6 +40,8 @@ public:
         return size_of_delimiter;
     }
 
+    int32_t seek();
+
     int32_t write(uint8_t const *data, size_t size) override;
 
     using io_writer::write;
