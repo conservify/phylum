@@ -11,6 +11,7 @@
 #include "sector_allocator.h"
 #include "file_ops.h"
 #include "memory_flash_memory.h"
+#include "cobs.h"
 
 namespace phylum {
 

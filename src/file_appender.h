@@ -58,8 +58,9 @@ public:
     int32_t index_if_necessary(record_number_t record_number) {
         int32_t err;
 
-        err = index_if_necessary([&](data_chain_cursor cursor) {
-            alogf(LogLevels::INFO, "phylum", "indexing position=%d, psos=%d cursor=%d", cursor.position, cursor.position_at_start_of_sector, cursor.sector);
+        err = index_if_necessary([&](data_chain_cursor cursor) -> int32_t {
+            alogf(LogLevels::INFO, "phylum", "indexing position=%" PRIu32 ", psos=%" PRIu32 " cursor=%" PRIu32,
+                  cursor.position, cursor.position_at_start_of_sector, cursor.sector);
 
             tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
             err = position_index.add(cursor.position_at_start_of_sector, cursor.sector);
