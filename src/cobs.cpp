@@ -73,6 +73,10 @@ int32_t cobs_writer::write(uint8_t const *data, size_t size) {
 
     wrote++;
 
+    if (!return_bytes_wrote_) {
+        return size;
+    }
+
     return wrote;
 }
 

@@ -10,10 +10,16 @@ class cobs_writer : public io_writer {
 private:
     io_writer *target_{ nullptr };
     write_buffer &buffer_;
+    bool return_bytes_wrote_{ true };
 
 public:
     cobs_writer(io_writer *target, write_buffer &buffer);
     virtual ~cobs_writer();
+
+public:
+    void return_bytes_wrote(bool value) {
+        return_bytes_wrote_ = value;
+    }
 
 public:
     int32_t write(uint8_t const *data, size_t size) override;
