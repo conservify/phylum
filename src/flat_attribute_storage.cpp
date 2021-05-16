@@ -74,6 +74,8 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     auto wrote = 0u;
 
+    auto buffer = buffers_->allocate(buffers_->buffer_size());
+
     for (auto i = 0u; i < nattrs; ++i) {
         auto &attr = attributes[i];
 
@@ -81,20 +83,23 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
         header.type = attr.type;
         header.size = attr.size;
 
-        auto err = chain.write((uint8_t *)&header, sizeof(attribute_header_t));
+        auto err = buffer.write((uint8_t *)&header, sizeof(attribute_header_t));
         if (err < 0) {
             return err;
         }
 
-        wrote += err;
-
-        err = chain.write((uint8_t *)attr.ptr, attr.size);
+        err = buffer.write((uint8_t *)attr.ptr, attr.size);
         if (err < 0) {
             return err;
         }
-
-        wrote += err;
     }
+
+    auto err = chain.write(buffer.ptr(), buffer.position());
+    if (err < 0) {
+        return err;
+    }
+
+    wrote += err;
 
     phydebugf("saved attributes bytes=%zu", wrote);
 

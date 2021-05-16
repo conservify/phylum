@@ -222,11 +222,20 @@ public:
 
     int32_t write(uint8_t byte) {
         if (position_ >= size_) {
-            return 0;
+            return -1;
         }
         ptr_[position_] = byte;
         position_++;
         return 1;
+    }
+
+    int32_t write(uint8_t const *ptr, size_t size) {
+        if (position_ + size >= size_) {
+            return -1;
+        }
+        memcpy(ptr_ + position_, ptr, size);
+        position_ += size;
+        return size;
     }
 
     bool room_for(size_t bytes) {
