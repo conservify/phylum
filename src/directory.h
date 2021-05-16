@@ -5,13 +5,14 @@ namespace phylum {
 struct open_file_attribute {
     uint8_t type{ 0 };
     uint8_t size{ 0 };
+    uint8_t default_value{ 0 };
     void   *ptr{ nullptr };
     bool    dirty{ 0 };
 
     open_file_attribute() {
     }
 
-    open_file_attribute(uint8_t type, uint8_t size) : type(type), size(size) {
+    open_file_attribute(uint8_t type, uint8_t size, uint8_t default_value = 0x00) : type(type), size(size), default_value(default_value) {
     }
 };
 
