@@ -89,7 +89,7 @@ public:
             auto &p = pages_[i];
             if (p.buffer != nullptr) {
                 if (p.sector == sector) {
-                    phydebugf("wbuffers[%d] dirty sector=%d", i, sector);
+                    phyverbosef("wbuffers[%d] dirty sector=%d", i, sector);
                     p.dirty = true;
                     err = 0;
                 }
@@ -114,7 +114,7 @@ public:
                         phywarnf("flush of clean page sector");
                     }
 
-                    phydebugf("wbuffers[%d] flush sector=%d", i, sector);
+                    phyverbosef("wbuffers[%d] flush sector=%d", i, sector);
 
                     auto err = flush(sector, p.buffer, buffer_size_);
                     if (err < 0) {
@@ -170,7 +170,7 @@ public:
                 p.used = counter_;
                 p.hits++;
 
-                phydebugf("wbuffers[%d]: reusing refs=%d", i, p.refs);
+                phyverbosef("wbuffers[%d]: reusing refs=%d", i, p.refs);
 
                 if (false) {
                     phydebug_dump_memory("reuse[%d, sector=%d] ", p.buffer, buffer_size_, i, p.sector);
@@ -228,7 +228,7 @@ public:
             }
         }
         else {
-            phydebugf("wbuffers[%d]: allocating sector=%d", selected, sector);
+            phyverbosef("wbuffers[%d]: allocating sector=%d", selected, sector);
         }
 
         // Load the sector.
@@ -342,7 +342,7 @@ public:
 
         update_highwater();
 
-        phydebugf("wbuffers[%d]: allocate sector=%d hw=%zu", selected, p.sector, highwater_);
+        phyverbosef("wbuffers[%d]: allocate sector=%d hw=%zu", selected, p.sector, highwater_);
         auto free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
         return simple_buffer{ p.buffer, size, free_fn };
     }
@@ -352,7 +352,7 @@ public:
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
             if (p.buffer == ptr) {
-                phydebugf("wbuffers[%d]: free refs-before=%d sector=%d", i, p.refs, p.sector);
+                phyverbosef("wbuffers[%d]: free refs-before=%d sector=%d", i, p.refs, p.sector);
 
                 assert(p.refs != 0);
 

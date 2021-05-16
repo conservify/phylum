@@ -99,7 +99,7 @@ int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
         return err;
     }
 
-    phydebugf("seeking end of buffer %d", db().position());
+    phyverbosef("seeking end of buffer %d", db().position());
 
     appendable(true);
 
@@ -196,7 +196,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     logged_task lt{ "write-data-chain" };
 
     if (!appendable()) {
-        phydebugf("making appendable");
+        phyverbosef("making appendable");
 
         auto page_lock = db().writing(head());
 
@@ -216,7 +216,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
 
         if (err == 0) {
             auto hdr = db().header<data_chain_header_t>();
-            phydebugf("write resuming sector-bytes=%d", hdr->bytes);
+            phyverbosef("write resuming sector-bytes=%d", hdr->bytes);
             assert(db().skip(hdr->bytes) >= 0);
         }
 
@@ -228,7 +228,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     auto written = 0;
 
     while (true) {
-        phydebugf("write: position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
+        phyverbosef("write: position=%zu available=%zu size=%zu", db().position(), db().available(), db().size());
 
         auto grow = false;
         auto err = db().write_view([&](write_buffer wb) {
@@ -287,7 +287,7 @@ int32_t data_chain::constrain() {
     auto iter = db().begin();
     auto hdr = db().header<data_chain_header_t>();
     auto total = hdr->bytes + iter.position() + iter.size_of_record() + 1 /* Null terminator */;
-    phydebugf("constrain hdr-bytes=%d + hdr-pos=%d + hdr->size=%d + 1 <null> = total=%d", hdr->bytes, iter.position(), iter.size_of_record(), total);
+    phyverbosef("constrain hdr-bytes=%d + hdr-pos=%d + hdr->size=%d + 1 <null> = total=%d", hdr->bytes, iter.position(), iter.size_of_record(), total);
     assert(db().constrain(total) >= 0);
     return 0;
 }
@@ -318,12 +318,12 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
 
             assert(constrain() >= 0);
 
-            phydebugf("read resuming position=%d available=%d", db().position(), db().available());
+            phyverbosef("read resuming position=%d available=%d", db().position(), db().available());
         }
 
         // If we have data available.
         if (db().available() > 0) {
-            phydebugf("view position=%zu available=%zu", db().position(), db().available());
+            phyverbosef("view position=%zu available=%zu", db().position(), db().available());
 
             auto err = data_fn(db().to_read_buffer());
             if (err < 0) {

@@ -102,7 +102,7 @@ void paging_delimited_buffer::ensure_valid() const {
 int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, bool overwrite) {
     assert(sector != InvalidSector);
 
-    phydebugf("page-lock: replacing previous=%d sector=%d read-only=%d overwrite=%s", sector_, sector, read_only, overwrite ? "yes" : "no");
+    phyverbosef("page-lock: replacing previous=%d sector=%d read-only=%d overwrite=%s", sector_, sector, read_only, overwrite ? "yes" : "no");
 
     if (sector == sector_) {
         phyverbosef("page-lock: replace (noop)");

@@ -41,7 +41,7 @@ int32_t sector_chain::flush(page_lock &page_lock) {
 
     assert_valid();
 
-    phydebugf("%s flush", name());
+    phyverbosef("%s flush", name());
 
     auto err = page_lock.flush(sector_);
     if (err < 0) {
@@ -56,12 +56,12 @@ int32_t sector_chain::seek_end_of_chain(page_lock &page_lock) {
 
     assert_valid();
 
-    phydebugf("%s starting", name());
+    phyverbosef("%s starting", name());
 
     while (true) {
         auto err = forward(page_lock);
         if (err < 0) {
-            phydebugf("%s end (%d)", name(), err);
+            phyverbosef("%s end (%d)", name(), err);
             return err;
         } else if (err == 0) {
             break;
@@ -79,7 +79,7 @@ int32_t sector_chain::seek_end_of_chain(page_lock &page_lock) {
 }
 
 int32_t sector_chain::back_to_head(page_lock &page_lock) {
-    phydebugf("%s back-to-head %d -> %d", name(), sector_, head_);
+    phyverbosef("%s back-to-head %d -> %d", name(), sector_, head_);
 
     auto err = page_lock.replace(head_);
     if (err < 0) {

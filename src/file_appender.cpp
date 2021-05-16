@@ -168,7 +168,7 @@ int32_t file_appender::flush() {
     }
 
     if (data_chain_.valid()) {
-        phydebugf("flush remaining (%d)", buffer_.position());
+        phyverbosef("flush remaining (%d)", buffer_.position());
 
         auto err = data_chain_.flush();
         if (err < 0) {

@@ -15,7 +15,7 @@ flat_attribute_storage::flat_attribute_storage(phyctx pc) : buffers_(&pc.buffers
 int32_t flat_attribute_storage::read(tree_ptr_t &ptr, file_id_t /*id*/, open_file_config file_cfg) {
     data_chain chain{ pc(), head_tail_t{ ptr.root, ptr.tail } };
 
-    phydebugf("reading attributes");
+    phyverbosef("reading attributes");
 
     while (true) {
         attribute_header_t header;
@@ -53,7 +53,7 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     assert(attribute_size <= AttributeCapacity);
 
-    phydebugf("saving attributes total-size=%zu", attribute_size);
+    phyverbosef("saving attributes total-size=%zu", attribute_size);
 
     data_chain chain{ pc(), head_tail_t{ ptr.root, ptr.tail } };
 
@@ -96,7 +96,7 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
         wrote += err;
     }
 
-    phydebugf("saved %zu bytes", wrote);
+    phydebugf("saved attributes bytes=%zu", wrote);
 
     return wrote;
 }
