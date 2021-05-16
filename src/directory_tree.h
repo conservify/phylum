@@ -54,7 +54,7 @@ public:
     int32_t touch(const char *name) override;
 
     template<typename TreeType>
-    int32_t touch_indexed(const char *name) {
+    int32_t touch_indexed(const char *name, open_file_config file_cfg) {
         auto id = make_file_id(name);
 
         dir_node_type node = {};
@@ -98,6 +98,13 @@ public:
         err = tree_.add(id, &node, &file_node_ptr_);
         if (err < 0) {
             return err;
+        }
+
+        if (file_cfg.nattrs > 0) {
+            auto err = file_attributes(id, file_cfg.attributes, file_cfg.nattrs);
+            if (err < 0) {
+                return err;
+            }
         }
 
         alogf(LogLevels::INFO, "phylum",
