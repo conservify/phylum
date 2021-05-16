@@ -7,6 +7,12 @@ struct open_file_attribute {
     uint8_t size{ 0 };
     void   *ptr{ nullptr };
     bool    dirty{ 0 };
+
+    open_file_attribute() {
+    }
+
+    open_file_attribute(uint8_t type, uint8_t size) : type(type), size(size) {
+    }
 };
 
 enum class open_file_flags {
@@ -18,6 +24,9 @@ struct open_file_config {
     open_file_flags flags{ open_file_flags::None };
     open_file_attribute *attributes{ nullptr };
     size_t nattrs{ 0 };
+
+    open_file_config() {
+    }
 };
 
 struct found_file {

@@ -137,8 +137,8 @@ public:
 
 public:
     PhylumFixture() {
-        attributes_[0] = open_file_attribute{ ATTRIBUTE_ONE, 4, nullptr, false };
-        attributes_[1] = open_file_attribute{ ATTRIBUTE_TWO, 4, nullptr, false };
+        attributes_[0] = open_file_attribute{ ATTRIBUTE_ONE, 4 };
+        attributes_[1] = open_file_attribute{ ATTRIBUTE_TWO, 4 };
     }
 
     virtual ~PhylumFixture() {
@@ -146,10 +146,9 @@ public:
 
 public:
     void SetUp() override {
-        file_cfg_ = {
-            .attributes = attributes_,
-            .nattrs = 2,
-        };
+        file_cfg_ = {};
+        file_cfg_.attributes = attributes_;
+        file_cfg_.nattrs = 2;
         for (auto &attr : attributes_) {
             attr.ptr = malloc(attr.size);
         }
