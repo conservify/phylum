@@ -120,7 +120,7 @@ private:
                 }
             }
         }
-        phydebugf("found root=%d:%d", selected.ptr.sector, selected.ptr.position);
+        phyverbosef("found root=%d:%d", selected.ptr.sector, selected.ptr.position);
         return selected;
     }
 
@@ -301,7 +301,7 @@ private:
     }
 
     int32_t back_to_root(page_lock &lock) {
-        phydebugf("%s back-to-root %d -> %d", name(), lock.sector(), root_);
+        phyverbosef("%s back-to-root %d -> %d", name(), lock.sector(), root_);
 
         assert(!lock.is_dirty());
 
