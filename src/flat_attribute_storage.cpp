@@ -53,9 +53,11 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     assert(attribute_size <= AttributeCapacity);
 
-    phyverbosef("saving attributes total-size=%zu", attribute_size);
+    head_tail_t head_tail{ ptr.root, ptr.tail };
 
-    data_chain chain{ pc(), head_tail_t{ ptr.root, ptr.tail } };
+    phyverbosef("saving attributes total-size=%zu head=%d tail=%d", attribute_size, head_tail.head, head_tail.tail);
+
+    data_chain chain{ pc(), head_tail };
 
     if (ptr.valid()) {
         auto err = chain.truncate();
@@ -68,14 +70,11 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
         if (err < 0) {
             return err;
         }
-
-        ptr = tree_ptr_t{ chain.head(), chain.tail() };
     }
-
-    auto wrote = 0u;
 
     auto buffer = buffers_->allocate(buffers_->buffer_size());
 
+    auto wrote = 0u;
     for (auto i = 0u; i < nattrs; ++i) {
         auto &attr = attributes[i];
 
@@ -101,7 +100,9 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     wrote += err;
 
-    phydebugf("saved attributes bytes=%zu", wrote);
+    ptr = tree_ptr_t{ chain.head(), chain.tail() };
+
+    phydebugf("saved attributes bytes=%zu head=%d tail=%d", wrote, chain.head(), chain.tail());
 
     return wrote;
 }

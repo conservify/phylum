@@ -8,6 +8,8 @@ int32_t data_chain::write_header(page_lock &page_lock) {
 
     assert_valid();
 
+    db().clear();
+
     db().emplace<data_chain_header_t>();
 
     db().terminate();

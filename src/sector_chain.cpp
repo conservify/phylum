@@ -161,7 +161,7 @@ int32_t sector_chain::prepare_sector(page_lock &lock, dhara_sector_t previous_se
         return err;
     }
 
-    phydebugf("truncated, keeping pp=%d np=%d", previous_sector, following_sector);
+    phydebugf("prepare-sector pp=%d np=%d", previous_sector, following_sector);
 
     assert(db().write_header<sector_chain_header_t>([&](sector_chain_header_t *header) {
         header->pp = previous_sector;
