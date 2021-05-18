@@ -64,12 +64,13 @@ int32_t data_chain::skip_bytes(file_size_t bytes) {
     return nread;
 }
 
-int32_t data_chain::skip_records(record_number_t number_records) {
+int32_t data_chain::skip_records(record_number_t skipping) {
     int32_t err;
 
-    record_number_t skipped = 0;
+    record_number_t records = 0;
+    file_size_t bytes = 0;
 
-    while (skipped < number_records) {
+    while (records < skipping) {
         uint32_t record_size = 0;
         err = read_delimiter(&record_size);
         if (err < 0) {
@@ -80,17 +81,18 @@ int32_t data_chain::skip_records(record_number_t number_records) {
             break;
         }
 
-        phydebugf("skipping: record-size=%d (+%d delimiter) position=%d", record_size, err, position_);
-
         err = skip_bytes(record_size);
         if (err < 0) {
             return err;
         }
 
-        skipped++;
+        bytes += err + record_size;
+        records++;
     }
 
-    return skipped;
+    phydebugf("skipped records=%d bytes=%d position=%d", records, bytes, position_);
+
+    return records;
 }
 
 int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
