@@ -289,6 +289,19 @@ int32_t data_chain::constrain() {
     auto total = hdr->bytes + iter.position() + iter.size_of_record() + 1 /* Null terminator */;
     phyverbosef("constrain hdr-bytes=%d + hdr-pos=%d + hdr->size=%d + 1 <null> = total=%d", hdr->bytes, iter.position(), iter.size_of_record(), total);
     assert(db().constrain(total) >= 0);
+
+    /**
+     * Due to a bug somewhere, if the sector is empty, then the
+     * delimited buffer position could be just before the null
+     * terminator. This seems like an ok sanity check, that the
+     * position should never be before the minimum position and will
+     * hold us over until I can find the real off by one issue.
+     */
+    auto minimum = 2 + sizeof(data_chain_header_t) + 1;
+    if (db().position() < minimum) {
+        phydebugf("constrain skipping to minimum position=%d", minimum);
+        db().position(minimum);
+    }
     return 0;
 }
 
