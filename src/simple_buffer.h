@@ -42,10 +42,7 @@ public:
     }
 
     virtual ~general_buffer() {
-        if (free_ && ptr_ != nullptr) {
-            free_(ptr_);
-            ptr_ = nullptr;
-        }
+        free();
     }
 
 public:
@@ -67,6 +64,13 @@ public:
     }
 
 public:
+    void free() {
+        if (free_ && ptr_ != nullptr) {
+            free_(ptr_);
+            ptr_ = nullptr;
+        }
+    }
+
     PointerType *ptr() const {
         return ptr_;
     }

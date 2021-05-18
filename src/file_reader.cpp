@@ -69,7 +69,7 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
 }
 
 int32_t file_reader::close() {
-    // There's nothing for us to do, yet. Keeping this call just in case.
+    buffer_.free();
     return 0;
 }
 

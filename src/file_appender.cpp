@@ -176,9 +176,9 @@ int32_t file_appender::flush() {
         }
 
         if (!had_chain) {
-            phyinfof("%s updating directory", data_chain_.name());
             file_.chain.head = data_chain_.head();
             file_.chain.tail = data_chain_.tail();
+            phyinfof("%s updating directory head=%d tail=%d", data_chain_.name(), file_.chain.head, file_.chain.tail);
             auto err = directory_->file_chain(file_.id, file_.chain);
             if (err < 0) {
                 return err;
@@ -237,6 +237,8 @@ int32_t file_appender::close() {
         auto &attr = file_.cfg.attributes[i];
         attr.dirty = false;
     }
+
+    buffer_.free();
 
     return 0;
 }

@@ -17,7 +17,7 @@ public:
     }
 
     virtual ~malloc_write_buffer() {
-        free(ptr());
+        ::free(ptr());
     }
 };
 

@@ -260,11 +260,11 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
         ASSERT_EQ(dir.touch("data.txt"), 0);
 
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ memory.pc(), &dir, dir.open() };
 
         auto hello = "Hello, world! How are you!";
 
         for (auto i = 0u; i < 3; ++i) {
+            file_appender opened{ memory.pc(), &dir, dir.open() };
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(hello), 0);
             ASSERT_GE(opened.flush(), 0);
@@ -283,22 +283,29 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
     memory.mounted<dir_type>([&](auto &dir) {
         ASSERT_EQ(dir.touch("data.txt"), 0);
 
-        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
-        file_appender opened{ memory.pc(), &dir, dir.open() };
-
         auto hello = "Hello, world! How are you!";
 
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         for (auto i = 0u; i < 3; ++i) {
+            printf("\n\n");
+            phydebugf("opening now");
+            printf("\n\n");
+
+            file_appender opened{ memory.pc(), &dir, dir.open() };
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(hello), 0);
-            ASSERT_GE(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
         }
 
+        ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         for (auto i = 0u; i < 2; ++i) {
+            printf("\n\n");
+            phydebugf("opening again");
+            printf("\n\n");
+
+            file_appender opened{ memory.pc(), &dir, dir.open() };
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
-            ASSERT_EQ(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
         }
     });

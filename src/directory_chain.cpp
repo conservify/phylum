@@ -94,6 +94,9 @@ int32_t directory_chain::file_chain(file_id_t id, head_tail_t chain) {
 
     assert(emplace<file_data_t>(page_lock, id, chain) >= 0);
 
+    assert(file_.id == id);
+    file_.chain = chain;
+
     auto err = flush(page_lock);
     if (err < 0) {
         return err;

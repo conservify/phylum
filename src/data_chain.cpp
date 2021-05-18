@@ -80,7 +80,7 @@ int32_t data_chain::skip_records(record_number_t number_records) {
             break;
         }
 
-        phydebugf("%d record-size: %d (%d delim-bytes)", position_, record_size, err);
+        phydebugf("skipping: record-size=%d (+%d delimiter) position=%d", record_size, err, position_);
 
         err = skip_bytes(record_size);
         if (err < 0) {

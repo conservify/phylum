@@ -169,6 +169,8 @@ int32_t directory_tree::file_chain(file_id_t id, head_tail_t chain) {
         node->u.file.directory_size = 0;
         node->u.file.chain = chain;
 
+        file_.chain = node->u.file.chain;
+
         return 1;
     });
     if (err < 0) {
