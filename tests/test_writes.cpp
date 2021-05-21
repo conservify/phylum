@@ -287,9 +287,7 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
 
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         for (auto i = 0u; i < 3; ++i) {
-            printf("\n\n");
             phydebugf("opening now");
-            printf("\n\n");
 
             file_appender opened{ memory.pc(), &dir, dir.open() };
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
@@ -299,9 +297,7 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
 
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         for (auto i = 0u; i < 2; ++i) {
-            printf("\n\n");
             phydebugf("opening again");
-            printf("\n\n");
 
             file_appender opened{ memory.pc(), &dir, dir.open() };
             opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
