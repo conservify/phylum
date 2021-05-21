@@ -37,6 +37,10 @@ int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_
 
     assert(desired_position == UINT32_MAX || desired_position == position_);
 
+    if (desired_position == UINT32_MAX) {
+        appendable(true);
+    }
+
     return nread;
 }
 

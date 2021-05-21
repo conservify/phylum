@@ -85,6 +85,8 @@ int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_curso
         }
 
         data_chain_.clear_visited_sectors();
+
+        return 1;
     }
 
     return 0;
