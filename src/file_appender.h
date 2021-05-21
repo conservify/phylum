@@ -4,6 +4,7 @@
 #include "simple_buffer.h"
 #include "directory.h"
 #include "writer.h"
+#include "helpers.h"
 
 namespace phylum {
 
@@ -94,6 +95,11 @@ public:
         });
 
         return err;
+    }
+
+    template <typename tree_type>
+    int32_t seek_position(uint32_t desired_position) {
+        return data_chain_helpers::indexed_seek<tree_type>(data_chain_, file_.position_index, desired_position);
     }
 
 private:

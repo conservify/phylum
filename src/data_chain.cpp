@@ -35,7 +35,7 @@ int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_
 
     phydebugf("seek done desired=%d position=%d nread=%d", desired_position, position_, nread);
 
-    assert(desired_position == InvalidSector || desired_position == position_);
+    assert(desired_position == UINT32_MAX || desired_position == position_);
 
     return nread;
 }

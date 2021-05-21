@@ -4,6 +4,7 @@
 #include "simple_buffer.h"
 #include "directory.h"
 #include "reader.h"
+#include "helpers.h"
 
 namespace phylum {
 
@@ -36,30 +37,7 @@ public:
 public:
     template <typename tree_type>
     int32_t seek_position(uint32_t desired_position) {
-        int32_t err;
-
-        tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
-
-        uint32_t found_position = 0;
-        uint32_t found_sector = 0;
-
-        position_index.log();
-
-        err = position_index.find_last_less_then(desired_position, &found_sector, &found_position);
-        if (err < 0) {
-            return err;
-        }
-
-        phydebugf("seeking desired=%d found-position=%d found-sector=%d", desired_position, found_position, found_sector);
-
-        assert(desired_position >= found_position);
-
-        err = data_chain_.seek_sector(found_sector, found_position, desired_position);
-        if (err < 0) {
-            return err;
-        }
-
-        return position();
+        return data_chain_helpers::indexed_seek<tree_type>(data_chain_, file_.position_index, desired_position);
     }
 
     template <typename tree_type>
