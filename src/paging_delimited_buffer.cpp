@@ -133,7 +133,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
 
     if (ptr() != nullptr) {
         phyverbosef("page-lock: freeing previous");
-        buffers_->free(ptr());
+        buffers_->free_buffer(ptr());
         ptr(nullptr, 0);
     }
 
@@ -172,7 +172,7 @@ int32_t paging_delimited_buffer::release(dhara_sector_t sector) {
     valid_ = false;
     sector_ = InvalidSector;
     if (ptr() != nullptr) {
-        buffers_->free(ptr());
+        buffers_->free_buffer(ptr());
         ptr(nullptr, 0);
     }
 

@@ -7,7 +7,10 @@
 
 namespace phylum {
 
-using free_fn_t = std::function<void(uint8_t const *)>;
+class free_buffer_callback {
+public:
+    virtual void free_buffer(void const *ptr) = 0;
+};
 
 template<typename PointerType = uint8_t>
 class general_buffer {
@@ -15,7 +18,7 @@ private:
     PointerType *ptr_{ nullptr };
     size_t size_{ 0 };
     size_t position_{ 0 };
-    free_fn_t free_;
+    free_buffer_callback *free_{ nullptr };
 
 public:
     general_buffer() {
@@ -25,10 +28,10 @@ public:
 
     general_buffer(general_buffer &&other)
         : ptr_(std::exchange(other.ptr_, nullptr)), size_(other.size_), position_(other.position_),
-          free_(std::exchange(other.free_, free_fn_t{ nullptr })) {
+          free_(std::exchange(other.free_, nullptr)) {
     }
 
-    explicit general_buffer(PointerType *ptr, size_t size, free_fn_t free) : ptr_(ptr), size_(size), position_(0), free_(free) {
+    explicit general_buffer(PointerType *ptr, size_t size, free_buffer_callback *free) : ptr_(ptr), size_(size), position_(0), free_(free) {
         assert(size > 0);
         clear();
     }
@@ -59,14 +62,14 @@ public:
         ptr_ = std::exchange(other.ptr_, nullptr);
         size_ = other.size_;
         position_ = other.position_;
-        free_ = std::exchange(other.free_, free_fn_t{ nullptr });
+        free_ = std::exchange(other.free_, nullptr);
         return *this;
     }
 
 public:
     void free() {
         if (free_ && ptr_ != nullptr) {
-            free_(ptr_);
+            free_->free_buffer(ptr_);
             ptr_ = nullptr;
         }
     }
@@ -247,7 +250,7 @@ public:
     }
 
     general_buffer<uint8_t const> begin_view() const {
-        return general_buffer<uint8_t const>(ptr_, size_, 0u);
+        return general_buffer<uint8_t const>(ptr_, size_, (size_t)0u);
     }
 
     general_buffer<uint8_t const> end_view() const {

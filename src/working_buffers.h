@@ -8,7 +8,7 @@
 
 namespace phylum {
 
-class working_buffers {
+class working_buffers : free_buffer_callback {
 protected:
     struct page_t {
         uint8_t *buffer{ nullptr };
@@ -343,11 +343,10 @@ public:
         update_highwater();
 
         phyverbosef("wbuffers[%d]: allocate sector=%d hw=%zu", selected, p.sector, highwater_);
-        auto free_fn = std::bind(&working_buffers::free, this, std::placeholders::_1);
-        return simple_buffer{ p.buffer, size, free_fn };
+        return simple_buffer{ p.buffer, size, this };
     }
 
-    void free(uint8_t const *ptr) {
+    void free_buffer(void const *ptr) override {
         assert(ptr != nullptr);
         for (auto i = 0u; i < Size; ++i) {
             auto &p = pages_[i];
