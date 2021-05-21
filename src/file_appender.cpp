@@ -78,7 +78,7 @@ int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_curso
     auto cursor = this->cursor();
     assert(cursor.sector != InvalidSector);
 
-    if (cursor.position == 0 || (data_chain_.visited_sectors() > 0 && data_chain_.visited_sectors() % 16 == 0)) {
+    if (cursor.position == 0 || data_chain_.visited_sectors() > 16) {
         auto err = fn(cursor);
         if (err < 0) {
             return err;
