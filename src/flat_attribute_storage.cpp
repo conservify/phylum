@@ -59,13 +59,7 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
 
     data_chain chain{ pc(), head_tail };
 
-    if (ptr.valid()) {
-        auto err = chain.truncate();
-        if (err < 0) {
-            return err;
-        }
-    }
-    else {
+    if (!ptr.valid()) {
         auto err = chain.create_if_necessary();
         if (err < 0) {
             return err;
@@ -93,7 +87,7 @@ int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_f
         }
     }
 
-    auto err = chain.write(buffer.ptr(), buffer.position());
+    auto err = chain.truncate(buffer.ptr(), buffer.position());
     if (err < 0) {
         return err;
     }

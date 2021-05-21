@@ -114,7 +114,7 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
     logged_task it{ "dc-write", name() };
 
     auto copied = 0u;
-    return write_chain([&](write_buffer buffer, bool &grow) {
+    return write_chain([=, &copied](write_buffer buffer, bool &grow) {
         auto remaining = size - copied;
         auto copying = std::min<int32_t>(buffer.available(), remaining);
         if (copying > 0) {
@@ -126,6 +126,43 @@ int32_t data_chain::write(uint8_t const *data, size_t size) {
         }
         return copying;
     });
+}
+
+int32_t data_chain::truncate(uint8_t const *data, size_t size) {
+    assert(head() != InvalidSector && tail() != InvalidSector);
+
+    sector(head());
+
+    auto lock = db().writing(sector());
+
+    auto err = prepare_sector(lock, InvalidSector, true);
+    if (err < 0) {
+        return err;
+    }
+
+    auto copied = 0u;
+    err = write_chain(lock, [=, &copied](write_buffer buffer, bool &grow) -> int32_t {
+        auto remaining = size - copied;
+        auto copying = std::min<int32_t>(buffer.available(), remaining);
+        if (copying > 0) {
+            memcpy(buffer.cursor(), data + copied, copying);
+            copied += copying;
+        }
+        if (size - copied > 0) {
+            grow = true;
+        }
+        return copying;
+    });
+    if (err < 0) {
+        return err;
+    }
+
+    err = flush(lock);
+    if (err < 0) {
+        return err;
+    }
+
+    return 0;
 }
 
 int32_t data_chain::read_delimiter(uint32_t *delimiter) {
@@ -229,6 +266,15 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
 
     auto page_lock = db().writing(sector());
 
+    auto err = write_chain(page_lock, data_fn);
+    if (err < 0) {
+        return err;
+    }
+
+    return err;
+}
+
+int32_t data_chain::write_chain(page_lock &page_lock, std::function<int32_t(write_buffer, bool&)> data_fn) {
     auto written = 0;
 
     while (true) {

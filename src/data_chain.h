@@ -43,12 +43,15 @@ public:
 
 public:
     int32_t write(uint8_t const *data, size_t size);
+    int32_t truncate(uint8_t const *data, size_t size);
     int32_t read(uint8_t *data, size_t size);
     int32_t read_delimiter(uint32_t *delimiter);
     int32_t seek_sector(dhara_sector_t new_sector, file_size_t position_at_start_of_sector, file_size_t desired_position);
     int32_t skip_bytes(file_size_t bytes);
     int32_t skip_records(record_number_t number_records);
     file_size_t total_bytes();
+
+    using sector_chain::truncate;
 
 public:
     data_chain_cursor cursor() const {
@@ -64,6 +67,8 @@ protected:
     int32_t seek_end_of_buffer(page_lock &page_lock) override;
 
     int32_t write_chain(std::function<int32_t(write_buffer, bool&)> data_fn);
+
+    int32_t write_chain(page_lock &lock, std::function<int32_t(write_buffer, bool&)> data_fn);
 
     int32_t read_chain(std::function<int32_t(read_buffer)> data_fn);
 
