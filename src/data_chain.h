@@ -62,9 +62,9 @@ public:
     }
 
 protected:
-    int32_t write_header(page_lock &page_lock) override;
+    int32_t write_header(page_lock &lock) override;
 
-    int32_t seek_end_of_buffer(page_lock &page_lock) override;
+    int32_t seek_end_of_buffer(page_lock &lock) override;
 
     int32_t write_chain(std::function<int32_t(write_buffer, bool&)> data_fn);
 

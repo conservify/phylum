@@ -3,7 +3,7 @@
 
 namespace phylum {
 
-int32_t data_chain::write_header(page_lock &page_lock) {
+int32_t data_chain::write_header(page_lock &lock) {
     logged_task it{ "dc-write-hdr", name() };
 
     assert_valid();
@@ -14,7 +14,7 @@ int32_t data_chain::write_header(page_lock &page_lock) {
 
     db().terminate();
 
-    page_lock.dirty();
+    lock.dirty();
     appendable(true);
 
     return 0;
@@ -97,7 +97,7 @@ int32_t data_chain::skip_records(record_number_t skipping) {
     return records;
 }
 
-int32_t data_chain::seek_end_of_buffer(page_lock &/*page_lock*/) {
+int32_t data_chain::seek_end_of_buffer(page_lock &/*lock*/) {
     auto err = db().seek_end();
     if (err < 0) {
         return err;
@@ -218,15 +218,15 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
 file_size_t data_chain::total_bytes() {
     logged_task lt{ "total-bytes" };
 
-    auto page_lock = db().reading(head());
+    auto lock = db().reading(head());
 
-    back_to_head(page_lock);
+    back_to_head(lock);
 
     auto bytes = 0u;
     do {
         bytes += db().header<data_chain_header_t>()->bytes;
     }
-    while (forward(page_lock) > 0);
+    while (forward(lock) > 0);
 
     phydebugf("done (%d)", bytes);
 
@@ -239,18 +239,18 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     if (!appendable()) {
         phyverbosef("making appendable");
 
-        auto page_lock = db().writing(head());
+        auto lock = db().writing(head());
 
-        assert(back_to_head(page_lock) >= 0);
+        assert(back_to_head(lock) >= 0);
 
         logged_task lt{ name() };
 
-        auto err = seek_end_of_chain(page_lock);
+        auto err = seek_end_of_chain(lock);
         if (err < 0) {
             return err;
         }
 
-        err = write_header_if_at_start(page_lock);
+        err = write_header_if_at_start(lock);
         if (err < 0) {
             return err;
         }
@@ -264,9 +264,9 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
         appendable(true);
     }
 
-    auto page_lock = db().writing(sector());
+    auto lock = db().writing(sector());
 
-    auto err = write_chain(page_lock, data_fn);
+    auto err = write_chain(lock, data_fn);
     if (err < 0) {
         return err;
     }
@@ -274,7 +274,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     return err;
 }
 
-int32_t data_chain::write_chain(page_lock &page_lock, std::function<int32_t(write_buffer, bool&)> data_fn) {
+int32_t data_chain::write_chain(page_lock &lock, std::function<int32_t(write_buffer, bool&)> data_fn) {
     auto written = 0;
 
     while (true) {
@@ -305,11 +305,11 @@ int32_t data_chain::write_chain(page_lock &page_lock, std::function<int32_t(writ
             return err;
         }
 
-        page_lock.dirty();
+        lock.dirty();
 
         // Grow and write header.
         if (grow) {
-            auto err = grow_tail(page_lock);
+            auto err = grow_tail(lock);
             if (err < 0) {
                 return err;
             }
@@ -323,8 +323,8 @@ int32_t data_chain::write_chain(page_lock &page_lock, std::function<int32_t(writ
     }
 
     // TODO Can we remove this?
-    if (page_lock.is_dirty()) {
-        auto err = page_lock.flush(page_lock.sector());
+    if (lock.is_dirty()) {
+        auto err = lock.flush(lock.sector());
         if (err < 0) {
             return err;
         }
@@ -360,9 +360,9 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
 
     assert_valid();
 
-    auto page_lock = db().reading(sector());
+    auto lock = db().reading(sector());
 
-    auto err = ensure_loaded(page_lock);
+    auto err = ensure_loaded(lock);
     if (err < 0) {
         return err;
     }
@@ -400,7 +400,7 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
             }
         }
 
-        auto err = forward(page_lock);
+        auto err = forward(lock);
         if (err < 0) {
             return err;
         } else if (err == 0) {
