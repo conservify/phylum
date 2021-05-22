@@ -31,6 +31,7 @@ int32_t integer_chain::write_header(page_lock &page_lock) {
 int32_t integer_chain::write(uint32_t const *values, size_t length) {
     logged_task lt{ "ic-write", name() };
 
+    /*
     auto index = 0u;
     return write_chain([&](write_buffer buffer, bool &grow) {
         int32_t written = 0;
@@ -49,11 +50,14 @@ int32_t integer_chain::write(uint32_t const *values, size_t length) {
         }
         return written;
     });
+    */
+    return -1;
 }
 
 int32_t integer_chain::read(uint32_t *values, size_t length) {
     logged_task lt{ "ic-read", name() };
 
+    /*
     int32_t index = 0;
     return read_chain([&](read_buffer buffer) {
         while (index < (int32_t)length && buffer.position() < buffer.size()) {
@@ -71,6 +75,8 @@ int32_t integer_chain::read(uint32_t *values, size_t length) {
         }
         return index;
     });
+    */
+    return -1;
 }
 
 } // namespace phylum

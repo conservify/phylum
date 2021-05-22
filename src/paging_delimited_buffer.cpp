@@ -109,7 +109,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
         return 0;
     }
 
-    auto miss_fn = [=](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
+    auto miss_fn = [this, overwrite](dhara_sector_t page_sector, uint8_t *buffer, size_t size) -> int32_t {
         assert(size > 0);
         if (overwrite) {
             return 0;
@@ -124,7 +124,7 @@ int32_t paging_delimited_buffer::replace(dhara_sector_t sector, bool read_only, 
         return size;
     };
 
-    auto flush_fn = [=](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
+    auto flush_fn = [this](dhara_sector_t page_sector, uint8_t const *buffer, size_t size) {
         assert(size > 0);
         return sectors_->write(page_sector, buffer, size);
     };

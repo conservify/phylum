@@ -37,7 +37,8 @@ TEST_F(CobsFixture, Write_Examples_0) {
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)strlen(test));
@@ -61,7 +62,8 @@ TEST_F(CobsFixture, Write_Examples_1) {
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -81,7 +83,8 @@ TEST_F(CobsFixture, Write_Examples_2) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -101,7 +104,8 @@ TEST_F(CobsFixture, Write_Examples_3) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -121,7 +125,8 @@ TEST_F(CobsFixture, Write_Examples_4) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -141,7 +146,8 @@ TEST_F(CobsFixture, Write_Examples_5) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -173,7 +179,8 @@ TEST_F(CobsFixture, Write_Examples_6) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     memset(actual, 0xff, sizeof(actual));
@@ -209,7 +216,8 @@ TEST_F(CobsFixture, Write_Examples_7) {
 
     ASSERT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     memset(actual, 0xff, sizeof(actual));
@@ -249,7 +257,8 @@ TEST_F(CobsFixture, Write_Examples_8) {
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -284,7 +293,8 @@ TEST_F(CobsFixture, Write_Examples_9) {
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     EXPECT_EQ(reader.read(actual, sizeof(actual)), (int32_t)sizeof(original));
@@ -321,7 +331,8 @@ TEST_F(CobsFixture, Write_Examples_10) {
 
     EXPECT_EQ(memcmp(expected, destination_buffer.ptr(), sizeof(expected)), 0);
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     memset(actual, 0xff, sizeof(actual));
@@ -348,7 +359,8 @@ TEST_F(CobsFixture, Write_MultipleWrites) {
 
     // phydebug_dump_memory("encoded ", destination_buffer.ptr(), destination_buffer.position());
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     bzero(actual, sizeof(actual));
@@ -390,7 +402,8 @@ TEST_F(CobsFixture, Write_MultipleWrites_NullBordered) {
 
     // phydebug_dump_memory("encoded ", destination_buffer.ptr(), destination_buffer.position());
 
-    buffer_reader verifying{ destination_buffer.read_back() };
+    read_buffer buffer = destination_buffer.read_back();
+    buffer_reader verifying{ buffer };
     cobs_reader reader{ &verifying };
     uint8_t actual[1024];
     bzero(actual, sizeof(actual));

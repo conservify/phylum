@@ -134,13 +134,23 @@ protected:
 
     int32_t file_trees(file_id_t id, tree_ptr_t position_index, tree_ptr_t record_index) override;
 
-    int32_t read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) override;
+    int32_t read(file_id_t id, io_writer &writer) override;
 
 private:
-    int32_t flush(std::function<int32_t(dir_node_type *node)> fn);
-
     phyctx pc() {
         return phyctx{ *buffers_, *sectors_, *allocator_ };
+    }
+
+    template<typename FlushFunction>
+    int32_t flush(FlushFunction fn) {
+        assert(file_node_ptr_.node.sector != InvalidSector);
+
+        auto err = tree_.modify_in_place(file_node_ptr_, fn);
+        if (err < 0) {
+            return err;
+        }
+
+        return 0;
     }
 
 };

@@ -132,6 +132,7 @@ public:
     int32_t fill_from_buffer_ptr(uint8_t const *source, size_t size, T flush) {
         auto copied = 0u;
         while (copied < size) {
+            phyverbosef("fill_from_buffer_ptr: size=%d our-size=%d our-position=%d available=%d copied=%d", size, size_, position_, size_ - position_, copied);
             auto copying = std::min<size_t>(size - copied, size_ - position_);
             if (copying > 0) {
                 if (ptr_ != nullptr) {
@@ -144,6 +145,9 @@ public:
                 auto err = flush(*this);
                 if (err < 0) {
                     return err;
+                }
+                if (err == 0) {
+                    break;
                 }
 
                 position_ = 0;

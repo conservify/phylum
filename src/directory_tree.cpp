@@ -222,7 +222,7 @@ int32_t directory_tree::file_trees(file_id_t id, tree_ptr_t position_index, tree
     return 0;
 }
 
-int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> fn) {
+int32_t directory_tree::read(file_id_t id, io_writer &writer) {
     assert(file_.id == id);
 
     dir_node_type node;
@@ -235,23 +235,12 @@ int32_t directory_tree::read(file_id_t id, std::function<int32_t(read_buffer)> f
         return 0;
     }
 
-    err = fn(read_buffer{ node.data, node.u.file.directory_size });
+    err = writer.write(node.data, node.u.file.directory_size);
     if (err < 0) {
         return err;
     }
 
     return err;
-}
-
-int32_t directory_tree::flush(std::function<int32_t(dir_node_type *node)> fn) {
-    assert(file_node_ptr_.node.sector != InvalidSector);
-
-    auto err = tree_.modify_in_place(file_node_ptr_, fn);
-    if (err < 0) {
-        return err;
-    }
-
-    return 0;
 }
 
 } // namespace phylum

@@ -31,7 +31,6 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
             if (err < 0) {
                 return err;
             }
-
             if (err == 0) {
                 break;
             }
@@ -50,15 +49,9 @@ int32_t file_reader::read(uint8_t *data, size_t size) {
     assert(size >= file_.directory_size);
 
     simple_buffer filling{ data, size };
+    buffer_writer writer{ filling };
 
-    auto err = directory_->read(file_.id, [&](read_buffer data_buffer) {
-        auto f = filling.fill_from_buffer(data_buffer, [](simple_buffer &/*rb*/) {
-            phyerrorf("unexpected flush (overflow)");
-            assert(false);
-            return -1;
-        });
-        return f;
-    });
+    auto err = directory_->read(file_.id, writer);
     if (err < 0) {
         return err;
     }

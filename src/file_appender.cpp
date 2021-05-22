@@ -38,9 +38,18 @@ file_size_t file_appender::position() {
 int32_t file_appender::write(uint8_t const *data, size_t size) {
     logged_task lt{ "fa-write" };
 
-    return buffer_.fill_from_buffer_ptr(data, size, [&](simple_buffer &) -> int32_t {
-        return flush();
+    phyverbosef("appender-write: position=%d buffer=%d size=%d", cursor().position, buffer_.position(), size);
+
+    auto wrote = buffer_.fill_from_buffer_ptr(data, size, [&](simple_buffer &) -> int32_t {
+        auto flushing = buffer_.position();
+        auto err = flush();
+        if (err < 0) {
+            return err;
+        }
+        return flushing;
     });
+
+    return wrote;
 }
 
 int32_t file_appender::make_data_chain() {
@@ -51,11 +60,7 @@ int32_t file_appender::make_data_chain() {
         return err;
     }
 
-    err = directory_->read(file_.id, [&](read_buffer data_buffer) -> int32_t {
-        return data_buffer.read_to_end([&](read_buffer rb) -> int32_t {
-            return data_chain_.write(rb.ptr(), rb.size());
-        });
-    });
+    err = directory_->read(file_.id, data_chain_);
     if (err < 0) {
         return err;
     }
@@ -69,23 +74,22 @@ int32_t file_appender::make_data_chain() {
         }
 
         buffer_.clear();
+
+        return err;
     }
 
     return 0;
 }
 
-int32_t file_appender::index_if_necessary(std::function<int32_t(data_chain_cursor)> fn) {
+int32_t file_appender::index_necessary() {
+    // We use the appender cursor so that we don't keep indexing at
+    // the start, while data chain cursor hasn't moved because we're
+    // buffering. This doesn't affect anything.
     auto cursor = this->cursor();
     assert(cursor.sector != InvalidSector);
 
     if (cursor.position == 0 || data_chain_.visited_sectors() > 16) {
-        auto err = fn(cursor);
-        if (err < 0) {
-            return err;
-        }
-
         data_chain_.clear_visited_sectors();
-
         return 1;
     }
 
@@ -161,11 +165,11 @@ int32_t file_appender::flush() {
 
             auto err = make_data_chain();
             if (err < 0) {
-                phyerrorf("mdc failed");
+                phyerrorf("mdc");
                 return err;
             }
 
-            phyinfof("flush making chain done (%d)", buffer_.position());
+            phyinfof("flush making chain done position=%d err=%d", data_chain_.cursor().position, err);
         }
     }
 

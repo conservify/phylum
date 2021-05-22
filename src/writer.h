@@ -31,9 +31,7 @@ public:
 public:
     int32_t write(uint8_t const *data, size_t size) override {
         return buffer_.fill_from_buffer_ptr(data, size, [](simple_buffer&) -> int32_t {
-            phyerrorf("unexpected flush (overflow)");
-            assert(false);
-            return -1;
+            return 0;
         });
     }
 
@@ -50,9 +48,10 @@ public:
 
 public:
     int32_t write(uint8_t const *data, size_t size) override {
-        return buffer_.fill_from_buffer_ptr(data, size, [=](simple_buffer &rb) -> int32_t {
+        auto err = buffer_.fill_from_buffer_ptr(data, size, [=](simple_buffer &rb) -> int32_t {
             return target_->write(rb.ptr(), rb.position());
         });
+        return err;
     }
 
     int32_t flush() {
@@ -62,10 +61,32 @@ public:
 };
 
 class noop_writer : public io_writer {
+private:
+    uint32_t remaining_{ UINT32_MAX };
+
 public:
-    int32_t write(uint8_t const */*data*/, size_t size) override {
-        return size;
+    noop_writer(uint32_t remaining = UINT32_MAX) : remaining_(remaining) {
     }
+
+public:
+    int32_t write(uint8_t const *data, size_t size) override;
+
+};
+
+class varint_decoder : public io_writer {
+private:
+    int32_t width_{ 0 };
+    int32_t bytes_read_{ 0 };
+    uint32_t value_{ 0 };
+    bool done_{ false };
+
+public:
+    uint32_t value() const {
+        return value_;
+    }
+
+public:
+    int32_t write(uint8_t const *data, size_t size) override;
 
 };
 

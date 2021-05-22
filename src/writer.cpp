@@ -2,6 +2,49 @@
 
 namespace phylum {
 
+int32_t noop_writer::write(uint8_t const */*data*/, size_t size) {
+    if (remaining_ == UINT32_MAX) {
+        return size;
+    }
+
+    auto copying = std::min<size_t>(remaining_, size);
+    remaining_ -= copying;
+    return copying;
+}
+
+int32_t varint_decoder::write(uint8_t const *data, size_t size) {
+    auto nread = 0;
+
+    if (done_) {
+        return 0;
+    }
+
+    read_buffer buffer{ data, size };
+    while (true) {
+        uint8_t byte = 0;
+        auto err = buffer.read_byte(&byte);
+        if (err < 0) {
+            return err;
+        }
+        if (err != 1) {
+            return -1;
+        }
+
+        nread++;
+
+        uint32_t ll = byte;
+        value_ += ((ll & 0x7F) << width_);
+        width_ += 7;
+
+        if (!(byte & 0x80)) {
+            done_ = true;
+            break;
+        }
+    }
+
+    return nread;
+}
+
 blake2b_writer::blake2b_writer(io_writer *target) : target_(target) {
     b2b_.reset(HashSize);
 }

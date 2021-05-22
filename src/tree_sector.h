@@ -610,7 +610,8 @@ public:
         return 0;
     }
 
-    int32_t modify_in_place(tree_value_ptr_t value_ptr, std::function<int32_t(VALUE *)> fn) {
+    template<typename ModifyFunction>
+    int32_t modify_in_place(tree_value_ptr_t value_ptr, ModifyFunction fn) {
         auto err = dereference(false, value_ptr.node, [&](page_lock &lock, default_node_type *node) -> int32_t {
             auto value = &node->d.values[value_ptr.index];
 

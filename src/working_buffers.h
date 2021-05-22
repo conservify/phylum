@@ -69,9 +69,6 @@ public:
     }
 
 public:
-    using miss_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
-    using flush_function_t = std::function<int32_t(dhara_sector_t, uint8_t *, size_t)>;
-
     int32_t clear() {
         for (auto i = 0u; i < Size; ++i) {
             if (pages_[i].buffer != nullptr) {
@@ -100,7 +97,8 @@ public:
         return err;
     }
 
-    int32_t flush_sector(dhara_sector_t sector, flush_function_t flush) {
+    template<typename FlushFunction>
+    int32_t flush_sector(dhara_sector_t sector, FlushFunction flush) {
         auto flushed = false;
 
         for (auto i = 0u; i < Size; ++i) {
@@ -140,7 +138,8 @@ public:
         return 0;
     }
 
-    uint8_t *open_sector(dhara_sector_t sector, bool read_only, miss_function_t miss, flush_function_t flush) {
+    template<typename MissFunction, typename FlushFunction>
+    uint8_t *open_sector(dhara_sector_t sector, bool read_only, MissFunction miss, FlushFunction flush) {
         auto selected = -1;
         auto flushing = -1;
 

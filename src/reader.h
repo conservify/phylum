@@ -16,10 +16,10 @@ public:
 
 class buffer_reader : public io_reader {
 private:
-    read_buffer buffer_;
+    read_buffer &buffer_;
 
 public:
-    buffer_reader(read_buffer &&buffer) : buffer_(std::move(buffer)) {
+    buffer_reader(read_buffer &buffer) : buffer_(buffer) {
     }
 
 public:

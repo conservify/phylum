@@ -236,7 +236,7 @@ int32_t directory_chain::seek_file_entry(file_id_t id) {
     });
 }
 
-int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> data_fn) {
+int32_t directory_chain::read(file_id_t id, io_writer &writer) {
     auto copied = 0u;
     auto can_read = false;
 
@@ -251,7 +251,7 @@ int32_t directory_chain::read(file_id_t id, std::function<int32_t(read_buffer)> 
                 phydebugf("%s (copy) id=0x%x bytes=%d size=%d", this->name(), fd->id, fd->size, file_.directory_size);
 
                 auto err = record.read_data<file_data_t>([&](read_buffer data_buffer) {
-                    return data_fn(std::move(data_buffer));
+                    return writer.write(data_buffer.ptr(), data_buffer.size());
                 });
                 if (err < 0) {
                     return err;

@@ -55,46 +55,47 @@ public:
 
     int32_t close();
 
-    int32_t index_if_necessary(std::function<int32_t(data_chain_cursor)> fn);
+    int32_t index_necessary();
 
     template<typename tree_type>
     int32_t index_if_necessary(record_number_t record_number) {
-        int32_t err;
+        auto err = index_necessary();
+        if (err <= 0) {
+            return err;
+        }
 
-        err = index_if_necessary([&](data_chain_cursor cursor) -> int32_t {
-            alogf(LogLevels::INFO, "phylum", "indexing position=%" PRIu32 ", psos=%" PRIu32 " cursor=%" PRIu32,
-                  cursor.position, cursor.position_at_start_of_sector, cursor.sector);
+        auto cursor = this->cursor();
 
-            tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
-            err = position_index.add(cursor.position_at_start_of_sector, cursor.sector);
+        alogf(LogLevels::INFO, "phylum", "indexing position=%" PRIu32 ", psos=%" PRIu32 " cursor=%" PRIu32 " buffer-pos=%zu",
+              cursor.position, cursor.position_at_start_of_sector, cursor.sector, buffer_.position());
+
+        tree_type position_index{ data_chain_.pc(), file_.position_index, "posidx" };
+        err = position_index.add(cursor.position_at_start_of_sector, cursor.sector);
+        if (err < 0) {
+            return err;
+        }
+
+        tree_type record_index{ data_chain_.pc(), file_.record_index, "recidx" };
+        err = record_index.add(record_number, cursor.position);
+        if (err < 0) {
+            return err;
+        }
+
+        auto position_after = position_index.to_tree_ptr();
+        auto record_after = record_index.to_tree_ptr();
+
+        auto position_changed = position_after != file_.position_index;
+        auto record_changed = record_after != file_.record_index;
+
+        // Update tree_ptr_t's because they wander.
+        if (position_changed || record_changed) {
+            auto err = directory_->file_trees(file_.id, position_after, record_after);
             if (err < 0) {
                 return err;
             }
+        }
 
-            tree_type record_index{ data_chain_.pc(), file_.record_index, "recidx" };
-            err = record_index.add(record_number, cursor.position);
-            if (err < 0) {
-                return err;
-            }
-
-            auto position_after = position_index.to_tree_ptr();
-            auto record_after = record_index.to_tree_ptr();
-
-            auto position_changed = position_after != file_.position_index;
-            auto record_changed = record_after != file_.record_index;
-
-            // Update tree_ptr_t's because they wander.
-            if (position_changed || record_changed) {
-                auto err = directory_->file_trees(file_.id, position_after, record_after);
-                if (err < 0) {
-                    return err;
-                }
-            }
-
-            return 0;
-        });
-
-        return err;
+        return 1;
     }
 
     template <typename tree_type>

@@ -27,8 +27,9 @@ int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_
 
     position_ = position_at_start_of_sector;
     position_at_start_of_sector_ = position_at_start_of_sector;
+    auto skipping = desired_position == UINT32_MAX ? desired_position : desired_position - position_;
 
-    auto nread = skip_bytes(desired_position == UINT32_MAX ? desired_position : desired_position - position_);
+    auto nread = skip_bytes(skipping);
     if (nread < 0) {
         return nread;
     }
@@ -45,18 +46,16 @@ int32_t data_chain::seek_sector(dhara_sector_t new_sector, file_size_t position_
 }
 
 int32_t data_chain::skip_bytes(file_size_t bytes) {
+    if (bytes == 0) {
+        return bytes;
+    }
+
     int32_t nread = 0;
 
-    while (true) {
-        auto remaining = MaximumNullReadSize;
-        if (bytes != UINT32_MAX) {
-            remaining = bytes - nread;
-        }
-        if (remaining == 0) {
-            break;
-        }
+    noop_writer dev_null { bytes };
 
-        auto err = read(nullptr, remaining);
+    while (true) {
+        auto err = read_chain(dev_null);
         if (err < 0) {
             return err;
         }
@@ -117,19 +116,9 @@ int32_t data_chain::seek_end_of_buffer(page_lock &/*lock*/) {
 int32_t data_chain::write(uint8_t const *data, size_t size) {
     logged_task it{ "dc-write", name() };
 
-    auto copied = 0u;
-    return write_chain([=, &copied](write_buffer buffer, bool &grow) {
-        auto remaining = size - copied;
-        auto copying = std::min<int32_t>(buffer.available(), remaining);
-        if (copying > 0) {
-            memcpy(buffer.cursor(), data + copied, copying);
-            copied += copying;
-        }
-        if (size - copied > 0) {
-            grow = true;
-        }
-        return copying;
-    });
+    read_buffer buffer{ data, size };
+    buffer_reader reader{ buffer };
+    return write_chain(reader);
 }
 
 int32_t data_chain::truncate(uint8_t const *data, size_t size) {
@@ -144,19 +133,9 @@ int32_t data_chain::truncate(uint8_t const *data, size_t size) {
         return err;
     }
 
-    auto copied = 0u;
-    err = write_chain(lock, [=, &copied](write_buffer buffer, bool &grow) -> int32_t {
-        auto remaining = size - copied;
-        auto copying = std::min<int32_t>(buffer.available(), remaining);
-        if (copying > 0) {
-            memcpy(buffer.cursor(), data + copied, copying);
-            copied += copying;
-        }
-        if (size - copied > 0) {
-            grow = true;
-        }
-        return copying;
-    });
+    read_buffer buffer{ data, size };
+    buffer_reader reader{ buffer };
+    err = write_chain(lock, reader);
     if (err < 0) {
         return err;
     }
@@ -172,40 +151,19 @@ int32_t data_chain::truncate(uint8_t const *data, size_t size) {
 int32_t data_chain::read_delimiter(uint32_t *delimiter) {
     assert(delimiter != nullptr);
 
-    logged_task lt{ "dc-read", name() };
+    logged_task lt{ "dc-read-delim", name() };
 
     assert_valid();
 
-    *delimiter = 0;
+    varint_decoder decoder;
+    auto err = read_chain(decoder);
+    if (err < 0) {
+        return err;
+    }
 
-    int32_t bits = 0;
-    int32_t nread = 0;
+    *delimiter = decoder.value();
 
-    return read_chain([&](read_buffer view) -> int32_t {
-        uint8_t byte;
-
-        while (true) {
-            auto err = view.read_byte(&byte);
-            if (err < 0) {
-                return err;
-            }
-            if (err != 1) {
-                return -1;
-            }
-
-            nread++;
-
-            uint32_t ll = byte;
-            *delimiter += ((ll & 0x7F) << bits);
-            bits += 7;
-
-            if (!(byte & 0x80)) {
-                break;
-            }
-        }
-
-        return nread;
-    });
+    return err;
 }
 
 int32_t data_chain::read(uint8_t *data, size_t size) {
@@ -213,10 +171,9 @@ int32_t data_chain::read(uint8_t *data, size_t size) {
 
     assert_valid();
 
-    simple_buffer reading_into{ data, size };
-    return read_chain([&](read_buffer view) {
-        return reading_into.copy_from(view);
-    });
+    write_buffer buffer{ data, size };
+    buffer_writer writer{ buffer };
+    return read_chain(writer);
 }
 
 file_size_t data_chain::total_bytes() {
@@ -237,7 +194,7 @@ file_size_t data_chain::total_bytes() {
     return bytes;
 }
 
-int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> data_fn) {
+int32_t data_chain::write_chain(io_reader &reader) {
     logged_task lt{ "write-data-chain" };
 
     if (!appendable()) {
@@ -270,7 +227,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
 
     auto lock = db().writing(sector());
 
-    auto err = write_chain(lock, data_fn);
+    auto err = write_chain(lock, reader);
     if (err < 0) {
         return err;
     }
@@ -278,7 +235,7 @@ int32_t data_chain::write_chain(std::function<int32_t(write_buffer, bool &)> dat
     return err;
 }
 
-int32_t data_chain::write_chain(page_lock &lock, std::function<int32_t(write_buffer, bool&)> data_fn) {
+int32_t data_chain::write_chain(page_lock &lock, io_reader &reader) {
     auto written = 0;
 
     while (true) {
@@ -286,24 +243,28 @@ int32_t data_chain::write_chain(page_lock &lock, std::function<int32_t(write_buf
 
         auto grow = false;
         auto err = db().write_view([&](write_buffer wb) {
-            auto err = data_fn(std::move(wb), grow);
-            if (err < 0) {
-                return err;
+            auto bytes_read = reader.read(wb.cursor(), wb.available());
+            if (bytes_read < 0) {
+                return bytes_read;
             }
 
             // Do this before we grow so the details are saved.
-            assert(db().write_header<data_chain_header_t>([&](data_chain_header_t *header) {
-                assert(header->bytes + err <= (int32_t)sector_size());
-                header->bytes += err;
+            auto err = db().write_header<data_chain_header_t>([&](data_chain_header_t *header) {
+                assert(header->bytes + bytes_read <= (int32_t)sector_size());
+                header->bytes += bytes_read;
                 return 0;
-            }) == 0);
+            });
+            assert(err == 0);
 
-            written += err;
-            position_ += err;
+            written += bytes_read;
+            position_ += bytes_read;
 
-            db().skip(err); // TODO Remove
+            db().skip(bytes_read); // TODO Remove
 
-            return err;
+            if ((int32_t)wb.available() == bytes_read) {
+                grow = true;
+            }
+            return bytes_read;
         });
         if (err < 0) {
             return err;
@@ -353,13 +314,13 @@ int32_t data_chain::constrain() {
      */
     auto minimum = 2 + sizeof(data_chain_header_t) + 1;
     if (db().position() < minimum) {
-        phydebugf("constrain skipping to minimum position=%d", minimum);
+        phydebugf("constraining to minimum position=%d", minimum);
         db().position(minimum);
     }
     return 0;
 }
 
-int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
+int32_t data_chain::read_chain(io_writer &writer) {
     logged_task lt{ "read-data-chain", name() };
 
     assert_valid();
@@ -390,9 +351,11 @@ int32_t data_chain::read_chain(std::function<int32_t(read_buffer)> data_fn) {
 
         // If we have data available.
         if (db().available() > 0) {
-            phyverbosef("view position=%zu available=%zu", db().position(), db().available());
+            auto read_buffer = db().to_read_buffer();
 
-            auto err = data_fn(db().to_read_buffer());
+            phyverbosef("view position=%zu available=%zu readable=%d", db().position(), db().available(), read_buffer.available());
+
+            auto err = writer.write(read_buffer.cursor(), read_buffer.available());
             if (err < 0) {
                 return err;
             }
