@@ -239,8 +239,10 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttribute) {
 
         auto hello = "Hello, world! How are you!";
 
+        attributes_helper attributes{ this->file_cfg() };
+
         for (auto i = 0u; i < 3; ++i) {
-            opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
+            attributes.u32(ATTRIBUTE_ONE, attributes.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(hello), 0);
             ASSERT_GE(opened.flush(), 0);
         }
@@ -263,9 +265,11 @@ TYPED_TEST(WriteFixture, WriteAndIncrementAttributeThreeTimes) {
 
         auto hello = "Hello, world! How are you!";
 
+        attributes_helper attributes{ this->file_cfg() };
+
         for (auto i = 0u; i < 3; ++i) {
             file_appender opened{ memory.pc(), &dir, dir.open() };
-            opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
+            attributes.u32(ATTRIBUTE_ONE, attributes.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(hello), 0);
             ASSERT_GE(opened.flush(), 0);
             ASSERT_GE(opened.close(), 0);
@@ -285,12 +289,14 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
 
         auto hello = "Hello, world! How are you!";
 
+        attributes_helper attributes{ this->file_cfg() };
+
         ASSERT_EQ(dir.find("data.txt", this->file_cfg()), 1);
         for (auto i = 0u; i < 3; ++i) {
             phydebugf("opening now");
 
             file_appender opened{ memory.pc(), &dir, dir.open() };
-            opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
+            attributes.u32(ATTRIBUTE_ONE, attributes.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(hello), 0);
             ASSERT_GE(opened.close(), 0);
         }
@@ -300,7 +306,7 @@ TYPED_TEST(WriteFixture, WriteToDataChainAndIncrementAttributeThreeTimes) {
             phydebugf("opening again");
 
             file_appender opened{ memory.pc(), &dir, dir.open() };
-            opened.u32(ATTRIBUTE_ONE, opened.u32(ATTRIBUTE_ONE) + 1);
+            attributes.u32(ATTRIBUTE_ONE, attributes.u32(ATTRIBUTE_ONE) + 1);
             ASSERT_GT(opened.write(lorem1k, memory.sector_size() / 2 + 8), 0);
             ASSERT_GE(opened.close(), 0);
         }

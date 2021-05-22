@@ -182,3 +182,42 @@ public:
     suppress_logs() : temporary_log_level(LogLevels::NONE) {
     }
 };
+
+class attributes_helper {
+private:
+    open_file_config file_cfg_;
+
+public:
+    attributes_helper(open_file_config file_cfg) : file_cfg_(file_cfg) {
+    }
+
+public:
+    uint32_t u32(uint8_t type) {
+        assert(file_cfg_.nattrs > 0);
+        for (auto i = 0u; i < file_cfg_.nattrs; ++i) {
+            auto &attr = file_cfg_.attributes[i];
+            if (attr.type == type) {
+                assert(sizeof(uint32_t) == attr.size);
+                return *(uint32_t *)attr.ptr;
+            }
+        }
+        assert(false);
+        return 0;
+    }
+
+    void u32(uint8_t type, uint32_t value) {
+        assert(file_cfg_.nattrs > 0);
+        for (auto i = 0u; i < file_cfg_.nattrs; ++i) {
+            auto &attr = file_cfg_.attributes[i];
+            if (attr.type == type) {
+                assert(sizeof(uint32_t) == attr.size);
+                if (*(uint32_t *)attr.ptr != value) {
+                    *(uint32_t *)attr.ptr = value;
+                    attr.dirty = true;
+                }
+                return;
+            }
+        }
+        assert(false);
+    }
+};

@@ -197,35 +197,6 @@ int32_t file_appender::flush() {
     return 0;
 }
 
-uint32_t file_appender::u32(uint8_t type) {
-    assert(file_.cfg.nattrs > 0);
-    for (auto i = 0u; i < file_.cfg.nattrs; ++i) {
-        auto &attr = file_.cfg.attributes[i];
-        if (attr.type == type) {
-            assert(sizeof(uint32_t) == attr.size);
-            return *(uint32_t *)attr.ptr;
-        }
-    }
-    assert(false);
-    return 0;
-}
-
-void file_appender::u32(uint8_t type, uint32_t value) {
-    assert(file_.cfg.nattrs > 0);
-    for (auto i = 0u; i < file_.cfg.nattrs; ++i) {
-        auto &attr = file_.cfg.attributes[i];
-        if (attr.type == type) {
-            assert(sizeof(uint32_t) == attr.size);
-            if (*(uint32_t *)attr.ptr != value) {
-                *(uint32_t *)attr.ptr = value;
-                attr.dirty = true;
-            }
-            return;
-        }
-    }
-    assert(false);
-}
-
 int32_t file_appender::close() {
     logged_task lt{ "fa-close" };
 

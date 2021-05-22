@@ -30,8 +30,6 @@ public:
 
     int32_t read(size_t size) override;
 
-    uint32_t u32(uint8_t type);
-
     int32_t close();
 
 public:

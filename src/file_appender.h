@@ -47,10 +47,6 @@ public:
 
     using io_writer::write;
 
-    uint32_t u32(uint8_t type);
-
-    void u32(uint8_t type, uint32_t value);
-
     int32_t flush();
 
     int32_t close();
