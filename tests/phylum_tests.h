@@ -53,7 +53,9 @@ private:
     size_t sector_size_;
     malloc_working_buffers buffers_{ sector_size_ };
     memory_flash_memory memory_{ sector_size_ };
-    dhara_sector_map sectors_{ buffers_, memory_ };
+    // noop_page_cache page_cache_;
+    simple_page_cache page_cache_{ buffers_.allocate(sector_size_) };
+    dhara_sector_map sectors_{ buffers_, memory_, &page_cache_ };
     test_sector_allocator allocator_{ sectors_ };
     bool formatted_{ false };
     bool initialized_{ false };
@@ -64,6 +66,7 @@ public:
 
     virtual ~FlashMemory() {
         phydebugf("flash::dtor sector-size=%d sector-map-size=%d", sector_size_, sectors_.size());
+        page_cache_.debug();
     }
 
 public:
