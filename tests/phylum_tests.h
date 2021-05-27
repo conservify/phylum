@@ -62,6 +62,10 @@ public:
     FlashMemory(size_t sector_size) : sector_size_(sector_size) {
     }
 
+    virtual ~FlashMemory() {
+        phydebugf("flash::dtor sector-size=%d sector-map-size=%d", sector_size_, sectors_.size());
+    }
+
 public:
     size_t sector_size() const {
         return sector_size_;
