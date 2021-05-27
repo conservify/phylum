@@ -20,6 +20,10 @@ struct layout_256 {
     size_t sector_size{ 256 };
 };
 
+struct layout_2048 {
+    size_t sector_size{ 2048 };
+};
+
 struct layout_4096 {
     size_t sector_size{ 4096 };
 };
