@@ -9,7 +9,8 @@ struct attribute_header_t {
     uint8_t reserved[2] = { 0xff, 0xff };
 };
 
-flat_attribute_storage::flat_attribute_storage(phyctx pc) : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_) {
+flat_attribute_storage::flat_attribute_storage(phyctx pc)
+    : buffers_(&pc.buffers_), sectors_(&pc.sectors_), allocator_(&pc.allocator_) {
 }
 
 int32_t flat_attribute_storage::read(tree_ptr_t &ptr, file_id_t /*id*/, open_file_config file_cfg) {
@@ -32,6 +33,7 @@ int32_t flat_attribute_storage::read(tree_ptr_t &ptr, file_id_t /*id*/, open_fil
 
         phydebugf("attribute: type=%d size=%d", header.type, header.size);
 
+        bool found = false;
         for (auto i = 0u; i < file_cfg.nattrs; ++i) {
             auto &attr = file_cfg.attributes[i];
             if (attr.type == header.type) {
@@ -40,14 +42,20 @@ int32_t flat_attribute_storage::read(tree_ptr_t &ptr, file_id_t /*id*/, open_fil
                 if (err < 0) {
                     return err;
                 }
+                found = true;
             }
+        }
+        if (!found) {
+            phywarnf("attribute(unknown): type=%d size=%d", header.type, header.size);
+            break;
         }
     }
 
     return 0;
 }
 
-int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_file_attribute *attributes, size_t nattrs) {
+int32_t flat_attribute_storage::update(tree_ptr_t &ptr, file_id_t /*id*/, open_file_attribute *attributes,
+                                       size_t nattrs) {
     auto attribute_size = 0u;
     for (auto i = 0u; i < nattrs; ++i) {
         attribute_size += attributes[i].size;
